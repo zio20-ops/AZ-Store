@@ -1,0 +1,50 @@
+import puppeteer from 'puppeteer-core';
+const EXEC = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const BASE = process.env.BASE_URL || 'http://localhost:5173';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const setVal = (label, val) => page.evaluate((l, v) => {
+  const el = document.querySelector(`[aria-label="${l}"]`);
+  if (!el) return false;
+  const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+  Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v);
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  return true;
+}, label, val);
+
+const browser = await puppeteer.launch({ executablePath: EXEC, headless: 'new', args: ['--no-sandbox', '--hide-scrollbars'] });
+const page = await browser.newPage();
+await page.setViewport({ width: 1440, height: 900 });
+const errors = [];
+page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+
+await page.goto(BASE + '/product/black-kiss', { waitUntil: 'networkidle0' });
+await page.evaluate(() => localStorage.clear());
+await page.goto(BASE + '/product/black-kiss', { waitUntil: 'networkidle0' });
+await sleep(400);
+await page.evaluate(() => document.querySelectorAll('.pdp__buy .btn--primary')[0].click());
+await sleep(400);
+await page.goto(BASE + '/checkout', { waitUntil: 'networkidle0' });
+await sleep(400);
+await setVal('Full name', 'Ziad Test');
+await setVal('Phone number', '01012345678');
+await setVal('Email address', 'ziad@example.com');
+await page.evaluate(() => {
+  const gov = document.querySelector('select[aria-label="Governorate"]');
+  Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(gov, gov.options[3].value);
+  gov.dispatchEvent(new Event('change', { bubbles: true }));
+});
+await setVal('City', 'Cairo');
+await setVal('Full address', '12 Tahrir Street');
+await page.evaluate(() => [...document.querySelectorAll('.opt')].find((o) => /vodafone/i.test(o.textContent)).click());
+await sleep(300);
+await setVal('Transaction reference number', 'TX-987654');
+await sleep(200);
+await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => /place order/i.test(b.textContent)).click());
+await sleep(1000);
+await page.screenshot({ path: 'shots/final-confirmation.png', fullPage: true });
+console.log('confirmation url:', page.url());
+console.log('note present:', await page.evaluate(() => !!document.querySelector('.confirm__note')));
+console.log('errors:', errors.length ? errors : 'none');
+await browser.close();
