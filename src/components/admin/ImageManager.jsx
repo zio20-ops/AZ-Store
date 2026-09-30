@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 
-const MAX_SIDE = 1000;
+// Product photos live inside Firestore documents in this Spark-plan setup.
+const MAX_SIDE = 640;
 
 export const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {
@@ -19,7 +20,7 @@ export const fileToDataUrl = (file) =>
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
+        resolve(canvas.toDataURL('image/jpeg', 0.62));
       };
       img.src = reader.result;
     };
@@ -105,7 +106,7 @@ export default function ImageManager({ images, onChange, onError, altBase = 'pro
         }}
       />
       <p className="hint" style={{ marginTop: 8, fontSize: 12, color: 'rgba(244,234,217,0.45)' }}>
-        The first image is the main image customers see. Uploads are previewed here before saving.
+        The first image is the main image customers see. Images are resized to fit the store database limit.
       </p>
     </div>
   );

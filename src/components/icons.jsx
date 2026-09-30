@@ -22,8 +22,15 @@ export const SearchIcon = () => (
 
 export const BagIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-    <path d="M6 8h12l-1 12a1.5 1.5 0 0 1-1.5 1.4h-7A1.5 1.5 0 0 1 7 20L6 8z" />
-    <path d="M9 10V6a3 3 0 0 1 6 0v4" />
+    <path d="M5.5 8.5h13l-1 11.2a1.5 1.5 0 0 1-1.5 1.3H8a1.5 1.5 0 0 1-1.5-1.3l-1-11.2z" />
+    <path d="M9 9V6.5a3 3 0 0 1 6 0V9" />
+  </svg>
+);
+
+export const AccountIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    <circle cx="12" cy="8" r="3.4" />
+    <path d="M5.3 20a6.7 6.7 0 0 1 13.4 0" strokeLinecap="round" />
   </svg>
 );
 

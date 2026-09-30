@@ -12,7 +12,6 @@ import ProductDetails from './pages/ProductDetails.jsx';
 import CartPage from './pages/CartPage.jsx';
 import Checkout from './pages/Checkout.jsx';
 import OrderConfirmation from './pages/OrderConfirmation.jsx';
-import TrackOrder from './pages/TrackOrder.jsx';
 import About from './pages/About.jsx';
 import Contact from './pages/Contact.jsx';
 import Faq from './pages/Faq.jsx';
@@ -28,6 +27,7 @@ import AdminCategories from './pages/admin/Categories.jsx';
 import AdminInventory from './pages/admin/Inventory.jsx';
 import AdminCustomers from './pages/admin/Customers.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
+import Account from './pages/Account.jsx';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -74,7 +74,9 @@ export default function App() {
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/track-order" element={<TrackOrder />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/account/login" element={<Account />} />
+          <Route path="/account/signup" element={<Account />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<Faq />} />

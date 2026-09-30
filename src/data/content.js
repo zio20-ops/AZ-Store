@@ -49,15 +49,11 @@ export const FAQS = [
   },
   {
     q: 'What payment methods do you accept?',
-    a: 'Cash on delivery, Visa and Mastercard, Vodafone Cash and InstaPay. Card payments are processed by our PCI-compliant payment partner — we never see or store your card details.',
+    a: 'Available methods appear during checkout. The store can accept cash on delivery or enable manual InstaPay and Vodafone Cash transfers. For transfers, pay the displayed destination and enter your transfer reference; the store verifies it manually. Card payments are not available yet.',
   },
   {
     q: 'Can I return a product?',
     a: 'Unopened products can be returned within 14 days of delivery for a full refund. If your order arrived damaged or incorrect, contact us within 48 hours and we will replace it right away.',
-  },
-  {
-    q: 'How can I track my order?',
-    a: 'Use the Track order page with your order number (for example AZ-2609-1001) and the phone number you checked out with. You will see every step from order received to delivered.',
   },
   {
     q: 'Are your products authentic?',
@@ -70,12 +66,12 @@ export const FAQS = [
 ];
 
 export const CONTACT_INFO = [
-  { label: 'Phone', value: '+20 100 000 0000', href: 'tel:+201000000000' },
-  { label: 'Email', value: 'care@az-store.eg', href: 'mailto:care@az-store.eg' },
+  { label: 'Phone', value: '+20 155 293 5950', href: 'tel:+201552935950' },
+  { label: 'Email', value: 'azstore700@gmail.com', href: 'mailto:azstore700@gmail.com' },
   { label: 'Instagram', value: '@az.store', href: 'https://instagram.com' },
   { label: 'Facebook', value: 'AZ Store', href: 'https://facebook.com' },
   { label: 'TikTok', value: '@az.store', href: 'https://tiktok.com' },
-  { label: 'WhatsApp', value: '+20 100 000 0000', href: 'https://wa.me/201000000000' },
+  { label: 'WhatsApp', value: '+20 155 293 5950', href: 'https://wa.me/201552935950' },
 ];
 
 export const FOOTER_COLUMNS = [
@@ -96,7 +92,6 @@ export const FOOTER_COLUMNS = [
       { label: 'Shipping & Delivery', to: '/faq' },
       { label: 'Returns & Refunds', to: '/faq' },
       { label: 'FAQ', to: '/faq' },
-      { label: 'Track order', to: '/track-order' },
     ],
   },
   {
@@ -109,8 +104,6 @@ export const FOOTER_COLUMNS = [
   },
 ];
 
-export const VODAFONE_CASH_NUMBER = '[YOUR VODAFONE CASH NUMBER]';
-export const INSTAPAY_ACCOUNT = '[YOUR INSTAPAY ACCOUNT]';
 
 export const ORDER_STEPS = [
   'Order Received',

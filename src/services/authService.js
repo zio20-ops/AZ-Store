@@ -1,108 +1,85 @@
-// Mock admin authentication for local development.
-//
-// This module is the ONLY place that knows about admin credentials, and it never
-// stores a plaintext password: the demo password is kept as a SHA-256 digest and
-// sessions are random tokens with an expiry, never the password itself.
-//
-// Swap this file for a real backend without touching the pages:
-//   POST /api/admin/login   { email, password, remember }  -> sets http-only cookie
-//   POST /api/admin/logout
-//   GET  /api/admin/me                                     -> current session or 401
-// Production must add: server-side password hashing (bcrypt/argon2), http-only
-// secure cookies, server-side authorization on every /api/admin/* endpoint,
-// session expiration and rate limiting on login attempts.
+import { ADMIN_EMAIL, firebaseConfig } from './firebaseConfig.js';
+import { clearAuth, createAdminAccount, createAccount, readAuth, saveAuth, sendPasswordReset, signIn, signInWithGoogleCredential } from './firebaseRest.js';
+import { initializeCatalog } from './productService.js';
+export { ADMIN_EMAIL } from './firebaseConfig.js';
 
-import { readStorage, writeStorage } from '../utils/format.js';
-
-const SESSION_KEY = 'az.admin.session';
-const ATTEMPTS_KEY = 'az.admin.attempts';
-
-export const DEMO_EMAIL = 'admin@azstore.eg';
-export const DEMO_PASSWORD = 'AZ-admin!2026';
-const DEMO_PASSWORD_SHA256 = 'a9a7637a4f3b2f391e733a6f769e07cbfd1b6ad7abf266bcd371c86259242c99';
-
-const MAX_ATTEMPTS = 5;
-const LOCK_MS = 60_000;
-const REMEMBER_MS = 7 * 24 * 60 * 60_000;
-const SESSION_MS = 4 * 60 * 60_000;
-
-const sha256 = async (text) => {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-};
-
-const readSessionRaw = () => {
-  const local = readStorage(SESSION_KEY, null);
-  if (local) return local;
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
-
-const clearSession = () => {
-  try {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
-  } catch {
-    /* storage unavailable */
-  }
-};
-
-// Synchronous session check used by route guards.
 export const me = () => {
-  const session = readSessionRaw();
-  if (!session || !session.expiresAt || Date.now() > session.expiresAt) {
-    if (session) clearSession();
-    return null;
-  }
-  return { email: session.email, name: session.name, expiresAt: session.expiresAt };
+  const session = getCurrentUser();
+  if (!session || (session.email || '').toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return null;
+  return { ...session, name: 'AZ Administrator' };
 };
 
-export const logout = () => {
-  clearSession();
-  return Promise.resolve({ ok: true });
+export const getCurrentUser = () => {
+  const session = readAuth();
+  if (!session?.idToken || !session.refreshToken) return null;
+  return { uid: session.uid, email: session.email, name: session.displayName || session.email, emailVerified: Boolean(session.emailVerified), providerId: session.providerId || 'password' };
+};
+
+const cacheSession = (result, remember) => {
+  saveAuth({ uid: result.localId, email: result.email, displayName: result.displayName || '', emailVerified: result.emailVerified, providerId: result.providerId || 'password', idToken: result.idToken, refreshToken: result.refreshToken, expiresAt: Date.now() + Number(result.expiresIn) * 1000, remember }, remember);
+  window.dispatchEvent(new Event('az-auth-changed'));
+};
+
+export const logout = async () => { clearAuth(); window.dispatchEvent(new Event('az-auth-changed')); return { ok: true }; };
+
+const ensureVerified = async (result) => {
+  if (result.emailVerified) return true;
+  await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseConfig.apiKey}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: result.idToken }),
+  }).catch(() => {});
+  throw new Error('راجع بريدك الإلكتروني واضغط رابط التأكيد قبل تسجيل الدخول.');
+};
+
+export const registerCustomer = async ({ name, email, password }) => {
+  try { await createAccount(email.trim(), password, name); return { ok: true }; }
+  catch (error) { return { ok: false, message: error.message }; }
+};
+
+export const loginCustomer = async (email, password, remember = true) => {
+  try { const result = await signIn(email.trim(), password); await ensureVerified(result); cacheSession(result, remember); return { ok: true, user: getCurrentUser() }; }
+  catch (error) { return { ok: false, message: error.message }; }
+};
+
+export const loginWithGoogle = async (credential, remember = true) => {
+  try { const result = await signInWithGoogleCredential(credential); cacheSession({ ...result, emailVerified: true, providerId: 'google.com' }, remember); return { ok: true, user: getCurrentUser() }; }
+  catch (error) { return { ok: false, message: error.message }; }
+};
+
+export const loginAdminWithGoogle = async (credential, remember = true) => {
+  try {
+    const result = await signInWithGoogleCredential(credential);
+    if (result.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return { ok: false, message: 'Sign in with the authorized store administrator Google account.' };
+    if (result.emailVerified !== true) return { ok: false, message: 'The administrator Google email must be verified.' };
+    cacheSession({ ...result, providerId: 'google.com' }, remember);
+    await initializeCatalog();
+    return { ok: true, session: me() };
+  } catch (error) { return { ok: false, message: error.message }; }
+};
+
+export const register = async (email, password) => {
+  if ((email || '').trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return { ok: false, message: 'هذا البريد غير مصرح له بإنشاء حساب الأدمن.' };
+  try { await createAdminAccount(email.trim(), password); return { ok: true }; }
+  catch (error) { return { ok: false, message: error.message }; }
+};
+
+export const resetPassword = async (email) => {
+  if ((email || '').trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return { ok: false, message: 'اكتب بريد الأدمن المسجل.' };
+  try { await sendPasswordReset(email.trim()); return { ok: true }; }
+  catch (error) { return { ok: false, message: error.message }; }
+};
+
+export const resetCustomerPassword = async (email) => {
+  try { await sendPasswordReset(email.trim()); return { ok: true }; }
+  catch (error) { return { ok: false, message: error.message }; }
 };
 
 export const login = async (email, password, remember = false) => {
-  const attempts = readStorage(ATTEMPTS_KEY, { count: 0, lockedUntil: 0 });
-  if (attempts.lockedUntil && Date.now() < attempts.lockedUntil) {
-    const secs = Math.ceil((attempts.lockedUntil - Date.now()) / 1000);
-    return { ok: false, message: `Too many attempts. Try again in ${secs}s.` };
-  }
-
-  // Simulated network round-trip to the future POST /api/admin/login.
-  await new Promise((r) => setTimeout(r, 350));
-
-  const digest = await sha256(password || '');
-  const valid = (email || '').trim().toLowerCase() === DEMO_EMAIL && digest === DEMO_PASSWORD_SHA256;
-
-  if (!valid) {
-    const count = (attempts.count || 0) + 1;
-    const locked = count >= MAX_ATTEMPTS;
-    writeStorage(ATTEMPTS_KEY, { count: locked ? 0 : count, lockedUntil: locked ? Date.now() + LOCK_MS : 0 });
-    return {
-      ok: false,
-      message: locked
-        ? 'Too many attempts. Try again in 60s.'
-        : `Invalid email or password. ${MAX_ATTEMPTS - count} tries left.`,
-    };
-  }
-
-  writeStorage(ATTEMPTS_KEY, { count: 0, lockedUntil: 0 });
-  const session = {
-    token: crypto.randomUUID(),
-    email: DEMO_EMAIL,
-    name: 'AZ Administrator',
-    expiresAt: Date.now() + (remember ? REMEMBER_MS : SESSION_MS),
-  };
+  if ((email || '').trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return { ok: false, message: 'هذا البريد غير مصرح له بإدارة المتجر.' };
   try {
-    if (remember) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    else sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } catch {
-    return { ok: false, message: 'Unable to start a session on this device.' };
-  }
-  return { ok: true, session: me() };
+    const result = await signIn(email.trim(), password);
+    await ensureVerified(result);
+    cacheSession(result, remember);
+    await initializeCatalog();
+    return { ok: true, session: me() };
+  } catch (error) { return { ok: false, message: error.message }; }
 };

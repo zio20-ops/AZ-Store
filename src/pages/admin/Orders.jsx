@@ -20,19 +20,19 @@ export default function Orders() {
     return !o.cancelled && o.status === Number(filter);
   });
 
-  const setStatus = (order, value) => {
+  const setStatus = async (order, value) => {
     if (value === 'cancelled') {
-      updateOrder(order.id, { cancelled: true });
-      toast(`Order ${order.id} cancelled.`);
+      try { await updateOrder(order.id, { cancelled: true }); toast(`Order ${order.id} cancelled.`); }
+      catch (error) { toast(error.message || 'Could not update this order.'); }
       return;
     }
-    updateOrder(order.id, { cancelled: false, status: Number(value) });
-    toast('Order status updated.');
+    try { await updateOrder(order.id, { cancelled: false, status: Number(value) }); toast('Order status updated.'); }
+    catch (error) { toast(error.message || 'Could not update this order.'); }
   };
 
-  const setPayment = (order, value) => {
-    updateOrder(order.id, { paymentStatus: value });
-    toast(value === 'Paid' ? `Payment for ${order.id} marked as paid.` : `Payment status: ${value}.`);
+  const setPayment = async (order, value) => {
+    try { await updateOrder(order.id, { paymentStatus: value }); toast(value === 'Paid' ? `Payment for ${order.id} marked as paid.` : `Payment status: ${value}.`); }
+    catch (error) { toast(error.message || 'Could not update payment status.'); }
   };
 
   return (

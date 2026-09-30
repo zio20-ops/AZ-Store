@@ -6,12 +6,12 @@ import { ORDER_STEPS } from '../data/content.js';
 
 export default function OrderConfirmation() {
   useSeo('Thank you for your order | AZ Store', 'Your AZ order has been received.');
-  const { orders } = useStore();
+  const { lastOrder } = useStore();
   const location = useLocation();
   const [params] = useSearchParams();
 
   const id = location.state?.id || params.get('order');
-  const order = orders.find((o) => o.id === id) || orders[0];
+  const order = location.state?.order || (lastOrder?.id === id ? lastOrder : null);
 
   if (!order) {
     return (
@@ -30,7 +30,7 @@ export default function OrderConfirmation() {
       <div className="cohead">
         <Link to="/" className="logo" aria-label="AZ Store home">AZ</Link>
         <span>Order {order.id}</span>
-        <Link to="/track-order">Track order</Link>
+          <Link to="/contact">Need help?</Link>
       </div>
 
       <div className="confirm">
@@ -61,7 +61,6 @@ export default function OrderConfirmation() {
 
         <div className="confirm__actions">
           <Link className="btn btn--dark" to="/shop">Continue shopping</Link>
-          <Link className="btn" to={`/track-order?order=${order.id}`}>Track order</Link>
         </div>
       </div>
     </>

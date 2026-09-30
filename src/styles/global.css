@@ -132,12 +132,30 @@ textarea.field { resize: vertical; min-height: 90px; }
 }
 .header__in { display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; gap: 20px; }
 .logo { font: 400 30px/1 var(--disp); letter-spacing: 0.08em; }
+.logo--header {
+  position: relative; display: grid; place-items: center; flex: 0 0 auto;
+  width: 52px; height: 48px; color: #2a1607;
+  font: 600 22px/1 var(--disp); letter-spacing: 0.035em;
+  background: linear-gradient(145deg, #f6d68f 0%, #d7a64d 50%, #bc8134 100%);
+  border: 1px solid rgba(255, 230, 174, 0.88);
+  border-radius: 16px 13px 17px 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -2px 4px rgba(83,48,12,.16), 0 5px 16px rgba(226,173,85,.15);
+  transform: rotate(-3deg);
+}
+.logo--header::after { content: ''; position: absolute; inset: 4px; border: 1px dashed rgba(79, 48, 15, .43); border-radius: 12px 10px 13px 9px; pointer-events: none; }
 .header__nav { display: flex; gap: 30px; font-size: 14px; }
 .header__nav a { opacity: 0.85; transition: opacity 0.3s, color 0.3s; padding: 4px 0; }
 .header__nav a:hover, .header__nav a.active { opacity: 1; color: var(--gold); }
 .header__icons { display: flex; gap: 20px; align-items: center; font-size: 14px; }
 .header__icons button { font-size: 14px; opacity: 0.85; transition: opacity 0.3s, color 0.3s; }
 .header__icons button:hover { opacity: 1; color: var(--gold); }
+.header__icons .header__icon-btn { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; position: relative; border: 1px solid var(--line-2); border-radius: 50%; color: var(--pearl); transition: background .25s, border-color .25s, color .25s, transform .25s; }
+.header__icons .header__icon-btn:hover { color: var(--gold); border-color: rgba(226,173,85,.6); background: rgba(226,173,85,.08); transform: translateY(-1px); }
+.header__icon-btn svg { width: 20px; height: 20px; }
+.header__icons .bag-icon-btn { background: linear-gradient(145deg, #f6d68f, #d7a64d); color: #27170a; border-color: rgba(255,230,174,.75); }
+.header__icons .bag-icon-btn:hover { color: #150c08; background: var(--pearl); border-color: var(--pearl); }
+.bag-count { position: absolute; top: -4px; inset-inline-end: -4px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; color: var(--pearl); background: var(--plum); border: 1px solid var(--bg); border-radius: 99px; font: 700 10px/1 var(--body); }
+.account__panel { box-shadow: 0 16px 45px rgba(0,0,0,.42); }
 .bagpill {
   background: var(--gold); color: #241408; border-radius: 99px;
   padding: 3px 10px; font-weight: 600; font-size: 12px; display: inline-flex; gap: 5px; align-items: center;
@@ -413,7 +431,7 @@ textarea.field { resize: vertical; min-height: 90px; }
 .sum__total { border-top: 1px solid var(--line-2); margin-top: 10px; padding-top: 14px; font: 400 30px/1.2 var(--disp); display: flex; justify-content: space-between; gap: 14px; }
 .sum__note { font-size: 12px; opacity: 0.55; margin-top: 14px; }
 
-/* ---------- confirmation & tracking ---------- */
+/* ---------- order confirmation ---------- */
 
 .confirm { max-width: 760px; margin-inline: auto; padding: 70px 24px 90px; text-align: center; }
 .confirm h1 { font: 400 clamp(40px, 6vw, 68px)/1.05 var(--disp); }
@@ -427,9 +445,6 @@ textarea.field { resize: vertical; min-height: 90px; }
 .confirm__actions { display: flex; gap: 14px; justify-content: center; margin-top: 34px; flex-wrap: wrap; }
 .confirm__note { display: inline-block; margin-top: 14px; padding: 10px 20px; border: 1px solid rgba(42, 23, 12, 0.22); border-radius: 99px; font-size: 13px; color: var(--cocoa); }
 
-.track { max-width: 620px; margin-inline: auto; padding: 70px 24px 90px; }
-.track h1 { font: 400 clamp(38px, 5vw, 60px)/1.05 var(--disp); text-align: center; }
-.track > p { text-align: center; opacity: 0.65; margin: 12px auto 34px; max-width: 44ch; }
 .track__form { display: grid; gap: 16px; margin-bottom: 44px; }
 .steps { margin-top: 10px; }
 .step { display: grid; grid-template-columns: 26px 1fr; gap: 16px; position: relative; padding-bottom: 34px; }
@@ -572,6 +587,10 @@ textarea.field { resize: vertical; min-height: 90px; }
   .container { padding-inline: 20px; }
   .header__in { padding: 14px 20px; }
   .header__nav, .header__icons .desktop-only { display: none; }
+  .header__icons { gap: 10px; }
+  .header__in { gap: 10px; }
+  .logo--header { width: 46px; height: 43px; font-size: 20px; }
+  .header__icons .bag-icon-btn { width: 39px; height: 39px; }
   .header__menu-btn { display: inline-flex; font-size: 14px; }
   .tabbar { display: flex; }
   main { padding-bottom: 66px; }

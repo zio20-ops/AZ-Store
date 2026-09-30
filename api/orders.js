@@ -1,0 +1,119 @@
+import { createSign, randomUUID } from 'node:crypto';
+
+const projectId = 'az-store-36cd0';
+const db = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+let tokenCache;
+
+const enc = (v) => {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === 'string') return { stringValue: v };
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(enc) } };
+  return { mapValue: { fields: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, enc(x)])) } };
+};
+const dec = (v) => {
+  if ('stringValue' in v) return v.stringValue;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return v.doubleValue;
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('nullValue' in v) return null;
+  if ('arrayValue' in v) return (v.arrayValue.values || []).map(dec);
+  if ('mapValue' in v) return Object.fromEntries(Object.entries(v.mapValue.fields || {}).map(([k, x]) => [k, dec(x)]));
+  return null;
+};
+const fields = (doc) => Object.fromEntries(Object.entries(doc.fields || {}).map(([k, v]) => [k, dec(v)]));
+const b64url = (v) => Buffer.from(v).toString('base64url');
+
+async function accessToken() {
+  if (tokenCache && tokenCache.exp > Date.now() + 60_000) return tokenCache.value;
+  let account;
+  try { account = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || ''); }
+  catch { throw new Error('FIREBASE_SERVICE_ACCOUNT must contain the service account JSON.'); }
+  if (!account.client_email || !account.private_key) throw new Error('Firebase service account configuration is incomplete.');
+  const now = Math.floor(Date.now() / 1000);
+  const unsigned = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify({ iss: account.client_email, scope: 'https://www.googleapis.com/auth/datastore', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }))}`;
+  const signer = createSign('RSA-SHA256'); signer.update(unsigned);
+  const assertion = `${unsigned}.${signer.sign(account.private_key).toString('base64url')}`;
+  const response = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }) });
+  const data = await response.json();
+  if (!response.ok) throw new Error('Unable to authenticate the order API with Firebase.');
+  tokenCache = { value: data.access_token, exp: Date.now() + data.expires_in * 1000 };
+  return data.access_token;
+}
+
+async function firestore(path, token) {
+  const response = await fetch(`${db}/${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  const doc = await response.json();
+  if (!response.ok) throw new Error(response.status === 404 ? 'Product or settings not found.' : 'Could not read the store database.');
+  return doc;
+}
+
+const docName = (collection, id) => `${db}/${collection}/${id}`;
+const problem = (res, status, message) => res.status(status).json({ error: message });
+
+export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method !== 'POST') return problem(res, 405, 'Method not allowed.');
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+  if (!origin || new URL(origin).host !== host) return problem(res, 403, 'Origin not allowed.');
+  try {
+    const body = req.body || {};
+    const { customer = {}, items = [], deliveryMethod, promoCode = '', paymentMethod = 'cod', paymentRef = '' } = body;
+    if (typeof customer.name !== 'string' || customer.name.trim().length < 3 || customer.name.length > 120 || !/^01[0125]\d{8}$/.test(String(customer.phone || '').replace(/[\s-]/g, '')) || typeof customer.address !== 'string' || customer.address.trim().length < 8 || customer.address.length > 500 || (customer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) || !Array.isArray(items) || items.length < 1 || items.length > 30) return problem(res, 400, 'Check the customer and item details.');
+    if (!['standard', 'express'].includes(deliveryMethod)) return problem(res, 400, 'Invalid delivery method.');
+    const token = await accessToken();
+    const settings = await firestore('settings/store', token).catch(() => ({ fields: {} }));
+    const storeSettings = fields(settings);
+    const paymentConfig = storeSettings.paymentMethods || { cod: { enabled: true }, instapay: { enabled: false }, vodafone: { enabled: false } };
+    if (!['cod', 'instapay', 'vodafone'].includes(paymentMethod) || !paymentConfig[paymentMethod]?.enabled) return problem(res, 400, 'This payment method is not available. Refresh checkout and choose another method.');
+    if (paymentMethod === 'instapay' && !paymentConfig.instapay.account) return problem(res, 400, 'InstaPay is not configured by the store.');
+    if (paymentMethod === 'vodafone' && !paymentConfig.vodafone.number) return problem(res, 400, 'Vodafone Cash is not configured by the store.');
+    if (paymentMethod !== 'cod' && String(paymentRef).trim().length < 4) return problem(res, 400, 'Enter the transfer reference.');
+    const products = new Map();
+    const normalizedItems = [];
+    let subtotal = 0;
+    for (const line of items) {
+      if (!/^[a-z0-9-]{1,80}$/.test(line.productId || '') || !Number.isInteger(line.qty) || line.qty < 1 || line.qty > 20 || !line.variationId) return problem(res, 400, 'Invalid order item.');
+      let record = products.get(line.productId);
+      if (!record) {
+        const raw = await firestore(`products/${encodeURIComponent(line.productId)}`, token);
+        record = { doc: raw, product: fields(raw) };
+        products.set(line.productId, record);
+      }
+      const product = record.product;
+      const variation = (product.variations || []).find((v) => v.id === line.variationId);
+      if (product.status !== 'active' || !variation || !Number.isInteger(variation.stock) || variation.stock < line.qty) return problem(res, 409, `${product.name || 'A product'} is out of stock for the selected size.`);
+      variation.stock -= line.qty;
+      subtotal += Number(variation.price) * line.qty;
+      normalizedItems.push({ productId: product.id || line.productId, variationId: variation.id, name: product.name, meta: variation.label, qty: line.qty, price: Number(variation.price), image: product.images?.[variation.image]?.src || product.images?.[0]?.src || '' });
+    }
+    const discount = promoCode === 'AZ10' ? Math.round(subtotal * 0.1) : 0;
+    const deliveryFee = promoCode === 'FREESHIP' || (deliveryMethod === 'standard' && subtotal >= Number(storeSettings.freeDeliveryThreshold ?? 1800)) ? 0 : deliveryMethod === 'express' ? 110 : 60;
+    const id = randomUUID();
+    const phone = String(customer.phone).replace(/[\s-]/g, '');
+    const order = {
+      id, placedAt: new Date().toISOString(), status: 0, cancelled: false,
+      name: customer.name.trim(), phone, email: String(customer.email || '').slice(0, 180),
+      address: customer.address.trim(), notes: String(customer.notes || '').slice(0, 500),
+      payment: paymentMethod === 'cod' ? 'Cash on delivery' : paymentMethod === 'instapay' ? 'InstaPay' : 'Vodafone Cash',
+      paymentRef: paymentMethod === 'cod' ? null : String(paymentRef).trim().slice(0, 100),
+      paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Verification Required',
+      deliveryMethod: deliveryMethod === 'express' ? 'Express, next day' : 'Standard, 2 to 4 days',
+      items: normalizedItems, subtotal, discount, delivery: deliveryFee, total: subtotal - discount + deliveryFee,
+    };
+    const writes = [...products.values()].map(({ doc, product }) => {
+      product.stock = (product.variations || []).reduce((total, v) => total + Number(v.stock || 0), 0);
+      return { update: { name: doc.name, fields: Object.fromEntries(Object.entries(product).map(([k, v]) => [k, enc(v)])) }, currentDocument: { updateTime: doc.updateTime } };
+    });
+    writes.push({ create: { name: docName('orders', id), fields: Object.fromEntries(Object.entries(order).map(([k, v]) => [k, enc(v)])) } });
+    const commit = await fetch(`${db}:commit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ writes }) });
+    const result = await commit.json();
+    if (!commit.ok) return problem(res, commit.status === 409 || commit.status === 400 ? 409 : 502, 'The order could not be confirmed. Please refresh the cart and retry.');
+    return res.status(201).json({ order });
+  } catch (error) {
+    console.error('Order API error:', error.message);
+    return problem(res, 503, 'Order service is not configured yet. Please try again later.');
+  }
+}

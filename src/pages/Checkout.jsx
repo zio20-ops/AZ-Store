@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
 import { DELIVERY_METHODS, PAYMENT_METHODS } from '../data/products.js';
-import { GOVERNORATES, VODAFONE_CASH_NUMBER, INSTAPAY_ACCOUNT } from '../data/content.js';
+import { GOVERNORATES } from '../data/content.js';
 import { egp, isValidEgyptPhone, isValidEmail } from '../utils/format.js';
+import * as auth from '../services/authService.js';
 
 const initialForm = {
   name: '', phone: '', email: '', governorate: '', city: '',
@@ -12,27 +13,35 @@ const initialForm = {
 };
 
 export default function Checkout() {
-  useSeo('Secure checkout | AZ Store', 'Complete your AZ order with delivery across Egypt and cash on delivery, card, Vodafone Cash or InstaPay.');
-  const { cart, subtotal, discount, promo, freeThreshold, placeOrder } = useStore();
+  useSeo('Checkout | AZ Store', 'Choose a payment method and complete your AZ Store order.');
+  const { cart, subtotal, discount, promo, freeThreshold, settings, placeOrder } = useStore();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(() => {
+    const user = auth.getCurrentUser();
+    return { ...initialForm, name: user?.name === user?.email ? '' : (user?.name || ''), email: user?.email || '' };
+  });
   const [errors, setErrors] = useState({});
   const [deliveryId, setDeliveryId] = useState('standard');
   const [paymentId, setPaymentId] = useState('cod');
-  const [card, setCard] = useState({ number: '', expiry: '', cvv: '' });
-  const [walletRef, setWalletRef] = useState('');
-  const [instapayRef, setInstapayRef] = useState('');
+  const [paymentRef, setPaymentRef] = useState('');
   const [placing, setPlacing] = useState(false);
 
   const method = DELIVERY_METHODS.find((m) => m.id === deliveryId);
   const deliveryFee = useMemo(() => {
+    if (promo?.type === 'shipping') return 0;
     if (deliveryId === 'standard' && subtotal >= freeThreshold) return 0;
     return method.price;
-  }, [deliveryId, subtotal, freeThreshold, method]);
+  }, [deliveryId, subtotal, freeThreshold, method, promo]);
 
   const total = subtotal - discount + deliveryFee;
   const payment = PAYMENT_METHODS.find((p) => p.id === paymentId);
+  const paymentOptions = PAYMENT_METHODS.filter((p) => settings.paymentMethods?.[p.id]?.enabled ?? p.id === 'cod');
+  const paymentConfig = settings.paymentMethods?.[paymentId] || {};
+
+  useEffect(() => {
+    if (paymentOptions.length && !paymentOptions.some((p) => p.id === paymentId)) setPaymentId(paymentOptions[0].id);
+  }, [paymentId, paymentOptions]);
 
   const set = (key) => (e) => {
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -47,38 +56,37 @@ export default function Checkout() {
     if (!form.governorate) er.governorate = 'Choose your governorate.';
     if (!form.city.trim()) er.city = 'Please enter your city.';
     if (form.address.trim().length < 8) er.address = 'Please enter your full street address.';
-    if (paymentId === 'card') {
-      if (card.number.replace(/\s/g, '').length !== 16) er.card = 'Card number must be 16 digits.';
-      else if (!/^\d{2}\/\d{2}$/.test(card.expiry)) er.card = 'Expiry must be MM/YY.';
-      else if (!/^\d{3,4}$/.test(card.cvv)) er.card = 'CVV must be 3 or 4 digits.';
-    }
-    if (paymentId === 'vodafone' && walletRef.trim().length < 6) er.wallet = 'Enter the transaction reference number.';
-    if (paymentId === 'instapay' && instapayRef.trim().length < 6) er.instapay = 'Enter the transaction reference number.';
+    if (paymentId !== 'cod' && paymentRef.trim().length < 4) er.paymentRef = 'Enter the transfer reference shown in your payment app.';
     setErrors(er);
     return Object.keys(er).length === 0;
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!validate()) {
       document.querySelector('.field--error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     setPlacing(true);
-    setTimeout(() => {
-      const order = placeOrder({
+    try {
+      const order = await placeOrder({
         name: form.name.trim(),
         phone: form.phone.replace(/\s/g, ''),
         email: form.email.trim(),
         payment: payment.label,
-        paymentRef: paymentId === 'vodafone' ? walletRef.trim() : paymentId === 'instapay' ? instapayRef.trim() : null,
+        paymentMethod: paymentId,
+        paymentRef: paymentId === 'cod' ? '' : paymentRef.trim(),
         deliveryMethod: `${method.label}, ${method.eta.toLowerCase()}`,
+        deliveryOption: deliveryId,
+        promoCode: promo?.code || '',
         delivery: deliveryFee,
         address: [form.address.trim(), form.apartment.trim(), form.city.trim(), form.governorate].filter(Boolean).join(', '),
         notes: form.notes.trim(),
       });
-      navigate('/order-confirmation', { state: { id: order.id } });
-    }, 700);
+      navigate('/order-confirmation', { state: { id: order.id, order } });
+    } catch (error) {
+      setErrors((old) => ({ ...old, submit: error.message || 'Unable to save the order. Please try again.' }));
+    } finally { setPlacing(false); }
   };
 
   if (cart.length === 0) {
@@ -99,7 +107,7 @@ export default function Checkout() {
     <>
       <div className="cohead">
         <Link to="/" className="logo" aria-label="AZ Store home">AZ</Link>
-        <span>Secure checkout</span>
+          <span>Checkout</span>
         <Link to="/cart">Back to bag</Link>
       </div>
 
@@ -155,68 +163,35 @@ export default function Checkout() {
           </div>
 
           <h5>Payment</h5>
-          <div className="opts opts--4" role="radiogroup" aria-label="Payment method">
-            {PAYMENT_METHODS.map((p) => (
+          {paymentOptions.length > 0 ? <div className="opts opts--3" role="radiogroup" aria-label="Payment method">
+            {paymentOptions.map((p) => (
               <button type="button" key={p.id} className={`opt ${paymentId === p.id ? 'opt--on' : ''}`}
                 role="radio" aria-checked={paymentId === p.id} onClick={() => setPaymentId(p.id)}>
                 {p.label}
                 <small>{p.note}</small>
               </button>
             ))}
-          </div>
+          </div> : <p className="field-error">The store has no payment method enabled. Contact the store owner.</p>}
 
-          {paymentId === 'card' && (
-            <div className="paynote">
-              <div className="co__fields" style={{ marginTop: 10 }}>
-                <input className={`field ${errors.card ? 'field--error' : ''}`} placeholder="Card number" inputMode="numeric"
-                  value={card.number} aria-label="Card number"
-                  onChange={(e) => { setCard({ ...card, number: e.target.value.replace(/[^\d]/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ') }); setErrors({ ...errors, card: undefined }); }} />
-                <div className="co__grid2">
-                  <input className="field" placeholder="MM/YY" value={card.expiry} aria-label="Card expiry date"
-                    onChange={(e) => {
-                      let v = e.target.value.replace(/[^\d]/g, '').slice(0, 4);
-                      if (v.length > 2) v = `${v.slice(0, 2)}/${v.slice(2)}`;
-                      setCard({ ...card, expiry: v });
-                    }} />
-                  <input className="field" placeholder="CVV" inputMode="numeric" value={card.cvv} aria-label="Card CVV"
-                    onChange={(e) => setCard({ ...card, cvv: e.target.value.replace(/[^\d]/g, '').slice(0, 4) })} />
-                </div>
-              </div>
-              {errors.card && <p className="field-error" role="alert">{errors.card}</p>}
-              <p>Your card is charged directly by our PCI-compliant payment partner (Paymob / Fawry). AZ never stores your card number, CVV or any password.</p>
-            </div>
-          )}
+          {paymentId === 'instapay' && <div className="paynote">
+            <p>Transfer <b>{egp(total)}</b> to this InstaPay account:</p>
+            <p><code>{paymentConfig.account}</code>{paymentConfig.accountName ? ` · ${paymentConfig.accountName}` : ''}</p>
+            <label className="co__fields">Transfer reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="Reference from your transfer" /></label>
+            {errors.paymentRef && <p className="field-error">{errors.paymentRef}</p>}
+            <small>The store will confirm your transfer manually before preparing the order.</small>
+          </div>}
 
-          {paymentId === 'vodafone' && (
-            <div className="paynote">
-              <p>Send the order amount to our Vodafone Cash number:</p>
-              <p><code>{VODAFONE_CASH_NUMBER}</code></p>
-              <div className="co__fields" style={{ marginTop: 12 }}>
-                <input className={`field ${errors.wallet ? 'field--error' : ''}`} placeholder="Transaction Reference Number"
-                  value={walletRef} aria-label="Transaction reference number"
-                  onChange={(e) => { setWalletRef(e.target.value); setErrors({ ...errors, wallet: undefined }); }} />
-              </div>
-              {errors.wallet && <p className="field-error" role="alert">{errors.wallet}</p>}
-              <p>Your order will be confirmed after payment verification.</p>
-            </div>
-          )}
+          {paymentId === 'vodafone' && <div className="paynote">
+            <p>Transfer <b>{egp(total)}</b> to this Vodafone Cash number:</p>
+            <p><code>{paymentConfig.number}</code></p>
+            <label className="co__fields">Transfer reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="Reference from your transfer" /></label>
+            {errors.paymentRef && <p className="field-error">{errors.paymentRef}</p>}
+            <small>The store will confirm your transfer manually before preparing the order.</small>
+          </div>}
 
-          {paymentId === 'instapay' && (
-            <div className="paynote">
-              <p>Transfer the order amount through InstaPay to our official account:</p>
-              <p><code>{INSTAPAY_ACCOUNT}</code></p>
-              <div className="co__fields" style={{ marginTop: 12 }}>
-                <input className={`field ${errors.instapay ? 'field--error' : ''}`} placeholder="Transaction / reference number"
-                  value={instapayRef} aria-label="Transaction reference number"
-                  onChange={(e) => { setInstapayRef(e.target.value); setErrors({ ...errors, instapay: undefined }); }} />
-                <input className="field" placeholder="Your phone number" value={form.phone} aria-label="Customer phone number" onChange={set('phone')} />
-              </div>
-              {errors.instapay && <p className="field-error" role="alert">{errors.instapay}</p>}
-              <p>Your order will be confirmed after payment verification.</p>
-            </div>
-          )}
+          {errors.submit && <p className="field-error" role="alert">{errors.submit}</p>}
 
-          <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing}>
+          <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || paymentOptions.length === 0}>
             {placing ? 'Placing order…' : `Place order · ${egp(total)}`}
           </button>
         </form>
@@ -237,7 +212,7 @@ export default function Checkout() {
             </div>
           )}
           <div className="sum__total"><span>Total</span><span>{egp(total)}</span></div>
-          <p className="sum__note">Prices in Egyptian pounds. Card payments are processed by our secure payment partner — we never store card data.</p>
+          <p className="sum__note">Prices in Egyptian pounds. {paymentId === 'cod' ? 'Pay the courier when your order arrives.' : 'Your transfer will be manually verified by the store.'}</p>
         </aside>
       </div>
     </>

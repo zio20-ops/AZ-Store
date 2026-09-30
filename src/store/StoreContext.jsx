@@ -1,37 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { getVariations, PROMOS, FREE_DELIVERY_THRESHOLD } from '../data/products.js';
-import { readStorage, writeStorage, makeOrderNumber } from '../utils/format.js';
+import { readStorage, writeStorage } from '../utils/format.js';
 import * as catalog from '../services/productService.js';
+import * as orderService from '../services/orderService.js';
+import * as auth from '../services/authService.js';
 
 const StoreContext = createContext(null);
-
-const seedOrders = () => {
-  const existing = readStorage('az.orders', null);
-  if (existing) return existing.map((o) => ({ paymentStatus: o.paymentStatus || defaultPaymentStatus(o), ...o }));
-  const demo = [
-    {
-      id: 'AZ-2609-1001',
-      phone: '01000000000',
-      name: 'Demo Customer',
-      email: '',
-      placedAt: '2026-09-27T10:20:00.000Z',
-      status: 3,
-      cancelled: false,
-      payment: 'Cash on delivery',
-      paymentStatus: 'Paid',
-      paymentRef: null,
-      deliveryMethod: 'Standard, 2 to 4 days',
-      address: '12 El Thawra St, Heliopolis, Cairo',
-      items: [{ name: 'Black Kiss', meta: '220 ml / 7.4 fl oz', qty: 1, price: 450, image: '/images/product-black-kiss.jpg' }],
-      subtotal: 450,
-      delivery: 60,
-      discount: 0,
-      total: 510,
-    },
-  ];
-  writeStorage('az.orders', demo);
-  return demo;
-};
 
 export const defaultPaymentStatus = (order) => {
   if (order.paymentRef) return 'Verification Required';
@@ -42,7 +16,8 @@ export const defaultPaymentStatus = (order) => {
 export function StoreProvider({ children }) {
   const [cart, setCart] = useState(() => readStorage('az.cart', []));
   const [wishlist, setWishlist] = useState(() => readStorage('az.wishlist', []));
-  const [orders, setOrders] = useState(seedOrders);
+  const [orders, setOrders] = useState([]);
+  const [lastOrder, setLastOrder] = useState(null);
   const [promo, setPromo] = useState(() => readStorage('az.promo', null));
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -53,13 +28,20 @@ export function StoreProvider({ children }) {
   const [settings, setSettings] = useState({});
   const [productsLoading, setProductsLoading] = useState(true);
 
+  const toast = useCallback((message) => {
+    const id = ++toastId.current;
+    setToasts((t) => [...t, { id, message }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2600);
+  }, []);
+
   const loadCatalog = useCallback(() => {
+    setProductsLoading(true);
     Promise.all([catalog.listProducts(), catalog.getSettings()]).then(([products, nextSettings]) => {
       setAllProducts(products);
       setSettings(nextSettings);
       setProductsLoading(false);
-    });
-  }, []);
+    }).catch((error) => { setProductsLoading(false); toast(error.message || 'Unable to load the store.'); });
+  }, [toast]);
 
   useEffect(() => {
     loadCatalog();
@@ -71,16 +53,20 @@ export function StoreProvider({ children }) {
     return () => window.removeEventListener('storage', onStorage);
   }, [loadCatalog]);
 
+  const loadOrders = useCallback(async () => {
+    if (!auth.me()) { setOrders([]); return; }
+    try { setOrders(await orderService.listOrders()); } catch (error) { toast(error.message); }
+  }, [toast]);
+  useEffect(() => {
+    loadOrders();
+    const refresh = () => { loadCatalog(); loadOrders(); };
+    window.addEventListener('az-auth-changed', refresh);
+    return () => window.removeEventListener('az-auth-changed', refresh);
+  }, [loadCatalog, loadOrders]);
+
   useEffect(() => writeStorage('az.cart', cart), [cart]);
   useEffect(() => writeStorage('az.wishlist', wishlist), [wishlist]);
   useEffect(() => writeStorage('az.promo', promo), [promo]);
-  useEffect(() => writeStorage('az.orders', orders), [orders]);
-
-  const toast = useCallback((message) => {
-    const id = ++toastId.current;
-    setToasts((t) => [...t, { id, message }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2600);
-  }, []);
 
   const products = useMemo(() => allProducts.filter((p) => p.status === 'active'), [allProducts]);
 
@@ -167,13 +153,14 @@ export function StoreProvider({ children }) {
   }, []);
 
   const placeOrder = useCallback(
-    (payload) => {
+    async (payload) => {
       const order = {
-        id: makeOrderNumber(),
         placedAt: new Date().toISOString(),
         status: 0,
         cancelled: false,
         items: detailed.map((l) => ({
+          productId: l.product.id,
+          variationId: l.variation.id,
           name: l.product.name,
           meta: l.variation.label,
           qty: l.qty,
@@ -186,25 +173,20 @@ export function StoreProvider({ children }) {
       };
       order.total = subtotal - discount + order.delivery;
       order.paymentStatus = order.paymentStatus || defaultPaymentStatus(order);
-      setOrders((o) => [order, ...o]);
+      const saved = await orderService.createOrder(order);
+      setLastOrder(saved);
       setCart([]);
       setPromo(null);
-      return order;
+      return saved;
     },
     [detailed, subtotal, discount],
   );
 
-  const updateOrder = useCallback((id, patch) => {
-    setOrders((o) => o.map((order) => (order.id === id ? { ...order, ...patch } : order)));
+  const updateOrder = useCallback(async (id, patch) => {
+    const updated = await orderService.updateOrder(id, patch);
+    setOrders((o) => o.map((order) => (order.id === id ? updated : order)));
+    return updated;
   }, []);
-
-  const findOrder = useCallback(
-    (id, phone) =>
-      orders.find(
-        (o) => o.id.toLowerCase() === id.trim().toLowerCase() && o.phone.replace(/\s/g, '') === phone.replace(/\s/g, ''),
-      ) || null,
-    [orders],
-  );
 
   const value = {
     products,
@@ -235,7 +217,7 @@ export function StoreProvider({ children }) {
     orders,
     placeOrder,
     updateOrder,
-    findOrder,
+    lastOrder,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

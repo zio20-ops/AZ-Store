@@ -144,7 +144,6 @@ export const DELIVERY_METHODS = [
 
 export const PAYMENT_METHODS = [
   { id: 'cod', label: 'Cash on delivery', note: 'Pay the courier when your order arrives.' },
-  { id: 'card', label: 'Visa / Mastercard', note: 'Processed securely by our PCI-compliant partner.' },
-  { id: 'vodafone', label: 'Vodafone Cash', note: 'Transfer from your Vodafone Cash wallet.' },
-  { id: 'instapay', label: 'InstaPay', note: 'Instant bank transfer through InstaPay.' },
+  { id: 'instapay', label: 'InstaPay', note: 'Transfer manually to the store account.' },
+  { id: 'vodafone', label: 'Vodafone Cash', note: 'Transfer manually to the store wallet.' },
 ];

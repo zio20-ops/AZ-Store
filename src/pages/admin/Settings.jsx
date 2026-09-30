@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { useStore } from '../../store/StoreContext.jsx';
 import * as catalog from '../../services/productService.js';
+import { ADMIN_EMAIL } from '../../services/firebaseConfig.js';
 
 export default function Settings() {
   const { settings, refreshCatalog, toast } = useStore();
@@ -14,6 +15,11 @@ export default function Settings() {
         announcement: settings.announcement ?? '',
         freeDeliveryThreshold: settings.freeDeliveryThreshold ?? 1800,
         defaultLowStockThreshold: settings.defaultLowStockThreshold ?? 6,
+        paymentMethods: {
+          cod: { enabled: settings.paymentMethods?.cod?.enabled ?? true },
+          instapay: { enabled: settings.paymentMethods?.instapay?.enabled ?? false, account: settings.paymentMethods?.instapay?.account || '', accountName: settings.paymentMethods?.instapay?.accountName || '' },
+          vodafone: { enabled: settings.paymentMethods?.vodafone?.enabled ?? false, number: settings.paymentMethods?.vodafone?.number || '' },
+        },
       });
     }
   }, [settings]);
@@ -28,11 +34,18 @@ export default function Settings() {
       toast('Thresholds must be valid numbers of 0 or more.');
       return;
     }
+    if (form.paymentMethods.instapay.enabled && !form.paymentMethods.instapay.account.trim()) { toast('Add the InstaPay account before enabling it.'); return; }
+    if (form.paymentMethods.vodafone.enabled && !form.paymentMethods.vodafone.number.trim()) { toast('Add the Vodafone Cash number before enabling it.'); return; }
     setSaving(true);
     const result = await catalog.saveSettings({
       announcement: form.announcement.trim(),
       freeDeliveryThreshold: threshold,
       defaultLowStockThreshold: low,
+      paymentMethods: {
+        cod: { enabled: Boolean(form.paymentMethods.cod.enabled) },
+        instapay: { ...form.paymentMethods.instapay, account: form.paymentMethods.instapay.account.trim(), accountName: form.paymentMethods.instapay.accountName.trim() },
+        vodafone: { ...form.paymentMethods.vodafone, number: form.paymentMethods.vodafone.number.trim() },
+      },
     });
     setSaving(false);
     if (!result.ok) {
@@ -66,11 +79,29 @@ export default function Settings() {
           </div>
         </section>
         <section className="adsec">
+          <h2>Payment methods</h2>
+          <p className="hint">For InstaPay and Vodafone Cash, shoppers transfer from their own app and enter the transfer reference. Verify transfers in Orders before marking them paid. These options do not charge or confirm payments automatically.</p>
+          <label className="adcheck"><input type="checkbox" checked={form.paymentMethods.cod.enabled} onChange={(e) => setForm({ ...form, paymentMethods: { ...form.paymentMethods, cod: { enabled: e.target.checked } } })} /> Cash on delivery</label>
+          <div className="adgrid" style={{ marginTop: 16 }}>
+            <div className="adfield">
+              <label className="adcheck"><input type="checkbox" checked={form.paymentMethods.instapay.enabled} onChange={(e) => setForm({ ...form, paymentMethods: { ...form.paymentMethods, instapay: { ...form.paymentMethods.instapay, enabled: e.target.checked } } })} /> Enable InstaPay</label>
+              <label htmlFor="set-instapay-account">InstaPay account / payment address</label>
+              <input id="set-instapay-account" value={form.paymentMethods.instapay.account} onChange={(e) => setForm({ ...form, paymentMethods: { ...form.paymentMethods, instapay: { ...form.paymentMethods.instapay, account: e.target.value } } })} placeholder="e.g. account address or phone" />
+              <label htmlFor="set-instapay-name">Account holder name</label>
+              <input id="set-instapay-name" value={form.paymentMethods.instapay.accountName} onChange={(e) => setForm({ ...form, paymentMethods: { ...form.paymentMethods, instapay: { ...form.paymentMethods.instapay, accountName: e.target.value } } })} placeholder="Name shown in InstaPay" />
+            </div>
+            <div className="adfield">
+              <label className="adcheck"><input type="checkbox" checked={form.paymentMethods.vodafone.enabled} onChange={(e) => setForm({ ...form, paymentMethods: { ...form.paymentMethods, vodafone: { ...form.paymentMethods.vodafone, enabled: e.target.checked } } })} /> Enable Vodafone Cash</label>
+              <label htmlFor="set-vodafone-number">Vodafone Cash wallet number</label>
+              <input id="set-vodafone-number" type="tel" inputMode="tel" value={form.paymentMethods.vodafone.number} onChange={(e) => setForm({ ...form, paymentMethods: { ...form.paymentMethods, vodafone: { ...form.paymentMethods.vodafone, number: e.target.value } } })} placeholder="01xxxxxxxxx" />
+            </div>
+          </div>
+        </section>
+        <section className="adsec">
           <h2>Authentication</h2>
           <p style={{ fontSize: 13.5, color: 'rgba(244,234,217,0.65)' }}>
-            This deployment uses the development mock auth layer (hashed demo credentials, expiring local session tokens).
-            Production must connect <code>POST /api/admin/login</code>, <code>POST /api/admin/logout</code> and <code>GET /api/admin/me</code>
-            with server-side hashing, http-only cookies, authorization and rate limiting.
+            Administrator access is managed by Firebase Authentication and restricted to the verified {ADMIN_EMAIL} account.
+            Use “Forgot password?” on the admin login page to change a forgotten password.
           </p>
         </section>
         <div className="adbar" style={{ marginTop: 18 }}>

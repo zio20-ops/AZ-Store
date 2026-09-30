@@ -3,7 +3,7 @@ import Accordion from '../components/Accordion.jsx';
 import { FAQS } from '../data/content.js';
 
 export default function Faq() {
-  useSeo('FAQ | AZ Store', 'Delivery times, payment methods, returns, tracking and authenticity — answers from AZ Store.');
+  useSeo('FAQ | AZ Store', 'Delivery times, payment methods, returns and authenticity — answers from AZ Store.');
   return (
     <div className="container">
       <div className="page-head" style={{ textAlign: 'center' }}>
