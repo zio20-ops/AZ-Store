@@ -4,8 +4,15 @@ import { readStorage, writeStorage } from '../utils/format.js';
 import * as catalog from '../services/productService.js';
 import * as orderService from '../services/orderService.js';
 import * as auth from '../services/authService.js';
+import * as customerCart from '../services/customerCartService.js';
 
 const StoreContext = createContext(null);
+const cartStorageKey = (uid) => uid ? `az.cart.customer.${uid}` : 'az.cart.guest';
+const activeCustomerUid = () => {
+  const user = auth.getCurrentUser();
+  return user && !user.isAdmin ? user.uid : null;
+};
+const readCart = (uid) => readStorage(cartStorageKey(uid), []);
 
 export const defaultPaymentStatus = (order) => {
   if (order.paymentRef) return 'Verification Required';
@@ -14,7 +21,13 @@ export const defaultPaymentStatus = (order) => {
 };
 
 export function StoreProvider({ children }) {
-  const [cart, setCart] = useState(() => readStorage('az.cart', []));
+  const initialCartOwner = useRef(activeCustomerUid());
+  const [cart, setCart] = useState(() => readCart(initialCartOwner.current));
+  const [cartReady, setCartReady] = useState(() => !initialCartOwner.current);
+  const cartOwner = useRef(initialCartOwner.current);
+  const latestCart = useRef(cart);
+  const cartSyncTimer = useRef(null);
+  const cartSyncFailed = useRef(false);
   const [wishlist, setWishlist] = useState(() => readStorage('az.wishlist', []));
   const [orders, setOrders] = useState([]);
   const [lastOrder, setLastOrder] = useState(() => {
@@ -50,6 +63,7 @@ export function StoreProvider({ children }) {
   }, [toast]);
 
   useEffect(() => {
+    try { localStorage.removeItem('az.cart'); } catch { /* Ignore blocked storage. */ }
     loadCatalog();
     // Keep other tabs (customer session while admin edits) in sync.
     const onStorage = (e) => {
@@ -63,14 +77,64 @@ export function StoreProvider({ children }) {
     if (!auth.me()) { setOrders([]); return; }
     try { setOrders(await orderService.listOrders()); } catch (error) { toast(error.message); }
   }, [toast]);
+  useEffect(() => { latestCart.current = cart; }, [cart]);
+
   useEffect(() => {
     loadOrders();
-    const refresh = () => { loadCatalog(); loadOrders(); };
+    let mounted = true;
+    const hydrateCart = async (uid) => {
+      if (!uid) return;
+      try {
+        const saved = await customerCart.load();
+        if (!mounted || cartOwner.current !== uid) return;
+        const next = saved?.exists ? (saved.items || []) : readCart(uid);
+        setCart(next);
+        writeStorage(cartStorageKey(uid), next);
+        setCartReady(true);
+      } catch {
+        if (mounted && cartOwner.current === uid) setCartReady(true);
+      }
+    };
+    const refresh = () => {
+      loadCatalog(); loadOrders();
+      const nextUid = activeCustomerUid();
+      if (nextUid === cartOwner.current) return;
+      writeStorage(cartStorageKey(cartOwner.current), latestCart.current);
+      cartOwner.current = nextUid;
+      clearTimeout(cartSyncTimer.current);
+      setPromo(null);
+      if (!nextUid) {
+        writeStorage(cartStorageKey(null), []);
+        setCart([]);
+        setCartReady(true);
+        return;
+      }
+      setCart(readCart(nextUid));
+      setCartReady(false);
+      void hydrateCart(nextUid);
+    };
     window.addEventListener('az-auth-changed', refresh);
-    return () => window.removeEventListener('az-auth-changed', refresh);
+    if (cartOwner.current) {
+      setCartReady(false);
+      void hydrateCart(cartOwner.current);
+    }
+    return () => { mounted = false; clearTimeout(cartSyncTimer.current); window.removeEventListener('az-auth-changed', refresh); };
   }, [loadCatalog, loadOrders]);
 
-  useEffect(() => writeStorage('az.cart', cart), [cart]);
+  useEffect(() => {
+    if (!cartReady) return;
+    const uid = cartOwner.current;
+    writeStorage(cartStorageKey(uid), cart);
+    if (!uid || activeCustomerUid() !== uid) return;
+    clearTimeout(cartSyncTimer.current);
+    cartSyncTimer.current = setTimeout(() => {
+      if (activeCustomerUid() !== uid) return;
+      customerCart.save(cart).then(() => { cartSyncFailed.current = false; }).catch(() => {
+        if (!cartSyncFailed.current) toast('Your bag is saved on this device, but could not sync to your account. Please try again.');
+        cartSyncFailed.current = true;
+      });
+    }, 650);
+  }, [cart, cartReady, toast]);
   useEffect(() => writeStorage('az.wishlist', wishlist), [wishlist]);
   useEffect(() => writeStorage('az.promo', promo), [promo]);
 

@@ -8,7 +8,7 @@
 import { ADMIN_EMAIL, firebaseConfig } from './firebaseConfig.js';
 import {
   clearAuth, createAdminAccount, createAccount, readAuth, saveAuth, sendPasswordReset,
-  signIn, signInWithGoogleCredential, currentIdToken, identityToolkitUrl, sendEmailVerification,
+  signIn, signInWithGoogleCredential, currentIdToken, identityToolkitUrl, applyEmailVerificationAction,
 } from './firebaseRest.js';
 import { initializeCatalog } from './productService.js';
 
@@ -38,6 +38,7 @@ const cacheSession = (result, remember, extra = {}) => {
 };
 
 export const logout = async () => { clearAuth(); window.dispatchEvent(new Event('az-auth-changed')); return { ok: true }; };
+export { applyEmailVerificationAction };
 
 const adminMembership = async (idToken, localId, email) => {
   if ((email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) return { role: 'owner' };
@@ -50,7 +51,7 @@ const adminMembership = async (idToken, localId, email) => {
 
 const ensureVerified = async (result) => {
   if (result.emailVerified) return true;
-  const error = new Error('Your email is not verified yet. Open the latest verification email, or request a new link below.');
+  const error = new Error('The administrator email must be verified before admin sign-in.');
   error.code = 'EMAIL_NOT_VERIFIED';
   throw error;
 };
@@ -61,21 +62,8 @@ export const registerCustomer = async ({ name, email, password }) => {
 };
 
 export const loginCustomer = async (email, password, remember = true) => {
-  try { const result = await signIn(email.trim(), password); await ensureVerified(result); cacheSession(result, remember); void recordCustomerLogin(result.idToken); return { ok: true, user: getCurrentUser() }; }
-  catch (error) { return { ok: false, message: error.message, needsVerification: error.code === 'EMAIL_NOT_VERIFIED' }; }
-};
-
-export const resendCustomerVerification = async (email, password, remember = true) => {
-  try {
-    const result = await signIn(email.trim(), password);
-    if (result.emailVerified) {
-      cacheSession(result, remember);
-      void recordCustomerLogin(result.idToken);
-      return { ok: true, user: getCurrentUser() };
-    }
-    await sendEmailVerification(result.idToken);
-    return { ok: true, message: 'A fresh verification link was sent. Use the newest email; older links may no longer work.' };
-  } catch (error) { return { ok: false, message: error.message }; }
+  try { const result = await signIn(email.trim(), password); cacheSession(result, remember); void recordCustomerLogin(result.idToken); return { ok: true, user: getCurrentUser() }; }
+  catch (error) { return { ok: false, message: error.message }; }
 };
 
 export const loginWithGoogle = async (credential, remember = true) => {

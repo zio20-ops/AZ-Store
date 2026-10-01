@@ -29,6 +29,7 @@ import AdminCustomers from './pages/admin/Customers.jsx';
 import AdminUsers from './pages/admin/Users.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
 import Account from './pages/Account.jsx';
+import EmailAction from './pages/EmailAction.jsx';
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -97,6 +98,7 @@ export default function App() {
           <Route path="/order-confirmation" element={<OrderConfirmation />} />
         </Route>
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/auth/action" element={<EmailAction />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/products" element={<AdminProducts />} />
         <Route path="/admin/products/new" element={<AdminProductForm />} />

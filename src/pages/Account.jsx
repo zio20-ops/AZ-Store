@@ -20,7 +20,6 @@ export default function Account() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [needsVerification, setNeedsVerification] = useState(false);
   const [busy, setBusy] = useState(false);
   const user = auth.getCurrentUser();
 
@@ -63,7 +62,7 @@ export default function Account() {
   );
 
   const submit = async (event) => {
-    event.preventDefault(); setError(''); setNotice(''); setNeedsVerification(false);
+    event.preventDefault(); setError(''); setNotice('');
     if (mode === 'signup' && name.trim().length < 2) { setError('Please enter your name.'); return; }
     if (!email.trim()) { setError('Enter your email address.'); return; }
     if (mode !== 'reset' && !password) { setError('Enter your password.'); return; }
@@ -79,20 +78,10 @@ export default function Account() {
         ? await auth.resetCustomerPassword(email)
         : await auth.loginCustomer(email, password);
     setBusy(false);
-    if (!result.ok) { setError(result.message); setNeedsVerification(Boolean(result.needsVerification)); return; }
-    if (mode === 'signup') { setMode('login'); setNotice('Account created. Check your inbox and verify your email, then sign in.'); return; }
+    if (!result.ok) { setError(result.message); return; }
+    if (mode === 'signup') { setMode('login'); setNotice('Account created. Sign in with your email and password.'); return; }
     if (mode === 'reset') { setNotice('Password reset link sent. Check your email inbox.'); return; }
     navigate('/account', { replace: true });
-  };
-
-  const resendVerification = async () => {
-    setBusy(true); setError('');
-    const result = await auth.resendCustomerVerification(email, password);
-    setBusy(false);
-    if (!result.ok) { setError(result.message); return; }
-    if (result.user) { navigate('/account', { replace: true }); return; }
-    setNotice(result.message);
-    setNeedsVerification(false);
   };
 
   return (
@@ -105,7 +94,6 @@ export default function Account() {
 
         {error && <div className="auth__message auth__message--error" role="alert">{error}</div>}
         {notice && <div className="auth__message" role="status">{notice}</div>}
-        {needsVerification && <button className="btn btn--ghost btn--block" type="button" onClick={resendVerification} disabled={busy} style={{ marginBottom: 14 }}>{busy ? 'Please wait…' : 'Resend verification email'}</button>}
 
         {mode !== 'reset' && <>
           <GoogleSignInButton onCredential={onGoogleCredential} disabled={busy} />

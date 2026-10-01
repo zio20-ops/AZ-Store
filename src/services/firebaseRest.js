@@ -44,7 +44,6 @@ export async function createAccount(email, password, displayName = '') {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: body.idToken, displayName: displayName.trim(), returnSecureToken: true }),
     });
   }
-  await sendEmailVerification(body.idToken);
   return true;
 }
 
@@ -59,6 +58,23 @@ export async function sendEmailVerification(idToken) {
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(authMessage(body.error?.message) || 'Firebase could not send the verification email.');
+}
+
+export async function applyEmailVerificationAction(oobCode) {
+  if (!oobCode) throw new Error('The verification link is incomplete. Request a fresh email and open its newest link.');
+  const response = await fetch(identityToolkitUrl('accounts:update'), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oobCode }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const code = body.error?.message?.split(' : ')[0] || body.error?.message;
+    if (code === 'EXPIRED_OOB_CODE' || code === 'INVALID_OOB_CODE') {
+      throw new Error('This link has expired or was already used. Try signing in; if Firebase still asks you to verify, request a fresh link and open it once.');
+    }
+    throw new Error(authMessage(code) || 'Firebase could not verify this email. Request a fresh link and try again.');
+  }
+  return body;
 }
 
 export async function signInWithGoogleCredential(credential) {
