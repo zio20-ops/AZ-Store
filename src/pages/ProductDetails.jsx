@@ -139,6 +139,16 @@ export default function ProductDetails() {
             >
               {soldOut ? 'Sold out' : 'Add to bag'}
             </button>
+            <button
+              className={`pdp__wish ${wished ? 'pdp__wish--on' : ''}`}
+              type="button"
+              onClick={() => toggleWish(product.id)}
+              aria-label={wished ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+              aria-pressed={wished}
+              title={wished ? 'Remove from wishlist' : 'Save to wishlist'}
+            >
+              <HeartIcon filled={wished} />
+            </button>
           </div>
           <p className={`pdp__stock ${soldOut ? 'pdp__stock--out' : ''}`} role="status">
             {soldOut
@@ -153,18 +163,6 @@ export default function ProductDetails() {
               <Link className="btn btn--ghost btn--block" to="/product/trio-gift-box">Buy the trio box and save</Link>
             </div>
           )}
-
-          <button
-            className={`pdp__wish ${wished ? 'pdp__wish--on' : ''}`}
-            style={{ marginTop: 14 }}
-            type="button"
-            onClick={() => toggleWish(product.id)}
-            aria-label={wished ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
-            aria-pressed={wished}
-            title={wished ? 'Remove from wishlist' : 'Save to wishlist'}
-          >
-            <HeartIcon filled={wished} />
-          </button>
 
           <div className="pdp__accordions">
             <Accordion items={accordionItems} />

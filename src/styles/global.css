@@ -228,12 +228,15 @@ textarea.field { resize: vertical; min-height: 90px; }
   font-size: 11px; font-weight: 600; padding: 3px 12px; border-radius: 0 99px 99px 0; z-index: 2;
 }
 .card__wish {
-  position: absolute; top: 14px; inset-inline-end: 14px; width: 34px; height: 34px; z-index: 2;
-  border-radius: 50%; border: 1px solid var(--line-2); background: rgba(21, 12, 8, 0.4);
-  backdrop-filter: blur(6px); display: grid; place-items: center; transition: border-color 0.3s, color 0.3s;
+  position: absolute; top: 14px; inset-inline-end: 14px; width: 40px; height: 40px; z-index: 3;
+  border-radius: 50%; border: 1px solid rgba(244,234,217,.58); color: var(--pearl);
+  background: rgba(12, 7, 5, 0.82); box-shadow: 0 2px 12px rgba(0,0,0,.45);
+  backdrop-filter: blur(8px); display: grid; place-items: center; opacity: 1;
+  transition: border-color 0.3s, color 0.3s, background 0.3s, transform 0.2s;
 }
-.card__wish:hover { border-color: var(--gold); }
-.card__wish--on { color: var(--gold); border-color: var(--gold); }
+.card__wish:hover { color: var(--gold); border-color: var(--gold); transform: scale(1.06); }
+.card__wish--on { color: var(--gold); border-color: var(--gold); background: rgba(12, 7, 5, 0.92); }
+.card__wish svg { width: 20px; height: 20px; display: block; }
 .pdp__wish { width: 44px; height: 44px; display: inline-grid; place-items: center; border: 1px solid var(--line-2); border-radius: 50%; color: rgba(244,234,217,.68); background: rgba(255,255,255,.035); transition: color .2s, border-color .2s, background .2s, transform .2s; }
 .pdp__wish:hover { color: var(--gold); border-color: var(--gold); transform: translateY(-1px); }
 .pdp__wish--on { color: var(--gold); border-color: var(--gold); background: rgba(226,173,85,.09); }
