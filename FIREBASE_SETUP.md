@@ -20,6 +20,12 @@ The admin demo login shown when `VITE_BACKEND=local` (`admin@azstore.eg` / the d
 4. Create a Google Cloud service account for project `az-store-36cd0` with the **Cloud Datastore User** role **and** the ability to manage Firebase Auth users (Identity Toolkit). Create a JSON key. Keep the downloaded key private; do not put it in GitHub, this folder, or chat.
 5. In the Vercel project, open **Settings → Environment Variables**. Add `FIREBASE_SERVICE_ACCOUNT` and paste the entire JSON key as its value for Production and Preview. Also configure `FIREBASE_API_KEY`, `VITE_FIREBASE_API_KEY`, and `VITE_GOOGLE_CLIENT_ID`. Do not set `VITE_BACKEND=local` in Production. Redeploy after changing environment variables. Vercel Functions use the service account to verify prices, reserve stock atomically, write private orders, look up tracking, and create/delete admin users.
 
+## Customer email verification links
+
+The app includes `/auth/action`, a custom verification page that asks the customer to press **Verify email** before consuming Firebase's one-time action code. This avoids email security scanners automatically using the link and shows a helpful explanation when a link has expired or was already used.
+
+After deploying the app, in Firebase Console open **Authentication → Templates → Email address verification → Edit template → Customize action URL** and set it to `https://az-store-1.vercel.app/auth/action`. Save the template, then request a fresh verification email from the sign-in page. Previously sent links keep their old handler and one-time codes; do not reuse them. The action codes expire and are single-use.
+
 ## Transfer screenshot uploads
 
 The checkout's Vodafone Cash and InstaPay proof upload uses the Firebase Storage bucket `az-store-36cd0.firebasestorage.app`. To enable it in production:
