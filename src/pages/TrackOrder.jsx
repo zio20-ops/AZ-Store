@@ -1,42 +1,55 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useStore } from '../store/StoreContext.jsx';
+import { trackOrder } from '../services/orderService.js';
 import { useSeo } from '../hooks/useSeo.js';
 import { ORDER_STEPS } from '../data/content.js';
 import { egp } from '../utils/format.js';
+import { isFirebase } from '../services/backend.js';
 
 export default function TrackOrder() {
   useSeo('Track your order | AZ Store', 'Follow your AZ order from received to delivered.');
-  const { findOrder } = useStore();
   const [params] = useSearchParams();
   const [orderId, setOrderId] = useState(params.get('order') || '');
   const [phone, setPhone] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    const order = findOrder(orderId, phone);
-    if (!order) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await trackOrder(orderId.trim(), phone.trim());
+      if (!res.ok) {
+        setResult(null);
+        setError(res.message || 'We couldn’t find that order. Check the number and the phone you checked out with.');
+        return;
+      }
+      setError(null);
+      setResult(res.order);
+    } catch {
       setResult(null);
-      setError('We couldn’t find that order. Check the number and the phone you checked out with.');
-      return;
+      setError('We couldn’t reach the order service. Check your connection and try again.');
+    } finally {
+      setBusy(false);
     }
-    setError(null);
-    setResult(order);
   };
 
   return (
     <div className="track">
       <h1>Track your order</h1>
-      <p>Enter your order number and the phone number used at checkout. Try the demo order AZ-2609-1001 with 01000000000.</p>
+      <p>
+        Enter your order number and the phone number used at checkout.
+        {!isFirebase && ' Try the demo order AZ-2609-1001 with 01000000000.'}
+      </p>
 
       <form className="track__form" onSubmit={submit}>
         <input className="field" placeholder="Order number" value={orderId} aria-label="Order number"
           onChange={(e) => setOrderId(e.target.value)} />
         <input className="field" placeholder="Phone number" value={phone} aria-label="Phone number" inputMode="numeric"
           onChange={(e) => setPhone(e.target.value)} />
-        <button className="btn btn--primary" type="submit">Track order</button>
+        <button className="btn btn--primary" type="submit" disabled={busy}>{busy ? 'Checking…' : 'Track order'}</button>
       </form>
 
       {error && <p className="field-error" role="alert" style={{ textAlign: 'center' }}>{error}</p>}

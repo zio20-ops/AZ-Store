@@ -445,6 +445,9 @@ textarea.field { resize: vertical; min-height: 90px; }
 .confirm__actions { display: flex; gap: 14px; justify-content: center; margin-top: 34px; flex-wrap: wrap; }
 .confirm__note { display: inline-block; margin-top: 14px; padding: 10px 20px; border: 1px solid rgba(42, 23, 12, 0.22); border-radius: 99px; font-size: 13px; color: var(--cocoa); }
 
+.track { max-width: 620px; margin-inline: auto; padding: 70px 24px 90px; }
+.track h1 { font: 400 clamp(38px, 5vw, 60px)/1.05 var(--disp); text-align: center; }
+.track > p { text-align: center; opacity: 0.65; margin: 12px auto 34px; max-width: 44ch; }
 .track__form { display: grid; gap: 16px; margin-bottom: 44px; }
 .steps { margin-top: 10px; }
 .step { display: grid; grid-template-columns: 26px 1fr; gap: 16px; position: relative; padding-bottom: 34px; }

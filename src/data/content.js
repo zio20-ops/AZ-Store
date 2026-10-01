@@ -89,6 +89,7 @@ export const FOOTER_COLUMNS = [
     title: 'Customer Service',
     links: [
       { label: 'Contact', to: '/contact' },
+      { label: 'Track your order', to: '/track-order' },
       { label: 'Shipping & Delivery', to: '/faq' },
       { label: 'Returns & Refunds', to: '/faq' },
       { label: 'FAQ', to: '/faq' },

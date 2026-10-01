@@ -17,6 +17,7 @@ import Contact from './pages/Contact.jsx';
 import Faq from './pages/Faq.jsx';
 import Wishlist from './pages/Wishlist.jsx';
 import Legal from './pages/Legal.jsx';
+import TrackOrder from './pages/TrackOrder.jsx';
 import NotFound from './pages/NotFound.jsx';
 import AdminLogin from './pages/admin/Login.jsx';
 import AdminDashboard from './pages/admin/Dashboard.jsx';
@@ -26,6 +27,7 @@ import AdminOrders from './pages/admin/Orders.jsx';
 import AdminCategories from './pages/admin/Categories.jsx';
 import AdminInventory from './pages/admin/Inventory.jsx';
 import AdminCustomers from './pages/admin/Customers.jsx';
+import AdminUsers from './pages/admin/Users.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
 import Account from './pages/Account.jsx';
 
@@ -77,6 +79,7 @@ export default function App() {
           <Route path="/account" element={<Account />} />
           <Route path="/account/login" element={<Account />} />
           <Route path="/account/signup" element={<Account />} />
+          <Route path="/track-order" element={<TrackOrder />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<Faq />} />
@@ -97,6 +100,7 @@ export default function App() {
         <Route path="/admin/categories" element={<AdminCategories />} />
         <Route path="/admin/inventory" element={<AdminInventory />} />
         <Route path="/admin/customers" element={<AdminCustomers />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
       </Routes>
       <ToastHost />

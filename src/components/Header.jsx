@@ -69,6 +69,7 @@ export default function Header() {
               {accountOpen && (
                 <div className="account__panel" role="menu">
                   <Link to="/account" role="menuitem">{user ? 'My account' : 'Sign in / Create account'}</Link>
+                  <Link to="/track-order" role="menuitem">Track order</Link>
                   <Link to="/wishlist" role="menuitem">Wishlist</Link>
                   <Link to="/contact" role="menuitem">Contact us</Link>
                 </div>
@@ -90,6 +91,7 @@ export default function Header() {
           <Link key={l.label} to={l.to}>{l.label}</Link>
         ))}
         <Link to={user ? '/account' : '/account/login'}>{user ? 'My account' : 'Sign in / Create account'}</Link>
+        <Link to="/track-order">Track order</Link>
         <Link to="/wishlist">Wishlist</Link>
         <Link to="/contact">Contact</Link>
         <div className="mmenu__foot">

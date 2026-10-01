@@ -19,6 +19,7 @@ export default function OrderConfirmation() {
         <h1>No order found.</h1>
         <p>We couldn’t find an order for this session. Head back to the store whenever you’re ready.</p>
         <div className="confirm__actions">
+          {id && <Link className="btn btn--dark" to={`/track-order?order=${encodeURIComponent(id)}`}>Track order {id}</Link>}
           <Link className="btn btn--dark" to="/shop">Continue shopping</Link>
         </div>
       </div>
@@ -35,7 +36,7 @@ export default function OrderConfirmation() {
 
       <div className="confirm">
         <h1>Thank you for your order.</h1>
-        <p>We’ve received your order and we’re already picking your bottles. A confirmation SMS is on its way to {order.phone}.</p>
+        <p>We’ve received your order. Use the order number below and your checkout phone number to track its progress.</p>
         {order.paymentRef && (
           <p className="confirm__note">
             We received your reference <b>{order.paymentRef}</b>. Your order will be confirmed after payment verification.
@@ -61,6 +62,7 @@ export default function OrderConfirmation() {
 
         <div className="confirm__actions">
           <Link className="btn btn--dark" to="/shop">Continue shopping</Link>
+          <Link className="btn btn--text" to={`/track-order?order=${encodeURIComponent(order.id)}`}>Track this order</Link>
         </div>
       </div>
     </>

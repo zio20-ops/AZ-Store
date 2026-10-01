@@ -10,6 +10,7 @@ const NAV = [
   { to: '/admin/categories', label: 'Categories', icon: 'M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z' },
   { to: '/admin/inventory', label: 'Inventory', icon: 'M3 5h18v4H3V5zm0 6h18v4H3v-4zm0 6h18v4H3v-4z' },
   { to: '/admin/customers', label: 'Customers', icon: 'M8 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm8 1a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM2 20c0-3.3 2.7-6 6-6s6 2.7 6 6v1H2v-1zm14 1v-1c0-1.8-.8-3.4-2-4.5.6-.3 1.3-.5 2-.5 2.8 0 5 2.2 5 5v1h-5z' },
+  { to: '/admin/users', label: 'Admin access', icon: 'M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4zm0 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm0 7c-2.2 0-4 1.3-4 3v1h8v-1c0-1.7-1.8-3-4-3z' },
   { to: '/admin/settings', label: 'Settings', icon: 'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm9 4a9 9 0 0 1-.1 1.3l2 1.6-2 3.4-2.4-1a9 9 0 0 1-2.2 1.3L15.9 21H8.1l-.4-2.4a9 9 0 0 1-2.2-1.3l-2.4 1-2-3.4 2-1.6A9 9 0 0 1 3 12c0-.4 0-.9.1-1.3l-2-1.6 2-3.4 2.4 1a9 9 0 0 1 2.2-1.3L8.1 3h7.8l.4 2.4a9 9 0 0 1 2.2 1.3l2.4-1 2 3.4-2 1.6c.1.4.1.9.1 1.3z' },
 ];
 

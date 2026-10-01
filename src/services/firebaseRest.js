@@ -2,6 +2,12 @@ import { firebaseConfig } from './firebaseConfig.js';
 
 const AUTH_KEY = 'az.firebase.auth';
 const db = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents`;
+const requireApiKey = () => {
+  if (!firebaseConfig.apiKey) throw new Error('Firebase is not configured. Set VITE_FIREBASE_API_KEY and rebuild the site.');
+  return encodeURIComponent(firebaseConfig.apiKey);
+};
+export const identityToolkitUrl = (path) => `https://identitytoolkit.googleapis.com/v1/${path}?key=${requireApiKey()}`;
+const secureTokenUrl = () => `https://securetoken.googleapis.com/v1/token?key=${requireApiKey()}`;
 
 export const readAuth = () => {
   try { return JSON.parse(sessionStorage.getItem(AUTH_KEY) || localStorage.getItem(AUTH_KEY) || 'null'); }
@@ -18,7 +24,7 @@ export const saveAuth = (value, remember = true) => {
 export const clearAuth = () => { localStorage.removeItem(AUTH_KEY); sessionStorage.removeItem(AUTH_KEY); };
 
 export async function signIn(email, password) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseConfig.apiKey}`, {
+  const response = await fetch(identityToolkitUrl('accounts:signInWithPassword'), {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, returnSecureToken: true }),
   });
@@ -28,17 +34,17 @@ export async function signIn(email, password) {
 }
 
 export async function createAccount(email, password, displayName = '') {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
+  const response = await fetch(identityToolkitUrl('accounts:signUp'), {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, returnSecureToken: true }),
   });
   const body = await response.json();
   if (!response.ok) throw new Error(authMessage(body.error?.message));
   if (displayName.trim()) {
-    await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${firebaseConfig.apiKey}`, {
+    await fetch(identityToolkitUrl('accounts:update'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: body.idToken, displayName: displayName.trim(), returnSecureToken: true }),
     });
   }
-  const verification = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseConfig.apiKey}`, {
+  const verification = await fetch(identityToolkitUrl('accounts:sendOobCode'), {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: body.idToken }),
   });
   if (!verification.ok) throw new Error('Account created, but Firebase could not send its verification email.');
@@ -46,7 +52,7 @@ export async function createAccount(email, password, displayName = '') {
 }
 
 export async function signInWithGoogleCredential(credential) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${firebaseConfig.apiKey}`, {
+  const response = await fetch(identityToolkitUrl('accounts:signInWithIdp'), {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ postBody: new URLSearchParams({ id_token: credential, providerId: 'google.com' }).toString(), requestUri: window.location.origin, returnIdpCredential: true, returnSecureToken: true }),
   });
@@ -56,20 +62,20 @@ export async function signInWithGoogleCredential(credential) {
 }
 
 export async function createAdminAccount(email, password) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
+  const response = await fetch(identityToolkitUrl('accounts:signUp'), {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, returnSecureToken: true }),
   });
   const body = await response.json();
   if (!response.ok) throw new Error(authMessage(body.error?.message));
-  const verify = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseConfig.apiKey}`, {
+  const verify = await fetch(identityToolkitUrl('accounts:sendOobCode'), {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: body.idToken }),
   });
-  if (!verify.ok) throw new Error('تم إنشاء الحساب لكن تعذر إرسال رسالة التأكيد. راجع إعدادات Firebase Authentication.');
+  if (!verify.ok) throw new Error('Account created, but Firebase could not send the verification email. Check Firebase Authentication settings.');
   return true;
 }
 
 export async function sendPasswordReset(email) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseConfig.apiKey}`, {
+  const response = await fetch(identityToolkitUrl('accounts:sendOobCode'), {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
   });
   const body = await response.json();
@@ -77,24 +83,26 @@ export async function sendPasswordReset(email) {
 }
 
 function authMessage(code) {
-  if (code === 'EMAIL_NOT_FOUND' || code === 'INVALID_PASSWORD' || code === 'INVALID_LOGIN_CREDENTIALS') return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
-  if (code === 'USER_DISABLED') return 'تم تعطيل هذا الحساب. تواصل مع مسؤول المتجر.';
-  if (code === 'TOO_MANY_ATTEMPTS_TRY_LATER') return 'محاولات كثيرة. حاول مرة أخرى لاحقًا.';
-  if (code === 'EMAIL_EXISTS') return 'هذا البريد مسجل بالفعل.';
-  if (code === 'OPERATION_NOT_ALLOWED') return 'طريقة تسجيل الدخول دي مش مفعلة في Firebase لسه.';
-  return 'تعذر تسجيل الدخول. تحقق من الاتصال وإعدادات Firebase.';
+  if (code === 'EMAIL_NOT_FOUND' || code === 'INVALID_PASSWORD' || code === 'INVALID_LOGIN_CREDENTIALS') return 'That email or password is not correct.';
+  if (code === 'USER_DISABLED') return 'This account is disabled. Contact the store owner.';
+  if (code === 'TOO_MANY_ATTEMPTS_TRY_LATER') return 'Too many attempts. Try again later.';
+  if (code === 'EMAIL_EXISTS') return 'That email is already registered.';
+  if (code === 'OPERATION_NOT_ALLOWED') return 'This sign-in method is not enabled in Firebase yet.';
+  return 'Sign-in failed. Check your connection and Firebase settings.';
 }
+
+export async function currentIdToken() { return token(); }
 
 async function token() {
   const auth = readAuth();
-  if (!auth?.refreshToken) throw new Error('سجّل الدخول إلى لوحة الإدارة أولًا.');
+  if (!auth?.refreshToken) throw new Error('Sign in to the admin panel first.');
   if (Date.now() < auth.expiresAt - 60_000) return auth.idToken;
-  const response = await fetch(`https://securetoken.googleapis.com/v1/token?key=${firebaseConfig.apiKey}`, {
+  const response = await fetch(secureTokenUrl(), {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: auth.refreshToken }),
   });
   const body = await response.json();
-  if (!response.ok) { clearAuth(); throw new Error('انتهت الجلسة. سجّل الدخول مرة أخرى.'); }
+  if (!response.ok) { clearAuth(); throw new Error('Your session expired. Sign in again.'); }
   saveAuth({ ...auth, idToken: body.id_token, refreshToken: body.refresh_token, expiresAt: Date.now() + Number(body.expires_in) * 1000 }, auth.remember);
   return body.id_token;
 }
@@ -106,8 +114,8 @@ export async function request(path, { method = 'GET', data, admin = false } = {}
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const code = body.error?.status;
-    if (code === 'PERMISSION_DENIED' || response.status === 401) throw new Error('Firebase رفض العملية. تحقق من حساب الأدمن وقواعد Firestore.');
-    throw new Error(body.error?.message || 'تعذر الاتصال بقاعدة البيانات.');
+    if (code === 'PERMISSION_DENIED' || response.status === 401) throw new Error('Firebase rejected the operation. Check the admin account and Firestore rules.');
+    throw new Error(body.error?.message || 'Could not reach the store database.');
   }
   return body;
 }

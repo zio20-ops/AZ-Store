@@ -1,13 +1,14 @@
 import { useCallback, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import * as auth from '../../services/authService.js';
+import { isFirebase } from '../../services/backend.js';
 import '../../styles/admin.css';
 import GoogleSignInButton from '../../components/GoogleSignInButton.jsx';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState(auth.ADMIN_EMAIL);
+  const [email, setEmail] = useState(isFirebase ? auth.ADMIN_EMAIL : auth.DEMO_EMAIL);
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
@@ -50,11 +51,11 @@ export default function AdminLogin() {
         {error && <div className="adlogin__err" role="alert">{error}</div>}
         {notice && <div className="adlogin__err" role="status">{notice}</div>}
 
-        {mode === 'login' && <GoogleSignInButton onCredential={onGoogleCredential} disabled={busy} />}
-        {mode === 'login' && <div style={{ textAlign: 'center', margin: '10px 0', opacity: 0.55 }}>or use email and password</div>}
+        {mode === 'login' && isFirebase && <GoogleSignInButton onCredential={onGoogleCredential} disabled={busy} />}
+        {mode === 'login' && isFirebase && <div style={{ textAlign: 'center', margin: '10px 0', opacity: 0.55 }}>or use email and password</div>}
         <form onSubmit={submit} noValidate>
           <div className="adfield"><label htmlFor="ad-email">Email</label>
-            <input id="ad-email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={auth.ADMIN_EMAIL} /></div>
+            <input id="ad-email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={isFirebase ? auth.ADMIN_EMAIL : auth.DEMO_EMAIL} /></div>
           {mode !== 'reset' && <div className="adfield">
             <label htmlFor="ad-pw">{mode === 'register' ? 'Create password' : 'Password'}</label>
             <div className="adlogin__pw">
@@ -69,13 +70,21 @@ export default function AdminLogin() {
             {busy ? 'Please wait…' : mode === 'register' ? 'Create admin account' : mode === 'reset' ? 'Send reset link' : 'Login'}
           </button>
         </form>
-        <div className="adlogin__demo">
+        {!isFirebase && mode === 'login' && (
+          <div className="adlogin__demo">
+            <small>
+              Demo preview login: <b>{auth.DEMO_EMAIL}</b> / <b>{auth.DEMO_PASSWORD}</b>.
+              On the live Firebase deployment, sign-in uses Google or the verified owner email, and no password is stored in the browser.
+            </small>
+          </div>
+        )}
+        {isFirebase && <div className="adlogin__demo">
           {mode !== 'login' ? <button type="button" className="btn btn--text" onClick={() => { setMode('login'); setError(''); setNotice(''); }}>Back to login</button> : <>
             <button type="button" className="btn btn--text" onClick={() => { setMode('register'); setError(''); setNotice(''); }}>First time? Create the admin account</button>
             <button type="button" className="btn btn--text" onClick={() => { setMode('reset'); setError(''); setNotice(''); }}>Forgot password?</button>
           </>}
           {mode === 'register' && <small>Only the authorized admin email can create this account. Email verification is required.</small>}
-        </div>
+        </div>}
       </div>
     </div>
   );

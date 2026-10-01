@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { useStore } from '../../store/StoreContext.jsx';
 import * as catalog from '../../services/productService.js';
 import { ADMIN_EMAIL } from '../../services/firebaseConfig.js';
+import { isFirebase } from '../../services/backend.js';
 
 export default function Settings() {
   const { settings, refreshCatalog, toast } = useStore();
@@ -96,12 +98,16 @@ export default function Settings() {
               <input id="set-vodafone-number" type="tel" inputMode="tel" value={form.paymentMethods.vodafone.number} onChange={(e) => setForm({ ...form, paymentMethods: { ...form.paymentMethods, vodafone: { ...form.paymentMethods.vodafone, number: e.target.value } } })} placeholder="01xxxxxxxxx" />
             </div>
           </div>
+          <p className="hint" style={{ marginTop: 14 }}>
+            Card payments (Visa / Mastercard) are intentionally not enabled: they require a licensed payment provider (for example Stripe, Paymob or Checkout.com). We never collect or store card numbers, CVVs or banking passwords. When you sign up with a provider, connect it in <code>api/orders.js</code> and add its option here — the checkout UI is already built to show a configured provider.
+          </p>
         </section>
         <section className="adsec">
           <h2>Authentication</h2>
           <p style={{ fontSize: 13.5, color: 'rgba(244,234,217,0.65)' }}>
-            Administrator access is managed by Firebase Authentication and restricted to the verified {ADMIN_EMAIL} account.
-            Use “Forgot password?” on the admin login page to change a forgotten password.
+            {isFirebase
+              ? <>Administrator sign-in is handled by Firebase Authentication. Access is limited to the verified {ADMIN_EMAIL} owner plus any admins you add. Manage admins and change your password from <Link to="/admin/users" style={{ color: 'var(--gold)' }}>Admin access</Link>.</>
+              : <>This demo runs on local authentication. Manage admins and change your password from <Link to="/admin/users" style={{ color: 'var(--gold)' }}>Admin access</Link>. On the live deployment, sign-in is handled securely by Firebase Authentication.</>}
           </p>
         </section>
         <div className="adbar" style={{ marginTop: 18 }}>

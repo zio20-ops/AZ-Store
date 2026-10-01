@@ -17,7 +17,9 @@ export function StoreProvider({ children }) {
   const [cart, setCart] = useState(() => readStorage('az.cart', []));
   const [wishlist, setWishlist] = useState(() => readStorage('az.wishlist', []));
   const [orders, setOrders] = useState([]);
-  const [lastOrder, setLastOrder] = useState(null);
+  const [lastOrder, setLastOrder] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('az.lastOrder') || 'null'); } catch { return null; }
+  });
   const [promo, setPromo] = useState(() => readStorage('az.promo', null));
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -175,6 +177,7 @@ export function StoreProvider({ children }) {
       order.paymentStatus = order.paymentStatus || defaultPaymentStatus(order);
       const saved = await orderService.createOrder(order);
       setLastOrder(saved);
+      try { sessionStorage.setItem('az.lastOrder', JSON.stringify(saved)); } catch { /* storage full or blocked */ }
       setCart([]);
       setPromo(null);
       return saved;
