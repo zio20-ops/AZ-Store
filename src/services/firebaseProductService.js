@@ -48,10 +48,22 @@ export const getSeedProducts = () => migrateSeed();
 
 export async function initializeCatalog() {
   const current = await listDocuments('products', true);
-  if (!current.length) {
-    for (const product of migrateSeed()) await createDocument('products', product.id, product, true);
-    const cats = [...new Set(PRODUCTS.map((p) => p.category))];
-    for (const name of cats) await createDocument('categories', slugify(name), { name, image: '' }, true);
+  const existingProducts = new Set(current.map((product) => product.id));
+  // Complete any interrupted/partial first-time migration without replacing
+  // products the owner has already customized in Firestore.
+  for (const product of migrateSeed()) {
+    if (existingProducts.has(product.id)) continue;
+    try { await createDocument('products', product.id, product, true); }
+    catch (error) { if (error.code !== 409 && error.code !== 'ALREADY_EXISTS') throw error; }
+  }
+
+  const currentCategories = await listDocuments('categories', true);
+  const existingCategories = new Set(currentCategories.map((category) => category.id));
+  for (const name of [...new Set(PRODUCTS.map((product) => product.category))]) {
+    const id = slugify(name);
+    if (existingCategories.has(id)) continue;
+    try { await createDocument('categories', id, { name, image: '' }, true); }
+    catch (error) { if (error.code !== 409 && error.code !== 'ALREADY_EXISTS') throw error; }
   }
   // Settings must exist even when products were seeded by an earlier version.
   const settings = await getDocument('settings', 'store', true);
