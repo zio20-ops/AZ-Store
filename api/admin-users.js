@@ -31,7 +31,7 @@ async function accessToken() {
   try { account = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || ''); }
   catch { throw new Error('FIREBASE_SERVICE_ACCOUNT must contain the service account JSON.'); }
   const now = Math.floor(Date.now() / 1000);
-  const unsigned = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify({ iss: account.client_email, scope: 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/identitytoolkit.admin', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }))}`;
+  const unsigned = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify({ iss: account.client_email, scope: 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/identitytoolkit', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }))}`;
   const signer = createSign('RSA-SHA256'); signer.update(unsigned);
   const assertion = `${unsigned}.${signer.sign(account.private_key).toString('base64url')}`;
   const response = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }) });
@@ -44,12 +44,14 @@ async function accessToken() {
 // Validates the caller's Firebase idToken and returns their account.
 async function callerAccount(idToken) {
   if (!idToken) return null;
-  const apiKey = process.env.FIREBASE_API_KEY || 'AIzaSyCLtsShJFypz4FqFsS6OPrAkMJuqegVgsg';
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }),
+  const token = await accessToken();
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken }),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) return null;
+  if (!response.ok) throw new Error(`Firebase account verification failed (HTTP ${response.status}).`);
   return data.users?.[0] || null;
 }
 
@@ -66,8 +68,8 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
   try {
-    const account = await callerAccount(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
     const token = await accessToken();
+    const account = await callerAccount(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
     if (!(await isOwner(account, token))) return res.status(403).json({ error: 'Only the store owner can manage admin users.' });
 
     const { action, email, password, uid } = req.body || {};
