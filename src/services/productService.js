@@ -12,6 +12,7 @@ const impl = isFirebase ? fb : local;
 export const DEFAULT_SETTINGS = fb.DEFAULT_SETTINGS;
 export const validateProduct = (draft, all) => impl.validateProduct(draft, all);
 export const initializeCatalog = () => impl.initializeCatalog();
+export const getSeedProducts = () => fb.getSeedProducts();
 export const listProducts = () => impl.listProducts();
 export const getProduct = (id) => impl.getProduct(id);
 export const createProduct = (draft) => impl.createProduct(draft);

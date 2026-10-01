@@ -42,6 +42,10 @@ const migrateSeed = () => PRODUCTS.map((p) => {
     createdAt: now(), updatedAt: now() };
 });
 
+// Public storefront fallback while Firestore is empty or temporarily unavailable.
+// An owner sign-in still writes these records to Firestore via initializeCatalog().
+export const getSeedProducts = () => migrateSeed();
+
 export async function initializeCatalog() {
   const current = await listDocuments('products', true);
   if (!current.length) {

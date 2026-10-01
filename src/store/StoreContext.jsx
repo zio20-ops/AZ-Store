@@ -38,11 +38,15 @@ export function StoreProvider({ children }) {
 
   const loadCatalog = useCallback(() => {
     setProductsLoading(true);
-    Promise.all([catalog.listProducts(), catalog.getSettings()]).then(([products, nextSettings]) => {
-      setAllProducts(products);
+    Promise.allSettled([catalog.listProducts(), catalog.getSettings()]).then(([productsResult, settingsResult]) => {
+      const products = productsResult.status === 'fulfilled' ? productsResult.value : [];
+      const nextSettings = settingsResult.status === 'fulfilled' ? settingsResult.value : catalog.DEFAULT_SETTINGS;
+      setAllProducts(products.length ? products : catalog.getSeedProducts());
       setSettings(nextSettings);
       setProductsLoading(false);
-    }).catch((error) => { setProductsLoading(false); toast(error.message || 'Unable to load the store.'); });
+      const error = productsResult.status === 'rejected' ? productsResult.reason : settingsResult.status === 'rejected' ? settingsResult.reason : null;
+      if (error) toast(error.message || 'Unable to connect to the store database. Showing built-in products.');
+    });
   }, [toast]);
 
   useEffect(() => {
