@@ -69,6 +69,7 @@ export default function Orders() {
                   <td data-label="Payment">
                     {o.payment}
                     {o.paymentRef && <span className="prod-sku">Ref: {o.paymentRef}</span>}
+                    {o.paymentProofUrl && <a className="order-proof" href={o.paymentProofUrl} target="_blank" rel="noreferrer noopener">View transfer screenshot</a>}
                   </td>
                   <td data-label="Status">
                     <select
@@ -93,7 +94,7 @@ export default function Orders() {
                       >
                         {PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      {o.paymentRef && o.paymentStatus === 'Verification Required' && (
+                      {(o.paymentRef || o.paymentProofUrl) && o.paymentStatus === 'Verification Required' && (
                         <button onClick={() => setPayment(o, 'Paid')}>Verify payment</button>
                       )}
                     </div>

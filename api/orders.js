@@ -2,7 +2,7 @@ import { createSign, randomUUID } from 'node:crypto';
 
 const projectId = 'az-store-36cd0';
 const db = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
-let tokenCache;
+const tokenCache = new Map();
 
 const enc = (v) => {
   if (v === null || v === undefined) return { nullValue: null };
@@ -25,21 +25,48 @@ const dec = (v) => {
 const fields = (doc) => Object.fromEntries(Object.entries(doc.fields || {}).map(([k, v]) => [k, dec(v)]));
 const b64url = (v) => Buffer.from(v).toString('base64url');
 
-async function accessToken() {
-  if (tokenCache && tokenCache.exp > Date.now() + 60_000) return tokenCache.value;
+async function accessToken(scope = 'https://www.googleapis.com/auth/datastore') {
+  const cached = tokenCache.get(scope);
+  if (cached && cached.exp > Date.now() + 60_000) return cached.value;
   let account;
   try { account = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || ''); }
   catch { throw new Error('FIREBASE_SERVICE_ACCOUNT must contain the service account JSON.'); }
   if (!account.client_email || !account.private_key) throw new Error('Firebase service account configuration is incomplete.');
   const now = Math.floor(Date.now() / 1000);
-  const unsigned = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify({ iss: account.client_email, scope: 'https://www.googleapis.com/auth/datastore', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }))}`;
+  const unsigned = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify({ iss: account.client_email, scope, aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }))}`;
   const signer = createSign('RSA-SHA256'); signer.update(unsigned);
   const assertion = `${unsigned}.${signer.sign(account.private_key).toString('base64url')}`;
   const response = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }) });
   const data = await response.json();
   if (!response.ok) throw new Error('Unable to authenticate the order API with Firebase.');
-  tokenCache = { value: data.access_token, exp: Date.now() + data.expires_in * 1000 };
+  tokenCache.set(scope, { value: data.access_token, exp: Date.now() + data.expires_in * 1000 });
   return data.access_token;
+}
+
+async function uploadPaymentProof(dataUrl, id) {
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
+  if (!match) throw new Error('The payment screenshot is invalid. Please upload a JPG, PNG, or WebP image.');
+  const bytes = Buffer.from(match[2], 'base64');
+  if (!bytes.length || bytes.length > 450 * 1024) throw new Error('The payment screenshot is too large. Choose a smaller image and try again.');
+  const bucket = process.env.FIREBASE_STORAGE_BUCKET || 'az-store-36cd0.firebasestorage.app';
+  const name = `payment-proofs/${id}/${randomUUID()}.${match[1].split('/')[1]}`;
+  const downloadToken = randomUUID();
+  const boundary = `azStore${randomUUID().replace(/-/g, '')}`;
+  const metadata = { name, contentType: match[1], metadata: { firebaseStorageDownloadTokens: downloadToken } };
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${match[1]}\r\n\r\n`),
+    bytes,
+    Buffer.from(`\r\n--${boundary}--`),
+  ]);
+  const token = await accessToken('https://www.googleapis.com/auth/devstorage.read_write');
+  const response = await fetch(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=multipart`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}`, 'Content-Length': String(body.length) }, body,
+  });
+  if (!response.ok) {
+    console.error('Payment proof upload failed:', response.status, await response.text());
+    throw new Error('Could not save the payment screenshot. Please retry or submit the transfer reference instead.');
+  }
+  return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(name)}?alt=media&token=${downloadToken}`;
 }
 
 async function firestore(path, token) {
@@ -60,7 +87,7 @@ export default async function handler(req, res) {
   if (!origin || new URL(origin).host !== host) return problem(res, 403, 'Origin not allowed.');
   try {
     const body = req.body || {};
-    const { customer = {}, items = [], deliveryMethod, promoCode = '', paymentMethod = 'cod', paymentRef = '' } = body;
+    const { customer = {}, items = [], deliveryMethod, promoCode = '', paymentMethod = 'cod', paymentRef = '', paymentProof = '' } = body;
     if (typeof customer.name !== 'string' || customer.name.trim().length < 3 || customer.name.length > 120 || !/^01[0125]\d{8}$/.test(String(customer.phone || '').replace(/[\s-]/g, '')) || typeof customer.address !== 'string' || customer.address.trim().length < 8 || customer.address.length > 500 || (customer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) || !Array.isArray(items) || items.length < 1 || items.length > 30) return problem(res, 400, 'Check the customer and item details.');
     if (!['standard', 'express'].includes(deliveryMethod)) return problem(res, 400, 'Invalid delivery method.');
     const token = await accessToken();
@@ -70,7 +97,7 @@ export default async function handler(req, res) {
     if (!['cod', 'instapay', 'vodafone'].includes(paymentMethod) || !paymentConfig[paymentMethod]?.enabled) return problem(res, 400, 'This payment method is not available. Refresh checkout and choose another method.');
     if (paymentMethod === 'instapay' && !paymentConfig.instapay.account) return problem(res, 400, 'InstaPay is not configured by the store.');
     if (paymentMethod === 'vodafone' && !paymentConfig.vodafone.number) return problem(res, 400, 'Vodafone Cash is not configured by the store.');
-    if (paymentMethod !== 'cod' && String(paymentRef).trim().length < 4) return problem(res, 400, 'Enter the transfer reference.');
+    if (paymentMethod !== 'cod' && String(paymentRef).trim().length < 4 && !paymentProof) return problem(res, 400, 'Enter the transfer reference or upload a payment screenshot.');
     const products = new Map();
     const normalizedItems = [];
     let subtotal = 0;
@@ -92,6 +119,7 @@ export default async function handler(req, res) {
     const discount = promoCode === 'AZ10' ? Math.round(subtotal * 0.1) : 0;
     const deliveryFee = promoCode === 'FREESHIP' || (deliveryMethod === 'standard' && subtotal >= Number(storeSettings.freeDeliveryThreshold ?? 1800)) ? 0 : deliveryMethod === 'express' ? 110 : 60;
     const id = randomUUID();
+    const paymentProofUrl = paymentMethod === 'cod' || !paymentProof ? null : await uploadPaymentProof(paymentProof, id);
     const phone = String(customer.phone).replace(/[\s-]/g, '');
     const order = {
       id, placedAt: new Date().toISOString(), status: 0, cancelled: false,
@@ -99,6 +127,7 @@ export default async function handler(req, res) {
       address: customer.address.trim(), notes: String(customer.notes || '').slice(0, 500),
       payment: paymentMethod === 'cod' ? 'Cash on delivery' : paymentMethod === 'instapay' ? 'InstaPay' : 'Vodafone Cash',
       paymentRef: paymentMethod === 'cod' ? null : String(paymentRef).trim().slice(0, 100),
+      paymentProofUrl,
       paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Verification Required',
       deliveryMethod: deliveryMethod === 'express' ? 'Express, next day' : 'Standard, 2 to 4 days',
       items: normalizedItems, subtotal, discount, delivery: deliveryFee, total: subtotal - discount + deliveryFee,
@@ -114,6 +143,6 @@ export default async function handler(req, res) {
     return res.status(201).json({ order });
   } catch (error) {
     console.error('Order API error:', error.message);
-    return problem(res, 503, 'Order service is not configured yet. Please try again later.');
+    return problem(res, 503, error.message?.startsWith('Could not save the payment screenshot') ? error.message : 'Order service is not configured yet. Please try again later.');
   }
 }

@@ -41,6 +41,9 @@ export default function OrderConfirmation() {
             We received your reference <b>{order.paymentRef}</b>. Your order will be confirmed after payment verification.
           </p>
         )}
+        {order.paymentProofUrl && (
+          <p className="confirm__note">We received your transfer screenshot. The store will verify your payment before preparing the order.</p>
+        )}
 
         <div className="confirm__card">
           <span className="confirm__status">{order.cancelled ? 'Cancelled' : ORDER_STEPS[order.status]}</span>

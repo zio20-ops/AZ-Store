@@ -19,6 +19,16 @@ The admin demo login shown when `VITE_BACKEND=local` (`admin@azstore.eg` / the d
 3. Open **Firestore → Rules** and publish the contents of `firestore.rules`. The rules allow the verified owner `ziadabdo43320@gmail.com` **or** any account present in the `admins/{uid}` collection to change store data. The `admins` collection can only be read by the signed-in admin it belongs to and can only be written by the `/api/admin-users` server function (never directly from a browser). The order/track APIs use their server credential, so customers cannot write orders directly to Firestore.
 4. Create a Google Cloud service account for project `az-store-36cd0` with the **Cloud Datastore User** role **and** the ability to manage Firebase Auth users (Identity Toolkit). Create a JSON key. Keep the downloaded key private; do not put it in GitHub, this folder, or chat.
 5. In the Vercel project, open **Settings → Environment Variables**. Add `FIREBASE_SERVICE_ACCOUNT` and paste the entire JSON key as its value for Production and Preview. Also configure `FIREBASE_API_KEY`, `VITE_FIREBASE_API_KEY`, and `VITE_GOOGLE_CLIENT_ID`. Do not set `VITE_BACKEND=local` in Production. Redeploy after changing environment variables. Vercel Functions use the service account to verify prices, reserve stock atomically, write private orders, look up tracking, and create/delete admin users.
+
+## Transfer screenshot uploads
+
+The checkout's Vodafone Cash and InstaPay proof upload uses the Firebase Storage bucket `az-store-36cd0.firebasestorage.app`. To enable it in production:
+
+1. Ensure Cloud Storage for Firebase is set up and the project is on the Blaze pay-as-you-go plan. Storage access requires Blaze; actual charges depend on bucket location and usage. Configure a budget alert before enabling billing.
+2. In Google Cloud IAM, grant the service account used by `FIREBASE_SERVICE_ACCOUNT` the **Storage Object Creator** role on this bucket (or a narrower custom role with object create permission).
+3. In Vercel, optionally set `FIREBASE_STORAGE_BUCKET` to the exact bucket name if it differs from the default above, then redeploy.
+
+Uploaded screenshots are compressed in the browser and saved as payment-proof files in Storage. Orders save the screenshot link for the admin Orders page. Customers can submit a screenshot, a transfer reference, or both. If Storage is unavailable, checkout can still be completed with the reference alone.
 6. Upload the changed project files to the GitHub repository connected to Vercel. Vercel will deploy the new commit. `vercel.json` preserves direct routes such as `/admin/login`, `/admin/users` and `/track-order`.
 7. Customers use `/account` to create an account with email/password or Google, then verify their email for password accounts. The store owner can use Google sign-in at `/admin/login` with `ziadabdo43320@gmail.com`; email/password admin login remains available.
 8. After deployment, sign in to `/admin`, open **Settings → Payment methods**, enter the store's InstaPay destination and/or Vodafone Cash wallet number, and enable the methods. Orders paid by manual transfer remain **Verification Required** until the administrator checks the transfer in **Orders** and marks them paid.

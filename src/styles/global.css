@@ -429,6 +429,10 @@ textarea.field { resize: vertical; min-height: 90px; }
 .paynote { border: 1px dashed rgba(21, 12, 8, 0.3); border-radius: 14px; padding: 16px; font-size: 13px; margin-top: 14px; }
 .paynote code { font: 600 13px var(--body); background: rgba(21, 12, 8, 0.08); padding: 2px 8px; border-radius: 6px; }
 .paynote p { margin-top: 8px; opacity: 0.75; }
+.paynote__proof { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.paynote__proof img { width: 74px; height: 74px; object-fit: cover; border: 1px solid var(--line-2); border-radius: 9px; }
+.paynote__proof span { max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paynote__proof button { color: var(--gold); text-decoration: underline; }
 
 .sum { background: var(--velvet); color: var(--pearl); border-radius: 26px; padding: 30px; height: fit-content; position: sticky; top: 24px; }
 .sum h2 { font: 400 32px var(--disp); margin-bottom: 10px; }
