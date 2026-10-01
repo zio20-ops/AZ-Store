@@ -176,7 +176,8 @@ export default function Checkout() {
           {paymentId === 'instapay' && <div className="paynote">
             <p>Transfer <b>{egp(total)}</b> to this InstaPay account:</p>
             <p><code>{paymentConfig.account}</code>{paymentConfig.accountName ? ` · ${paymentConfig.accountName}` : ''}</p>
-            <label className="co__fields">Transfer reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="Reference from your transfer" /></label>
+            <small>After the transfer succeeds, copy the transaction ID or reference shown on the InstaPay receipt. It is not your order number or account number.</small>
+            <label className="co__fields">Transaction ID / reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="From the successful transfer receipt" /></label>
             {errors.paymentRef && <p className="field-error">{errors.paymentRef}</p>}
             <small>The store will confirm your transfer manually before preparing the order.</small>
           </div>}
@@ -184,7 +185,8 @@ export default function Checkout() {
           {paymentId === 'vodafone' && <div className="paynote">
             <p>Transfer <b>{egp(total)}</b> to this Vodafone Cash number:</p>
             <p><code>{paymentConfig.number}</code></p>
-            <label className="co__fields">Transfer reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="Reference from your transfer" /></label>
+            <small>After the transfer succeeds, copy the transaction ID or reference shown in the Vodafone Cash confirmation message or receipt. It is not your order number or phone number.</small>
+            <label className="co__fields">Transaction ID / reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="From the successful transfer receipt" /></label>
             {errors.paymentRef && <p className="field-error">{errors.paymentRef}</p>}
             <small>The store will confirm your transfer manually before preparing the order.</small>
           </div>}
