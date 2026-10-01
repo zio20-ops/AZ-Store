@@ -42,8 +42,10 @@
 .auth__links { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 20px; color: rgba(244,234,217,.6); font-size: 12px; }
 .auth__links button { color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
 .auth__back { display: block; margin-top: 28px; color: rgba(244,234,217,.5); text-align: center; font-size: 11px; }
-.auth__profile-links { display: grid; justify-items: center; gap: 10px; margin-top: 28px; }
+.auth__profile-links { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 .auth__profile-links .btn { min-width: 200px; }
+.auth__home-link { display: inline-flex; align-items: center; justify-content: center; gap: 9px; }
+.auth__home-link svg { width: 17px; height: 17px; }
 @media (max-width: 520px) {
   .auth { padding: 34px 14px 48px; }
   .auth__card { border-radius: 18px; }

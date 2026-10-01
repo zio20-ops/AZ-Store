@@ -234,6 +234,10 @@ textarea.field { resize: vertical; min-height: 90px; }
 }
 .card__wish:hover { border-color: var(--gold); }
 .card__wish--on { color: var(--gold); border-color: var(--gold); }
+.pdp__wish { width: 44px; height: 44px; display: inline-grid; place-items: center; border: 1px solid var(--line-2); border-radius: 50%; color: rgba(244,234,217,.68); background: rgba(255,255,255,.035); transition: color .2s, border-color .2s, background .2s, transform .2s; }
+.pdp__wish:hover { color: var(--gold); border-color: var(--gold); transform: translateY(-1px); }
+.pdp__wish--on { color: var(--gold); border-color: var(--gold); background: rgba(226,173,85,.09); }
+.pdp__wish svg { width: 20px; height: 20px; }
 .card__quick {
   position: absolute; inset-inline: 14px; bottom: 14px; text-align: center; z-index: 2;
   background: rgba(21, 12, 8, 0.8); backdrop-filter: blur(6px); border-radius: 99px;

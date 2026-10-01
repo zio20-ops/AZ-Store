@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import * as auth from '../services/authService.js';
 import GoogleSignInButton from '../components/GoogleSignInButton.jsx';
+import { HomeIcon } from '../components/icons.jsx';
 import { useSeo } from '../hooks/useSeo.js';
 import '../styles/account.css';
 
@@ -41,6 +42,10 @@ export default function Account() {
         <p>Signed in as <b>{user.name}</b></p>
         <p className="auth__muted">{user.email}</p>
         <div className="auth__profile-links">
+          <Link className="btn btn--ghost auth__home-link" to="/">
+            <HomeIcon />
+            <span>Go to home</span>
+          </Link>
           <Link className="btn" to="/wishlist">Your wishlist</Link>
           <button className="btn btn--text" onClick={async () => { await auth.logout(); toast('You have been signed out.'); navigate('/'); }}>Sign out</button>
         </div>

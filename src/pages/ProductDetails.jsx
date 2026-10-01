@@ -8,6 +8,7 @@ import QuantitySelector from '../components/QuantitySelector.jsx';
 import Accordion from '../components/Accordion.jsx';
 import ProductCard from '../components/ProductCard.jsx';
 import NotFound from './NotFound.jsx';
+import { HeartIcon } from '../components/icons.jsx';
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -153,8 +154,16 @@ export default function ProductDetails() {
             </div>
           )}
 
-          <button className="btn btn--text" style={{ marginTop: 14, paddingInline: 0 }} onClick={() => toggleWish(product.id)}>
-            {wished ? 'Remove from wishlist' : 'Save to wishlist'}
+          <button
+            className={`pdp__wish ${wished ? 'pdp__wish--on' : ''}`}
+            style={{ marginTop: 14 }}
+            type="button"
+            onClick={() => toggleWish(product.id)}
+            aria-label={wished ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+            aria-pressed={wished}
+            title={wished ? 'Remove from wishlist' : 'Save to wishlist'}
+          >
+            <HeartIcon filled={wished} />
           </button>
 
           <div className="pdp__accordions">
