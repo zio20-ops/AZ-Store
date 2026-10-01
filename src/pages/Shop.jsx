@@ -75,11 +75,20 @@ export default function Shop() {
     const sorted = [...list];
     switch (sort) {
       case 'featured': sorted.sort((a, b) => a.featured - b.featured); break;
-      case 'newest': sorted.sort((a, b) => b.releasedAt.localeCompare(a.releasedAt)); break;
+      case 'newest': {
+        const releaseTime = (product) => {
+          const value = product.releasedAt || product.createdAt || product.updatedAt;
+          const time = value ? new Date(value).getTime() : 0;
+          return Number.isFinite(time) ? time : 0;
+        };
+        sorted.sort((a, b) => releaseTime(b) - releaseTime(a));
+        break;
+      }
       case 'price-asc': sorted.sort((a, b) => basePrice(a) - basePrice(b)); break;
       case 'price-desc': sorted.sort((a, b) => basePrice(b) - basePrice(a)); break;
       case 'best-rated': sorted.sort((a, b) => b.rating - a.rating); break;
-      default: sorted.sort((a, b) => b.sold - a.sold);
+      case 'best-selling':
+      default: sorted.sort((a, b) => (Number(b.sold) || 0) - (Number(a.sold) || 0));
     }
     return sorted;
   }, [products, chip, q, price, minRating, inStock, onSale, brandAZ, scents, sort]);

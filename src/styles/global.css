@@ -524,6 +524,8 @@ textarea.field { resize: vertical; min-height: 90px; }
 .info-list a:hover { color: var(--gold); }
 .info-list span:first-child { opacity: 0.6; }
 .faq-wrap { max-width: 780px; margin-inline: auto; padding: 40px 0 90px; }
+.faq-wrap--section { scroll-margin-top: 24px; }
+.faq-wrap--section h2 { font: 400 clamp(28px, 3.5vw, 40px)/1.1 var(--disp); margin-bottom: 18px; }
 
 /* ---------- footer ---------- */
 

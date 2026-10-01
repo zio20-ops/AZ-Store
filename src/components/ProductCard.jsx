@@ -18,14 +18,6 @@ export default function ProductCard({ product }) {
         </Link>
         {product.badge && <span className="card__badge">{product.badge}</span>}
         <button
-          className={`card__wish ${wished ? 'card__wish--on' : ''}`}
-          onClick={() => toggleWish(product.id)}
-          aria-label={wished ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
-          aria-pressed={wished}
-        >
-          <HeartIcon filled={wished} />
-        </button>
-        <button
           className={`card__quick ${soldOut ? 'card__quick--off' : ''}`}
           onClick={() => addToCart(product.id, defaultVariation.id, 1)}
           disabled={soldOut}
@@ -33,6 +25,16 @@ export default function ProductCard({ product }) {
           {soldOut ? 'Sold out' : 'Add to bag'}
         </button>
       </div>
+      <button
+        className={`card__wish ${wished ? 'card__wish--on' : ''}`}
+        type="button"
+        onClick={() => toggleWish(product.id)}
+        aria-label={wished ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+        aria-pressed={wished}
+        title={wished ? 'Remove from wishlist' : 'Save to wishlist'}
+      >
+        <HeartIcon filled={wished} />
+      </button>
       <h3 className="card__name">
         <Link to={`/product/${product.id}`} style={{ color: product.accentHex }}>{product.name}</Link>
       </h3>

@@ -17,7 +17,6 @@ import Contact from './pages/Contact.jsx';
 import Faq from './pages/Faq.jsx';
 import Wishlist from './pages/Wishlist.jsx';
 import Legal from './pages/Legal.jsx';
-import TrackOrder from './pages/TrackOrder.jsx';
 import NotFound from './pages/NotFound.jsx';
 import AdminLogin from './pages/admin/Login.jsx';
 import AdminDashboard from './pages/admin/Dashboard.jsx';
@@ -32,10 +31,17 @@ import AdminSettings from './pages/admin/Settings.jsx';
 import Account from './pages/Account.jsx';
 
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    if (!hash) {
+      window.scrollTo(0, 0);
+      return undefined;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname, hash]);
   return null;
 }
 
@@ -79,7 +85,6 @@ export default function App() {
           <Route path="/account" element={<Account />} />
           <Route path="/account/login" element={<Account />} />
           <Route path="/account/signup" element={<Account />} />
-          <Route path="/track-order" element={<TrackOrder />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<Faq />} />
