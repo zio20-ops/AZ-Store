@@ -83,12 +83,25 @@ export async function sendPasswordReset(email) {
 }
 
 function authMessage(code) {
-  if (code === 'EMAIL_NOT_FOUND' || code === 'INVALID_PASSWORD' || code === 'INVALID_LOGIN_CREDENTIALS') return 'That email or password is not correct.';
-  if (code === 'USER_DISABLED') return 'This account is disabled. Contact the store owner.';
-  if (code === 'TOO_MANY_ATTEMPTS_TRY_LATER') return 'Too many attempts. Try again later.';
-  if (code === 'EMAIL_EXISTS') return 'That email is already registered.';
-  if (code === 'OPERATION_NOT_ALLOWED') return 'This sign-in method is not enabled in Firebase yet.';
-  return 'Sign-in failed. Check your connection and Firebase settings.';
+  const messages = {
+    EMAIL_NOT_FOUND: 'That email was not found.',
+    INVALID_PASSWORD: 'That password is not correct.',
+    INVALID_LOGIN_CREDENTIALS: 'The email or password is not correct.',
+    USER_DISABLED: 'This account is disabled. Contact the store owner.',
+    TOO_MANY_ATTEMPTS_TRY_LATER: 'Too many attempts. Try again later.',
+    EMAIL_EXISTS: 'That email is already registered.',
+    OPERATION_NOT_ALLOWED: 'This sign-in method is not enabled in Firebase.',
+    API_KEY_INVALID: 'Firebase rejected the API key. Check the Vercel Production environment variable.',
+    INVALID_API_KEY: 'Firebase rejected the API key. Check the Vercel Production environment variable.',
+    UNAUTHORIZED_DOMAIN: 'Firebase does not authorize this website domain for Google sign-in.',
+    INVALID_IDP_RESPONSE: 'Firebase rejected the Google sign-in credential. Check the Google provider and OAuth client configuration.',
+    INVALID_IDP_CREDENTIAL: 'Firebase rejected the Google sign-in credential. Check the Google provider and OAuth client configuration.',
+    FEDERATED_USER_ID_ALREADY_LINKED: 'This Google account is already linked to another AZ Store account.',
+    ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL: 'This email already has an AZ Store account using another sign-in method.',
+    MISSING_OR_INVALID_NONCE: 'Google sign-in could not verify the login request. Refresh the page and try again.',
+  };
+  if (!code) return 'Firebase returned no error code. Check the browser network connection and Firebase API key.';
+  return `${messages[code] || 'Firebase sign-in failed'} (Firebase error: ${code}).`;
 }
 
 export async function currentIdToken() { return token(); }
