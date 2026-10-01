@@ -8,7 +8,7 @@
 import { ADMIN_EMAIL, firebaseConfig } from './firebaseConfig.js';
 import {
   clearAuth, createAdminAccount, createAccount, readAuth, saveAuth, sendPasswordReset,
-  signIn, signInWithGoogleCredential, currentIdToken, identityToolkitUrl,
+  signIn, signInWithGoogleCredential, currentIdToken, identityToolkitUrl, sendEmailVerification,
 } from './firebaseRest.js';
 import { initializeCatalog } from './productService.js';
 
@@ -50,10 +50,9 @@ const adminMembership = async (idToken, localId, email) => {
 
 const ensureVerified = async (result) => {
   if (result.emailVerified) return true;
-  await fetch(identityToolkitUrl('accounts:sendOobCode'), {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: result.idToken }),
-  }).catch(() => {});
-  throw new Error('Check your email and open the verification link before signing in.');
+  const error = new Error('Your email is not verified yet. Open the latest verification email, or request a new link below.');
+  error.code = 'EMAIL_NOT_VERIFIED';
+  throw error;
 };
 
 export const registerCustomer = async ({ name, email, password }) => {
@@ -62,13 +61,41 @@ export const registerCustomer = async ({ name, email, password }) => {
 };
 
 export const loginCustomer = async (email, password, remember = true) => {
-  try { const result = await signIn(email.trim(), password); await ensureVerified(result); cacheSession(result, remember); return { ok: true, user: getCurrentUser() }; }
-  catch (error) { return { ok: false, message: error.message }; }
+  try { const result = await signIn(email.trim(), password); await ensureVerified(result); cacheSession(result, remember); void recordCustomerLogin(result.idToken); return { ok: true, user: getCurrentUser() }; }
+  catch (error) { return { ok: false, message: error.message, needsVerification: error.code === 'EMAIL_NOT_VERIFIED' }; }
+};
+
+export const resendCustomerVerification = async (email, password, remember = true) => {
+  try {
+    const result = await signIn(email.trim(), password);
+    if (result.emailVerified) {
+      cacheSession(result, remember);
+      void recordCustomerLogin(result.idToken);
+      return { ok: true, user: getCurrentUser() };
+    }
+    await sendEmailVerification(result.idToken);
+    return { ok: true, message: 'A fresh verification link was sent. Use the newest email; older links may no longer work.' };
+  } catch (error) { return { ok: false, message: error.message }; }
 };
 
 export const loginWithGoogle = async (credential, remember = true) => {
-  try { const result = await signInWithGoogleCredential(credential); cacheSession({ ...result, emailVerified: true, providerId: 'google.com' }, remember); return { ok: true, user: getCurrentUser() }; }
+  try { const result = await signInWithGoogleCredential(credential); cacheSession({ ...result, emailVerified: true, providerId: 'google.com' }, remember); void recordCustomerLogin(result.idToken); return { ok: true, user: getCurrentUser() }; }
   catch (error) { return { ok: false, message: error.message }; }
+};
+
+async function recordCustomerLogin(idToken) {
+  try {
+    await fetch('/api/customer-activity', { method: 'POST', headers: { Authorization: `Bearer ${idToken}` } });
+  } catch { /* Keep sign-in available if activity recording is temporarily unavailable. */ }
+}
+
+export const listCustomerActivity = async () => {
+  try {
+    const response = await fetch('/api/customer-activity', { headers: { Authorization: `Bearer ${await currentIdToken()}` } });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Could not load customer sign-ins.');
+    return { ok: true, users: result.users || [] };
+  } catch (error) { return { ok: false, message: error.message, users: [] }; }
 };
 
 export const loginAdminWithGoogle = async (credential, remember = true) => {

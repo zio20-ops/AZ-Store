@@ -44,11 +44,21 @@ export async function createAccount(email, password, displayName = '') {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: body.idToken, displayName: displayName.trim(), returnSecureToken: true }),
     });
   }
-  const verification = await fetch(identityToolkitUrl('accounts:sendOobCode'), {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: body.idToken }),
-  });
-  if (!verification.ok) throw new Error('Account created, but Firebase could not send its verification email.');
+  await sendEmailVerification(body.idToken);
   return true;
+}
+
+export async function sendEmailVerification(idToken) {
+  const response = await fetch(identityToolkitUrl('accounts:sendOobCode'), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      requestType: 'VERIFY_EMAIL',
+      idToken,
+      continueUrl: `${window.location.origin}/account?verified=1`,
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(authMessage(body.error?.message) || 'Firebase could not send the verification email.');
 }
 
 export async function signInWithGoogleCredential(credential) {

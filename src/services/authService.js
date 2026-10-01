@@ -25,5 +25,7 @@ const hostedOnly = { ok: false, message: 'Customer accounts are available on the
 export const getCurrentUser = () => (isFirebase ? fb.getCurrentUser() : null);
 export const registerCustomer = (payload) => (isFirebase ? fb.registerCustomer(payload) : Promise.resolve(hostedOnly));
 export const loginCustomer = (email, password, remember) => (isFirebase ? fb.loginCustomer(email, password, remember) : Promise.resolve(hostedOnly));
+export const resendCustomerVerification = (email, password, remember) => (isFirebase ? fb.resendCustomerVerification(email, password, remember) : Promise.resolve(hostedOnly));
 export const loginWithGoogle = (credential, remember) => (isFirebase ? fb.loginWithGoogle(credential, remember) : Promise.resolve(hostedOnly));
+export const listCustomerActivity = () => (isFirebase ? fb.listCustomerActivity() : Promise.resolve({ ok: true, users: [] }));
 export const resetCustomerPassword = (email) => (isFirebase ? fb.resetCustomerPassword(email) : Promise.resolve(hostedOnly));

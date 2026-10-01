@@ -1,12 +1,25 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { useStore } from '../../store/StoreContext.jsx';
 import { egp } from '../../utils/format.js';
 import { getVariations, totalStock } from '../../data/products.js';
+import * as auth from '../../services/authService.js';
 
 export default function Dashboard() {
   const { allProducts, orders } = useStore();
+  const [customerLogins, setCustomerLogins] = useState([]);
+  const [customerLoginsError, setCustomerLoginsError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    auth.listCustomerActivity().then((result) => {
+      if (!active) return;
+      if (result.ok) setCustomerLogins(result.users);
+      else setCustomerLoginsError(true);
+    });
+    return () => { active = false; };
+  }, []);
 
   const stats = useMemo(() => {
     const pending = orders.filter((o) => !o.cancelled && o.status < 4).length;
@@ -31,7 +44,31 @@ export default function Dashboard() {
         <div className="adcard"><span>Pending</span><b className={stats.pending ? 'adcard--warn' : ''}>{stats.pending}</b><small>not yet delivered</small></div>
         <div className="adcard"><span>Revenue</span><b>{egp(stats.revenue)}</b><small>excludes cancelled</small></div>
         <div className="adcard"><span>Low Stock</span><b className={stats.lowStock ? 'adcard--warn' : ''}>{stats.lowStock}</b><small>products at or below threshold</small></div>
+        <div className="adcard"><span>Customer accounts</span><b>{customerLogins.length}</b><small>customers who signed in</small></div>
       </div>
+
+      <section className="adsec">
+        <div className="adsec__head">
+          <h2>Recent customer sign-ins</h2>
+          <Link className="btn btn--text" to="/admin/customers">View customers</Link>
+        </div>
+        <div className="adtable-wrap">
+          <table className="adtable responsive">
+            <thead><tr><th>Customer</th><th>Email</th><th>Sign-in method</th><th>Last sign-in</th></tr></thead>
+            <tbody>
+              {customerLogins.slice(0, 6).map((user) => (
+                <tr key={user.uid}>
+                  <td data-label="Customer"><span className="prod-name">{user.name || 'Customer'}</span></td>
+                  <td data-label="Email">{user.email || '—'}</td>
+                  <td data-label="Sign-in method">{user.provider === 'google.com' ? 'Google' : 'Email and password'}</td>
+                  <td data-label="Last sign-in">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}</td>
+                </tr>
+              ))}
+              {customerLogins.length === 0 && <tr><td colSpan={4}><div className="adempty">{customerLoginsError ? 'Could not load customer sign-ins. Check the server configuration.' : 'No customer sign-ins recorded yet. New sign-ins will appear here.'}</div></td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="adsec">
         <div className="adsec__head">
