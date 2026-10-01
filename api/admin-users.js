@@ -6,7 +6,7 @@
 import { createSign } from 'node:crypto';
 
 const projectId = 'az-store-36cd0';
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'azstore700@gmail.com').toLowerCase();
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'ziadabdo43320@gmail.com').toLowerCase();
 const db = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
 let tokenCache;
 
@@ -44,8 +44,7 @@ async function accessToken() {
 // Validates the caller's Firebase idToken and returns their account.
 async function callerAccount(idToken) {
   if (!idToken) return null;
-  const apiKey = process.env.FIREBASE_API_KEY;
-  if (!apiKey) throw new Error('FIREBASE_API_KEY is not configured.');
+  const apiKey = process.env.FIREBASE_API_KEY || 'AIzaSyCLtsShJFypz4FqFsS6OPrAkMJuqegVgsg';
   const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }),
   });
