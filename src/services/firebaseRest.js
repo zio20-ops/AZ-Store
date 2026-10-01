@@ -123,12 +123,14 @@ async function token() {
 export async function request(path, { method = 'GET', data, admin = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (admin) headers.Authorization = `Bearer ${await token()}`;
-  const response = await fetch(`${db}/${path}`, { method, headers, ...(data === undefined ? {} : { body: JSON.stringify({ fields: encode(data) }) }) });
+  const response = await fetch(`${db}/${path}`, { method, headers, ...(data === undefined ? {} : { body: JSON.stringify({ fields: encodeFields(data) }) }) });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const code = body.error?.status;
     if (code === 'PERMISSION_DENIED' || response.status === 401) throw new Error('Firebase rejected the operation. Check the admin account and Firestore rules.');
-    throw new Error(body.error?.message || 'Could not reach the store database.');
+    const error = new Error(body.error?.message || 'Could not reach the store database.');
+    error.code = code || response.status;
+    throw error;
   }
   return body;
 }
@@ -140,6 +142,14 @@ function encode(value) {
   if (typeof value === 'number') return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
   if (Array.isArray(value)) return { arrayValue: { values: value.map(encode) } };
   return { mapValue: { fields: Object.fromEntries(Object.entries(value).map(([k, v]) => [k, encode(v)])) } };
+}
+
+// Firestore Document.fields is a map of field names to Value objects.
+// encode() returns a Value, so wrapping the whole map with encode() adds an
+// invalid mapValue/value layer and Firestore rejects writes with "unknown name
+// fields". Encode only each top-level field value here.
+function encodeFields(value) {
+  return Object.fromEntries(Object.entries(value).map(([key, fieldValue]) => [key, encode(fieldValue)]));
 }
 
 function decode(value) {
@@ -160,7 +170,7 @@ export const listDocuments = async (collection, admin = false) => {
 };
 export const getDocument = async (collection, id, admin = false) => {
   try { return decodeDocument(await request(`${collection}/${encodeURIComponent(id)}`, { admin })); }
-  catch (error) { if (error.message.includes('NOT_FOUND')) return null; throw error; }
+  catch (error) { if (error.code === 404 || error.code === 'NOT_FOUND') return null; throw error; }
 };
 export const putDocument = async (collection, id, data, admin = false) => decodeDocument(await request(`${collection}/${encodeURIComponent(id)}`, { method: 'PATCH', data, admin }));
 export const createDocument = async (collection, id, data, admin = false) => decodeDocument(await request(`${collection}?documentId=${encodeURIComponent(id)}`, { method: 'POST', data, admin }));

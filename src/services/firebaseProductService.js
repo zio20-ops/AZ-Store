@@ -52,7 +52,12 @@ export async function initializeCatalog() {
     for (const product of migrateSeed()) await createDocument('products', product.id, product, true);
     const cats = [...new Set(PRODUCTS.map((p) => p.category))];
     for (const name of cats) await createDocument('categories', slugify(name), { name, image: '' }, true);
-    await createDocument('settings', 'store', DEFAULT_SETTINGS, true);
+  }
+  // Settings must exist even when products were seeded by an earlier version.
+  const settings = await getDocument('settings', 'store', true);
+  if (!settings) {
+    try { await createDocument('settings', 'store', DEFAULT_SETTINGS, true); }
+    catch (error) { if (error.code !== 409 && error.code !== 'ALREADY_EXISTS') throw error; }
   }
 }
 
@@ -101,7 +106,11 @@ export const deleteCategory = async (id) => { try { const category = await getDo
   await deleteDocument('categories', id, true); return { ok: true };
 } catch (e) { return { ok: false, message: e.message }; } };
 export const getSettings = async () => (await getDocument('settings', 'store', admin())) || DEFAULT_SETTINGS;
-export const saveSettings = async (patch) => { try { const exists = await getDocument('settings', 'store', true); const settings = { ...(exists || DEFAULT_SETTINGS), ...patch };
-  if (exists) await putDocument('settings', 'store', settings, true); else await createDocument('settings', 'store', settings, true);
+export const saveSettings = async (patch) => { try {
+  // Firestore PATCH is an upsert: it creates the document when it is missing.
+  // Settings form submits the complete settings shape, so no preliminary GET
+  // is needed (and a missing settings/store document cannot block saving).
+  const settings = { ...DEFAULT_SETTINGS, ...patch };
+  await putDocument('settings', 'store', settings, true);
   return { ok: true, settings };
 } catch (e) { return { ok: false, message: e.message }; } };
