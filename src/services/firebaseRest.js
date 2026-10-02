@@ -1,7 +1,15 @@
 import { firebaseConfig } from './firebaseConfig.js';
 
-const AUTH_KEY = 'az.firebase.auth';
+const CUSTOMER_AUTH_KEY = 'az.firebase.customer.auth';
+const ADMIN_AUTH_KEY = 'az.firebase.admin.auth';
+const LEGACY_AUTH_KEY = 'az.firebase.auth';
 const db = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents`;
+// Do not guess whether the old shared session belonged to a customer or an
+// administrator. Both must sign in again after this migration.
+try {
+  localStorage.removeItem(LEGACY_AUTH_KEY);
+  sessionStorage.removeItem(LEGACY_AUTH_KEY);
+} catch { /* Storage can be unavailable in privacy-restricted browsers. */ }
 const requireApiKey = () => {
   if (!firebaseConfig.apiKey) throw new Error('Firebase is not configured. Set VITE_FIREBASE_API_KEY and rebuild the site.');
   return encodeURIComponent(firebaseConfig.apiKey);
@@ -9,19 +17,25 @@ const requireApiKey = () => {
 export const identityToolkitUrl = (path) => `https://identitytoolkit.googleapis.com/v1/${path}?key=${requireApiKey()}`;
 const secureTokenUrl = () => `https://securetoken.googleapis.com/v1/token?key=${requireApiKey()}`;
 
-export const readAuth = () => {
-  try { return JSON.parse(sessionStorage.getItem(AUTH_KEY) || localStorage.getItem(AUTH_KEY) || 'null'); }
+const readSession = (key) => {
+  try { return JSON.parse(sessionStorage.getItem(key) || localStorage.getItem(key) || 'null'); }
   catch { return null; }
 };
 
-export const saveAuth = (value, remember = true) => {
+const saveSession = (key, value, remember = true) => {
   try {
-    sessionStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_KEY);
-    (remember ? localStorage : sessionStorage).setItem(AUTH_KEY, JSON.stringify(value));
+    sessionStorage.removeItem(key); localStorage.removeItem(key);
+    (remember ? localStorage : sessionStorage).setItem(key, JSON.stringify(value));
   } catch { throw new Error('Could not save your session on this device.'); }
 };
 
-export const clearAuth = () => { localStorage.removeItem(AUTH_KEY); sessionStorage.removeItem(AUTH_KEY); };
+const clearSession = (key) => { localStorage.removeItem(key); sessionStorage.removeItem(key); };
+export const readCustomerAuth = () => readSession(CUSTOMER_AUTH_KEY);
+export const readAdminAuth = () => readSession(ADMIN_AUTH_KEY);
+export const saveCustomerAuth = (value, remember = true) => saveSession(CUSTOMER_AUTH_KEY, value, remember);
+export const saveAdminAuth = (value, remember = true) => saveSession(ADMIN_AUTH_KEY, value, remember);
+export const clearCustomerAuth = () => clearSession(CUSTOMER_AUTH_KEY);
+export const clearAdminAuth = () => clearSession(ADMIN_AUTH_KEY);
 
 export async function signIn(email, password) {
   const response = await fetch(identityToolkitUrl('accounts:signInWithPassword'), {
@@ -103,25 +117,28 @@ function authMessage(code) {
   return `${messages[code] || 'Firebase sign-in failed'} (Firebase error: ${code}).`;
 }
 
-export async function currentIdToken() { return token(); }
+export async function currentCustomerIdToken() { return token(CUSTOMER_AUTH_KEY, 'customer'); }
+export async function currentAdminIdToken() { return token(ADMIN_AUTH_KEY, 'admin'); }
 
-async function token() {
-  const auth = readAuth();
-  if (!auth?.refreshToken) throw new Error('Sign in to the admin panel first.');
+async function token(key, accountType) {
+  const auth = readSession(key);
+  if (!auth?.refreshToken) throw new Error(accountType === 'admin' ? 'Sign in to the admin panel first.' : 'Sign in to your customer account first.');
+  if (accountType === 'admin' && (auth.isAdmin !== true || !['owner', 'admin'].includes(auth.role))) throw new Error('Sign in to an authorized admin account first.');
+  if (accountType === 'customer' && (auth.isAdmin !== false || auth.role !== 'customer')) throw new Error('Sign in to your customer account first.');
   if (Date.now() < auth.expiresAt - 60_000) return auth.idToken;
   const response = await fetch(secureTokenUrl(), {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: auth.refreshToken }),
   });
   const body = await response.json();
-  if (!response.ok) { clearAuth(); throw new Error('Your session expired. Sign in again.'); }
-  saveAuth({ ...auth, idToken: body.id_token, refreshToken: body.refresh_token, expiresAt: Date.now() + Number(body.expires_in) * 1000 }, auth.remember);
+  if (!response.ok) { clearSession(key); throw new Error('Your session expired. Sign in again.'); }
+  saveSession(key, { ...auth, idToken: body.id_token, refreshToken: body.refresh_token, expiresAt: Date.now() + Number(body.expires_in) * 1000 }, auth.remember);
   return body.id_token;
 }
 
 export async function request(path, { method = 'GET', data, admin = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
-  if (admin) headers.Authorization = `Bearer ${await token()}`;
+  if (admin) headers.Authorization = `Bearer ${await currentAdminIdToken()}`;
   const response = await fetch(`${db}/${path}`, { method, headers, ...(data === undefined ? {} : { body: JSON.stringify({ fields: encodeFields(data) }) }) });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {

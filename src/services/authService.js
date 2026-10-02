@@ -11,7 +11,8 @@ export const DEMO_EMAIL = local.DEMO_EMAIL;
 export const DEMO_PASSWORD = local.DEMO_PASSWORD;
 
 export const me = () => (isFirebase ? fb.me() : local.me());
-export const logout = () => (isFirebase ? fb.logout() : local.logout());
+export const logoutCustomer = () => (isFirebase ? fb.logoutCustomer() : local.logout());
+export const logoutAdmin = () => (isFirebase ? fb.logoutAdmin() : local.logout());
 export const login = (email, password, remember) => (isFirebase ? fb.login(email, password, remember) : local.login(email, password, remember));
 export const register = (email, password) => (isFirebase ? fb.register(email, password) : local.login(email, password).then(() => ({ ok: false, message: 'Demo mode already includes an owner account.' })));
 export const resetPassword = (email) => (isFirebase ? fb.resetPassword(email) : local.resetPassword(email));

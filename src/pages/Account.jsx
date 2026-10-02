@@ -47,7 +47,7 @@ export default function Account() {
             <span>Go to home</span>
           </Link>
           <Link className="btn" to="/wishlist">Your wishlist</Link>
-          <button className="btn btn--text" onClick={async () => { await auth.logout(); toast('You have been signed out.'); navigate('/'); }}>Sign out</button>
+          <button className="btn btn--text" onClick={async () => { await auth.logoutCustomer(); toast('You have been signed out.'); navigate('/'); }}>Sign out</button>
         </div>
       </section>
     </div>

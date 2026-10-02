@@ -7,8 +7,9 @@
 
 import { ADMIN_EMAIL, firebaseConfig } from './firebaseConfig.js';
 import {
-  clearAuth, createAdminAccount, createAccount, readAuth, saveAuth, sendPasswordReset,
-  signIn, signInWithGoogleCredential, currentIdToken, identityToolkitUrl,
+  clearAdminAuth, clearCustomerAuth, createAdminAccount, createAccount,
+  readAdminAuth, readCustomerAuth, saveAdminAuth, saveCustomerAuth, sendPasswordReset,
+  signIn, signInWithGoogleCredential, currentAdminIdToken, identityToolkitUrl,
 } from './firebaseRest.js';
 import { initializeCatalog } from './productService.js';
 
@@ -17,27 +18,33 @@ export { ADMIN_EMAIL } from './firebaseConfig.js';
 const db = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents`;
 
 export const getCurrentUser = () => {
-  const session = readAuth();
+  const session = readCustomerAuth();
   if (!session?.idToken || !session.refreshToken) return null;
-  return { uid: session.uid, email: session.email, name: session.displayName || session.email, emailVerified: Boolean(session.emailVerified), providerId: session.providerId || 'password', role: session.role || 'admin', isAdmin: Boolean(session.isAdmin) };
+  return { uid: session.uid, email: session.email, name: session.displayName || session.email, emailVerified: Boolean(session.emailVerified), providerId: session.providerId || 'password', role: 'customer', isAdmin: false };
 };
 
 export const me = () => {
-  const session = getCurrentUser();
-  if (!session || !session.isAdmin) return null;
-  return { ...session, name: session.role === 'owner' ? 'Store Owner' : (session.displayName || 'AZ Administrator') };
+  const session = readAdminAuth();
+  if (!session?.idToken || !session.refreshToken || session.isAdmin !== true || !['owner', 'admin'].includes(session.role)) return null;
+  return { uid: session.uid, email: session.email, displayName: session.displayName || '', emailVerified: Boolean(session.emailVerified), providerId: session.providerId || 'password', role: session.role, isAdmin: true, name: session.role === 'owner' ? 'Store Owner' : (session.displayName || 'AZ Administrator') };
 };
 
-const cacheSession = (result, remember, extra = {}) => {
-  saveAuth({
+const sessionData = (result, extra = {}) => ({
     uid: result.localId, email: result.email, displayName: result.displayName || '', emailVerified: result.emailVerified,
     providerId: result.providerId || 'password', idToken: result.idToken, refreshToken: result.refreshToken,
-    expiresAt: Date.now() + Number(result.expiresIn) * 1000, remember, ...extra,
-  }, remember);
+    expiresAt: Date.now() + Number(result.expiresIn) * 1000, ...extra,
+  });
+const cacheCustomerSession = (result, remember) => {
+  saveCustomerAuth(sessionData(result, { isAdmin: false, role: 'customer', remember }), remember);
+  window.dispatchEvent(new Event('az-auth-changed'));
+};
+const cacheAdminSession = (result, remember, membership) => {
+  saveAdminAuth(sessionData(result, { isAdmin: true, role: membership.role, remember }), remember);
   window.dispatchEvent(new Event('az-auth-changed'));
 };
 
-export const logout = async () => { clearAuth(); window.dispatchEvent(new Event('az-auth-changed')); return { ok: true }; };
+export const logoutCustomer = async () => { clearCustomerAuth(); window.dispatchEvent(new Event('az-auth-changed')); return { ok: true }; };
+export const logoutAdmin = async () => { clearAdminAuth(); window.dispatchEvent(new Event('az-auth-changed')); return { ok: true }; };
 const adminMembership = async (idToken, localId, email) => {
   if ((email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) return { role: 'owner' };
   const response = await fetch(`${db}/admins/${encodeURIComponent(localId)}`, { headers: { Authorization: `Bearer ${idToken}` } });
@@ -57,7 +64,7 @@ const ensureVerified = async (result) => {
 export const registerCustomer = async ({ name, email, password }) => {
   try {
     const result = await createAccount(email.trim(), password, name);
-    cacheSession(result, true);
+    cacheCustomerSession(result, true);
     void recordCustomerLogin(result.idToken);
     return { ok: true, user: getCurrentUser() };
   }
@@ -65,12 +72,12 @@ export const registerCustomer = async ({ name, email, password }) => {
 };
 
 export const loginCustomer = async (email, password, remember = true) => {
-  try { const result = await signIn(email.trim(), password); cacheSession(result, remember); void recordCustomerLogin(result.idToken); return { ok: true, user: getCurrentUser() }; }
+  try { const result = await signIn(email.trim(), password); cacheCustomerSession(result, remember); void recordCustomerLogin(result.idToken); return { ok: true, user: getCurrentUser() }; }
   catch (error) { return { ok: false, message: error.message }; }
 };
 
 export const loginWithGoogle = async (credential, remember = true) => {
-  try { const result = await signInWithGoogleCredential(credential); cacheSession({ ...result, emailVerified: true, providerId: 'google.com' }, remember); void recordCustomerLogin(result.idToken); return { ok: true, user: getCurrentUser() }; }
+  try { const result = await signInWithGoogleCredential(credential); cacheCustomerSession({ ...result, emailVerified: true, providerId: 'google.com' }, remember); void recordCustomerLogin(result.idToken); return { ok: true, user: getCurrentUser() }; }
   catch (error) { return { ok: false, message: error.message }; }
 };
 
@@ -82,7 +89,7 @@ async function recordCustomerLogin(idToken) {
 
 export const listCustomerActivity = async () => {
   try {
-    const response = await fetch('/api/customer-activity', { headers: { Authorization: `Bearer ${await currentIdToken()}` } });
+    const response = await fetch('/api/customer-activity', { headers: { Authorization: `Bearer ${await currentAdminIdToken()}` } });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'Could not load customer sign-ins.');
     return { ok: true, users: result.users || [] };
@@ -95,7 +102,7 @@ export const loginAdminWithGoogle = async (credential, remember = true) => {
     const membership = await adminMembership(result.idToken, result.localId, result.email);
     if (!membership) return { ok: false, message: 'This Google account does not have admin access. Ask the store owner to add it from Admin access.' };
     if (result.emailVerified !== true) return { ok: false, message: 'The administrator email must be verified.' };
-    cacheSession({ ...result, emailVerified: true, providerId: 'google.com' }, remember, { isAdmin: true, role: membership.role });
+    cacheAdminSession({ ...result, emailVerified: true, providerId: 'google.com' }, remember, membership);
     await initializeCatalog();
     return { ok: true, session: me() };
   } catch (error) { return { ok: false, message: error.message }; }
@@ -125,17 +132,17 @@ export const login = async (email, password, remember = false) => {
     await ensureVerified(result);
     const membership = await adminMembership(result.idToken, result.localId, result.email);
     if (!membership) {
-      clearAuth();
+      clearAdminAuth();
       return { ok: false, message: 'This account does not have admin access. Ask the store owner to add it from Admin access.' };
     }
-    cacheSession(result, remember, { isAdmin: true, role: membership.role });
+    cacheAdminSession(result, remember, membership);
     await initializeCatalog();
     return { ok: true, session: me() };
   } catch (error) { return { ok: false, message: error.message }; }
 };
 
 export const changePassword = async ({ currentPassword, newPassword }) => {
-  const session = readAuth();
+  const session = readAdminAuth();
   if (!session) return { ok: false, message: 'Your session expired. Sign in again.' };
   if (session.providerId === 'google.com') return { ok: false, message: 'This admin signs in with Google, so the password is managed by the Google account.' };
   if (String(newPassword || '').length < 8) return { ok: false, message: 'The new password needs at least 8 characters.' };
@@ -150,14 +157,14 @@ export const changePassword = async ({ currentPassword, newPassword }) => {
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) return { ok: false, message: body.error?.message || 'Firebase rejected the password change.' };
-  saveAuth({ ...session, idToken: body.idToken, refreshToken: body.refreshToken, expiresAt: Date.now() + Number(body.expiresIn) * 1000 }, session.remember);
+  saveAdminAuth({ ...session, idToken: body.idToken, refreshToken: body.refreshToken, expiresAt: Date.now() + Number(body.expiresIn) * 1000 }, session.remember);
   return { ok: true };
 };
 
 const adminUsersApi = async (payload) => {
   const response = await fetch('/api/admin-users', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await currentIdToken()}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await currentAdminIdToken()}` },
     body: JSON.stringify(payload),
   });
   const result = await response.json().catch(() => ({}));

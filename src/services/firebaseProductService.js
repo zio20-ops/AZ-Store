@@ -1,10 +1,10 @@
 import { PRODUCTS } from '../data/products.js';
 import { listDocuments, getDocument, putDocument, createDocument, deleteDocument } from './firebaseRest.js';
-import { readAuth } from './firebaseRest.js';
+import { readAdminAuth } from './firebaseRest.js';
 
 const now = () => new Date().toISOString();
 const slugify = (name) => name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'product';
-const admin = () => Boolean(readAuth()?.idToken);
+const admin = () => readAdminAuth()?.isAdmin === true;
 export const DEFAULT_SETTINGS = {
   announcement: 'Free gift cards with every trio box',
   freeDeliveryThreshold: 1800,
