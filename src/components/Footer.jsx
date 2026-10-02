@@ -17,11 +17,12 @@ export default function Footer() {
             <span className="logo">AZ</span>
             <p>Fine fragrance mists and gift boxes, made in Egypt for every mood you wear.</p>
             <div className="footer__social" aria-label="Follow AZ Store">
-              {CONTACT_INFO.filter((c) => socialIcons[c.label] && c.href).map((social) => (
-                <a key={social.label} href={social.href} target="_blank" rel="noreferrer noopener" aria-label={social.label} title={social.label}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{socialIcons[social.label]}</svg>
-                </a>
-              ))}
+              {CONTACT_INFO.filter((c) => socialIcons[c.label]).map((social) => {
+                const icon = <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{socialIcons[social.label]}</svg>;
+                return social.href
+                  ? <a key={social.label} href={social.href} target="_blank" rel="noreferrer noopener" aria-label={social.label} title={social.label}>{icon}</a>
+                  : <span key={social.label} className="footer__social-unset" aria-label={`${social.label} link not set`} title={`${social.label} link not set`}>{icon}</span>;
+              })}
             </div>
           </div>
 

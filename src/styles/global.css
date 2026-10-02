@@ -184,12 +184,14 @@ textarea.field { resize: vertical; min-height: 90px; }
 .mmenu {
   position: fixed; top: 0; bottom: 0; inset-inline-end: 0; width: min(360px, 86vw);
   background: var(--velvet); border-inline-start: 1px solid var(--line-2); z-index: 65;
-  padding: 26px; display: flex; flex-direction: column; gap: 6px;
-  transform: translateX(102%); transition: transform 0.4s var(--ease); overflow-y: auto;
+  box-sizing: border-box; max-height: 100vh; max-height: 100dvh;
+  padding: max(18px, env(safe-area-inset-top)) 22px max(18px, env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 4px;
+  transform: translateX(102%); transition: transform 0.4s var(--ease); overflow-y: auto; overscroll-behavior: contain;
 }
 .mmenu--open { transform: none; }
 .mmenu__close { align-self: flex-end; font-size: 14px; opacity: 0.7; }
-.mmenu a { font: 400 30px/1.25 var(--disp); padding: 8px 0; border-bottom: 1px solid var(--line-1); }
+.mmenu a { font: 400 clamp(22px, 6vw, 27px)/1.15 var(--disp); padding: 7px 0; border-bottom: 1px solid var(--line-1); }
 .mmenu a:last-of-type { border-bottom: 0; }
 .mmenu__foot { margin-top: auto; font-size: 13px; opacity: 0.6; display: flex; flex-direction: column; gap: 8px; padding-top: 24px; }
 
@@ -554,7 +556,7 @@ textarea.field { resize: vertical; min-height: 90px; }
 .info-list a:hover { color: var(--gold); }
 .info-list span:first-child { opacity: 0.6; }
 .faq-wrap { max-width: 780px; margin-inline: auto; padding: 40px 0 90px; }
-.faq-wrap--section { scroll-margin-top: 24px; }
+.faq-wrap--section { scroll-margin-top: 120px; }
 .faq-wrap--section h2 { font: 400 clamp(28px, 3.5vw, 40px)/1.1 var(--disp); margin-bottom: 18px; }
 
 /* ---------- footer ---------- */
@@ -569,6 +571,7 @@ textarea.field { resize: vertical; min-height: 90px; }
 .footer ul a:hover { opacity: 1; color: var(--gold); }
 .footer__social { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 .footer__social a { display: grid; place-items: center; width: 48px; height: 48px; color: var(--pearl); border: 1px solid var(--line-2); border-radius: 50%; background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.015)); transition: color .2s, border-color .2s, background .2s, transform .2s, box-shadow .2s; }
+.footer__social .footer__social-unset { display: grid; place-items: center; width: 48px; height: 48px; color: var(--pearl); border: 1px solid var(--line-2); border-radius: 50%; background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.015)); opacity: .55; cursor: default; }
 .footer__social a:hover, .footer__social a:focus-visible { color: var(--velvet); border-color: var(--gold); background: var(--gold); transform: translateY(-3px); box-shadow: 0 7px 22px rgba(225, 171, 78, .22); }
 .footer__social svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .footer__base { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line-1); font-size: 12px; opacity: 0.55; }
@@ -649,6 +652,7 @@ textarea.field { resize: vertical; min-height: 90px; }
   .pdp__main { aspect-ratio: 3/3.6; }
   .pdp__lead { font-size: 19px; }
   .pdp__sticky { position: fixed; inset-inline: 14px; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); z-index: 45; display: block; }
+  .pdp__buy-primary { display: none; }
   .co { grid-template-columns: 1fr; gap: 34px; padding-block: 34px 60px; }
   .cohead { padding: 16px 20px; }
   .sum { position: static; }
@@ -674,6 +678,12 @@ textarea.field { resize: vertical; min-height: 90px; }
   .card__quick { inset-inline: 10px; bottom: 10px; font-size: 12px; padding: 8px; }
   .opts--3, .opts--4 { grid-template-columns: 1fr; }
   .co__grid2 { grid-template-columns: 1fr; }
+}
+
+@media (max-height: 640px) and (max-width: 767px) {
+  .mmenu { padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: max(10px, env(safe-area-inset-bottom)); gap: 2px; }
+  .mmenu a { font-size: 21px; line-height: 1.08; padding: 5px 0; }
+  .mmenu__foot { padding-top: 10px; }
 }
 
 @media (min-width: 768px) {

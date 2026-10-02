@@ -85,10 +85,16 @@ export default function Account() {
           {!ordersLoading && !ordersError && customerOrders.length === 0 && <p className="account-orders__empty">You haven’t placed an order yet. Orders placed while you’re signed in will appear here.</p>}
           <div className="account-orders__list">
             {customerOrders.map((order) => <article className="account-order" key={order.id}>
-              <div className="account-order__top"><div><b>Order {order.id}</b><small>{new Date(order.placedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</small></div><strong>{egp(order.total)}</strong></div>
-              <p className="account-order__items">{(order.items || []).map((item) => `${item.name} × ${item.qty}${item.meta ? ` · ${item.meta}` : ''}`).join(', ')}</p>
-              <div className="account-order__bottom"><span>{order.cancelled ? 'Cancelled' : ORDER_STEPS[Number(order.status)] || 'Order Received'}</span><span>{order.payment || 'Payment'} · {order.paymentStatus || 'Pending'}</span></div>
-              <p className="account-order__address">Delivery to {order.address}</p>
+              <div className="account-order__top">
+                <div className="account-order__identity"><span>ORDER</span><b>{order.id}</b><small>{new Date(order.placedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</small></div>
+                <div className="account-order__total"><span>ORDER TOTAL</span><strong>{egp(order.total)}</strong></div>
+              </div>
+              <div className="account-order__items-wrap"><span className="account-order__label">ITEMS</span><ul className="account-order__items">{(order.items || []).map((item, index) => <li key={`${item.productId || item.name}-${item.variationId || index}`}><b>{item.name} × {item.qty}</b>{item.meta && <small>{item.meta}</small>}</li>)}</ul></div>
+              <div className="account-order__bottom">
+                <div><span className="account-order__label">ORDER STATUS</span><strong className={`account-order__status${order.cancelled ? ' is-cancelled' : ''}`}>{order.cancelled ? 'Cancelled' : ORDER_STEPS[Number(order.status)] || 'Order Received'}</strong></div>
+                <div><span className="account-order__label">PAYMENT</span><strong className="account-order__payment">{order.payment || 'Payment'} · {order.paymentStatus || 'Pending'}</strong></div>
+              </div>
+              {order.address && <p className="account-order__address"><b>Delivery address</b><span>{order.address}</span></p>}
             </article>)}
           </div>
         </section>}

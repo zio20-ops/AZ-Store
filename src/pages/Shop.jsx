@@ -113,6 +113,12 @@ export default function Shop() {
     setParams(new URLSearchParams(), { replace: true });
   };
 
+  useEffect(() => {
+    if (window.location.hash !== '#shop-results') return undefined;
+    const frame = requestAnimationFrame(() => document.getElementById('shop-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    return () => cancelAnimationFrame(frame);
+  }, [params]);
+
   return (
     <div className="container">
       <nav className="crumb" aria-label="Breadcrumb">
@@ -193,7 +199,7 @@ export default function Shop() {
           <button className="btn btn--primary" onClick={clearAll}>Clear filters</button>
         </div>
       ) : (
-        <div className="grid">
+        <div className="grid" id="shop-results">
           {results.map((p, index) => <ProductCard key={p.id} product={p} priority={index < 2} />)}
         </div>
       )}

@@ -135,7 +135,7 @@ export default function ProductDetails() {
           <div className="pdp__buy">
             <QuantitySelector value={qty} onChange={setQty} max={Math.max(1, variation.stock)} />
             <button
-              className={`btn btn--primary ${soldOut ? 'btn--disabled' : ''}`}
+              className={`btn btn--primary pdp__buy-primary ${soldOut ? 'btn--disabled' : ''}`}
               style={{ flex: 1, minWidth: 180 }}
               onClick={() => addToCart(product.id, variation.id, qty)}
               disabled={soldOut}

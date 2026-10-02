@@ -76,17 +76,17 @@ export const FOOTER_COLUMNS = [
       { label: 'Shop all', to: '/shop' },
       { label: 'Scents', to: '/shop?filter=mists' },
       { label: 'Gift sets', to: '/shop?filter=gift-sets' },
-      { label: 'Best sellers', to: '/shop?sort=best-selling' },
-      { label: 'New arrivals', to: '/shop?sort=newest' },
+      { label: 'Best sellers', to: '/shop?sort=best-selling#shop-results' },
+      { label: 'New arrivals', to: '/shop?sort=newest#shop-results' },
     ],
   },
   {
     title: 'Customer Service',
     links: [
       { label: 'Contact', to: '/contact' },
-      { label: 'Shipping & Delivery', to: '/faq' },
+      { label: 'Shipping & Delivery', to: '/faq#shipping' },
       { label: 'Returns & Refunds', to: '/faq#returns' },
-      { label: 'FAQ', to: '/faq' },
+      { label: 'FAQ', to: '/faq#faq' },
     ],
   },
   {
