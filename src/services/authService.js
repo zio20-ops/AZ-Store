@@ -20,6 +20,7 @@ export const changePassword = (payload) => (isFirebase ? fb.changePassword(paylo
 export const listUsers = () => (isFirebase ? fb.listUsers() : local.listUsers().then((users) => ({ ok: true, users })));
 export const addUser = (payload) => (isFirebase ? fb.addUser(payload) : local.addUser(payload));
 export const removeUser = (uid) => (isFirebase ? fb.removeUser(uid) : local.removeUser(uid));
+export const changeUserRole = (uid, role) => (isFirebase ? fb.changeUserRole(uid, role) : local.changeUserRole(uid, role));
 export const loginAdminWithGoogle = (credential, remember) => (isFirebase ? fb.loginAdminWithGoogle(credential, remember) : Promise.resolve({ ok: false, message: 'Google sign-in is available on the hosted deployment.' }));
 
 const hostedOnly = { ok: false, message: 'Customer accounts are available on the hosted deployment.' };

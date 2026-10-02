@@ -5,7 +5,8 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email_verified == true
         && (request.auth.token.email == 'ziadabdo43320@gmail.com'
-            || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+            || (exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+                && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role in ['owner', 'admin']));
     }
 
     // Admin roster. Clients may only read their own membership document; all

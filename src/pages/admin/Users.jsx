@@ -11,6 +11,7 @@ export default function Users() {
   const { toast } = useStore();
   const session = auth.me();
   const myKey = session?.uid;
+  const isOwner = session?.role === 'owner';
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +19,7 @@ export default function Users() {
 
   const [addEmail, setAddEmail] = useState('');
   const [addPassword, setAddPassword] = useState('');
+  const [addRole, setAddRole] = useState('admin');
   const [adding, setAdding] = useState(false);
 
   const [cur, setCur] = useState('');
@@ -27,6 +29,7 @@ export default function Users() {
 
   const [pending, setPending] = useState(null);
   const [removing, setRemoving] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,11 +44,11 @@ export default function Users() {
   const submitAdd = async (e) => {
     e.preventDefault();
     setAdding(true);
-    const result = await auth.addUser({ email: addEmail, password: addPassword });
+    const result = await auth.addUser({ email: addEmail, password: addPassword, role: addRole });
     setAdding(false);
     if (!result.ok) { toast(result.message || 'Could not add that admin.'); return; }
-    setAddEmail(''); setAddPassword('');
-    toast(`Added ${result.user.email}. Share the temporary password securely.`);
+    setAddEmail(''); setAddPassword(''); setAddRole('admin');
+    toast(`Added ${result.user.role === 'owner' ? 'owner' : 'administrator'} ${result.user.email}. Share the temporary password securely.`);
     await load();
   };
 
@@ -71,12 +74,21 @@ export default function Users() {
     await load();
   };
 
+  const updateRole = async (user, role) => {
+    setUpdatingRole(keyOf(user));
+    const result = await auth.changeUserRole(keyOf(user), role);
+    setUpdatingRole(null);
+    if (!result.ok) { toast(result.message || 'Could not change that role.'); return; }
+    toast(`Updated ${user.email} to ${role === 'owner' ? 'Owner' : 'Administrator'}.`);
+    await load();
+  };
+
   return (
     <AdminLayout title="Admin access">
       <section className="adsec" style={{ marginTop: 0 }}>
         <div className="adsec__head"><h2>Administrators</h2></div>
         <p className="hint" style={{ fontSize: 12.5, marginBottom: 12 }}>
-          Admins can manage the whole store. Passwords are never stored or shown in plain text — only secure digests are kept. The owner account cannot be removed.
+          Administrators can manage store access. Only owners can grant or remove owner access. The primary owner cannot be removed, and you cannot remove your own account.
         </p>
         {listError && <p className="field-error" role="alert">{listError}</p>}
         <div className="adtable-wrap">
@@ -87,18 +99,26 @@ export default function Users() {
             <tbody>
               {loading && <tr><td colSpan={4}><div className="adempty">Loading…</div></td></tr>}
               {!loading && users.map((u) => {
-                const isOwner = u.role === 'owner';
                 const isSelf = keyOf(u) === myKey;
+                const isPrimaryOwner = keyOf(u) === 'owner';
+                const canRemove = !isSelf && !isPrimaryOwner && (isOwner || u.role === 'admin');
                 return (
                   <tr key={keyOf(u)}>
                     <td data-label="Email"><span className="prod-name">{u.email}</span>{isSelf && <span className="hint"> (you)</span>}</td>
-                    <td data-label="Role">{isOwner ? 'Owner' : 'Admin'}</td>
+                    <td data-label="Role">
+                      {isOwner && !isPrimaryOwner && !isSelf ? (
+                        <select aria-label={`Role for ${u.email}`} value={u.role} disabled={updatingRole === keyOf(u)} onChange={(e) => updateRole(u, e.target.value)}>
+                          <option value="admin">Administrator</option>
+                          <option value="owner">Owner</option>
+                        </select>
+                      ) : (u.role === 'owner' ? 'Owner' : 'Admin')}
+                    </td>
                     <td data-label="Added">{fmtDate(u.createdAt)}</td>
                     <td data-label="Actions" className="num">
                       <button
                         className="btn btn--ghost"
-                        disabled={isOwner || isSelf}
-                        title={isOwner ? 'The owner account cannot be removed.' : isSelf ? 'You cannot remove your own account.' : 'Remove admin'}
+                        disabled={!canRemove}
+                        title={isSelf ? 'You cannot remove your own account.' : isPrimaryOwner ? 'The primary owner account cannot be removed.' : u.role === 'owner' && !isOwner ? 'Only an owner can remove another owner.' : 'Remove administrator'}
                         onClick={() => setPending(u)}
                       >
                         Remove
@@ -115,7 +135,7 @@ export default function Users() {
 
       <section className="adsec">
         <h2>Add an administrator</h2>
-        <p className="hint">Create a sign-in for a teammate. They use this email and temporary password on the admin login page, then change it here.</p>
+        <p className="hint">Create an admin account for a teammate. Only an owner can assign the Owner role.</p>
         <form onSubmit={submitAdd}>
           <div className="adgrid">
             <div className="adfield">
@@ -127,6 +147,14 @@ export default function Users() {
               <input id="u-pass" type="password" autoComplete="new-password" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} placeholder="At least 8 characters" required />
               <span className="hint">Share it through a private channel; it is stored only as a secure digest.</span>
             </div>
+            {isOwner && <div className="adfield">
+              <label htmlFor="u-role">Access role</label>
+              <select id="u-role" value={addRole} onChange={(e) => setAddRole(e.target.value)}>
+                <option value="admin">Administrator</option>
+                <option value="owner">Owner</option>
+              </select>
+              <span className="hint">Owners can grant and remove owner access. Administrators cannot change owner roles.</span>
+            </div>}
           </div>
           <div className="adbar" style={{ marginTop: 16 }}>
             <button className="btn btn--primary" type="submit" disabled={adding}>{adding ? 'Adding…' : 'Add administrator'}</button>

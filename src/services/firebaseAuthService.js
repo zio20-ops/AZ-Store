@@ -177,14 +177,23 @@ export const listUsers = async () => {
   catch (error) { return { ok: false, message: error.message, users: [] }; }
 };
 
-export const addUser = async ({ email, password }) => {
+export const addUser = async ({ email, password, role = 'admin' }) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email || '').trim())) return { ok: false, message: 'Enter a valid email address.' };
   if (String(password || '').length < 8) return { ok: false, message: 'The temporary password needs at least 8 characters.' };
-  try { const result = await adminUsersApi({ action: 'create', email: email.trim(), password }); return { ok: true, user: result.user }; }
+  if (!['admin', 'owner'].includes(role)) return { ok: false, message: 'Choose a valid administrator role.' };
+  try { const result = await adminUsersApi({ action: 'create', email: email.trim(), password, role }); return { ok: true, user: result.user }; }
   catch (error) { return { ok: false, message: error.message }; }
 };
 
 export const removeUser = async (uid) => {
   try { await adminUsersApi({ action: 'delete', uid }); return { ok: true }; }
   catch (error) { return { ok: false, message: error.message }; }
+};
+
+export const changeUserRole = async (uid, role) => {
+  if (!['admin', 'owner'].includes(role)) return { ok: false, message: 'Choose a valid administrator role.' };
+  try {
+    const result = await adminUsersApi({ action: 'setRole', uid, role });
+    return { ok: true, user: result.user };
+  } catch (error) { return { ok: false, message: error.message }; }
 };

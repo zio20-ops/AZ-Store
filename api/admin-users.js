@@ -1,7 +1,5 @@
-// Server-side admin user management: list / create / delete admin accounts.
-// Runs on Vercel with the Firebase service account; callers prove they are an
-// owner by presenting a valid Firebase idToken of the owner address (or an
-// admins document with role "owner").
+// Server-side admin user management. Admins may manage admin accounts; only
+// owners may grant or remove owner privileges.
 
 import { createSign } from 'node:crypto';
 
@@ -55,13 +53,14 @@ async function callerAccount(idToken) {
   return data.users?.[0] || null;
 }
 
-async function isOwner(account, token) {
-  if (!account || account.emailVerified !== true) return false;
-  if ((account.email || '').toLowerCase() === ADMIN_EMAIL) return true;
+async function callerRole(account, token) {
+  if (!account || account.emailVerified !== true) return null;
+  if ((account.email || '').toLowerCase() === ADMIN_EMAIL) return 'owner';
   const response = await fetch(`${db}/admins/${encodeURIComponent(account.localId)}`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!response.ok) return false;
+  if (!response.ok) return null;
   const doc = await response.json().catch(() => null);
-  return fields(doc).role === 'owner';
+  const role = fields(doc).role;
+  return ['owner', 'admin'].includes(role) ? role : null;
 }
 
 export default async function handler(req, res) {
@@ -70,21 +69,26 @@ export default async function handler(req, res) {
   try {
     const token = await accessToken();
     const account = await callerAccount(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
-    if (!(await isOwner(account, token))) return res.status(403).json({ error: 'Only the store owner can manage admin users.' });
+    const caller = await callerRole(account, token);
+    if (!caller) return res.status(403).json({ error: 'Only an authorized administrator can manage admin users.' });
 
     const { action, email, password, uid } = req.body || {};
 
     if (action === 'list') {
       const list = await fetch(`${db}/admins?pageSize=100`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await list.json().catch(() => ({}));
-      const users = (data.documents || []).map((d) => ({ uid: d.name.split('/').pop(), ...fields(d) }));
+      const users = (data.documents || []).map((d) => ({ uid: d.name.split('/').pop(), ...fields(d) }))
+        .filter((user) => (user.email || '').toLowerCase() !== ADMIN_EMAIL);
       return res.status(200).json({ users: [{ uid: 'owner', email: ADMIN_EMAIL, role: 'owner', createdAt: '' }, ...users] });
     }
 
     if (action === 'create') {
       const clean = String(email || '').trim().toLowerCase();
+      const role = String(req.body?.role || 'admin');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean)) return res.status(400).json({ error: 'Enter a valid email address.' });
       if (String(password || '').length < 8) return res.status(400).json({ error: 'The temporary password needs at least 8 characters.' });
+      if (!['admin', 'owner'].includes(role)) return res.status(400).json({ error: 'Choose a valid account role.' });
+      if (role === 'owner' && caller !== 'owner') return res.status(403).json({ error: 'Only an owner can grant owner access.' });
       if (clean === ADMIN_EMAIL) return res.status(400).json({ error: 'The owner account already exists.' });
       const created = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -92,17 +96,30 @@ export default async function handler(req, res) {
       });
       const body = await created.json().catch(() => ({}));
       if (!created.ok) return res.status(409).json({ error: body.error?.message === 'EMAIL_EXISTS' ? 'That email already has an account. Use a password reset instead.' : 'Firebase could not create the account.' });
-      await fetch(`${db}/admins?documentId=${encodeURIComponent(body.localId)}`, {
+      const membership = await fetch(`${db}/admins?documentId=${encodeURIComponent(body.localId)}`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: { email: enc(clean), role: enc('admin'), createdAt: enc(new Date().toISOString()) } }),
+        body: JSON.stringify({ fields: { email: enc(clean), role: enc(role), createdAt: enc(new Date().toISOString()) } }),
       });
-      return res.status(201).json({ user: { uid: body.localId, email: clean, role: 'admin', createdAt: new Date().toISOString() } });
+      if (!membership.ok) {
+        await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:delete`, {
+          method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ localId: body.localId }),
+        }).catch(() => {});
+        return res.status(503).json({ error: 'Could not save the access role. The new account was rolled back.' });
+      }
+      return res.status(201).json({ user: { uid: body.localId, email: clean, role, createdAt: new Date().toISOString() } });
     }
 
     if (action === 'delete') {
       const target = String(uid || '');
-      if (!target || target === 'owner') return res.status(400).json({ error: 'The owner account cannot be removed.' });
+      if (!target || target === 'owner') return res.status(400).json({ error: 'The primary owner account cannot be removed.' });
       if (target === account.localId) return res.status(400).json({ error: 'You cannot remove the account you are signed in with.' });
+      const targetResponse = await fetch(`${db}/admins/${encodeURIComponent(target)}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!targetResponse.ok) return res.status(404).json({ error: 'That admin no longer exists.' });
+      const targetUser = fields(await targetResponse.json().catch(() => ({})));
+      if ((targetUser.email || '').toLowerCase() === ADMIN_EMAIL) return res.status(400).json({ error: 'The primary owner account cannot be removed.' });
+      if (targetUser.role === 'owner' && caller !== 'owner') return res.status(403).json({ error: 'Only an owner can remove another owner.' });
+      if (!['admin', 'owner'].includes(targetUser.role)) return res.status(400).json({ error: 'That account does not have an administrator role.' });
       const deleted = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:delete`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ localId: target }),
@@ -110,6 +127,26 @@ export default async function handler(req, res) {
       if (!deleted.ok) return res.status(404).json({ error: 'That admin no longer exists.' });
       await fetch(`${db}/admins/${encodeURIComponent(target)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       return res.status(200).json({ ok: true });
+    }
+
+    if (action === 'setRole') {
+      if (caller !== 'owner') return res.status(403).json({ error: 'Only an owner can change administrator roles.' });
+      const target = String(uid || '');
+      const role = String(req.body?.role || '');
+      if (!target || target === 'owner') return res.status(400).json({ error: 'The primary owner role cannot be changed.' });
+      if (target === account.localId) return res.status(400).json({ error: 'You cannot change your own role.' });
+      if (!['admin', 'owner'].includes(role)) return res.status(400).json({ error: 'Choose a valid administrator role.' });
+      const targetResponse = await fetch(`${db}/admins/${encodeURIComponent(target)}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!targetResponse.ok) return res.status(404).json({ error: 'That admin no longer exists.' });
+      const targetUser = fields(await targetResponse.json().catch(() => ({})));
+      if ((targetUser.email || '').toLowerCase() === ADMIN_EMAIL) return res.status(400).json({ error: 'The primary owner role cannot be changed.' });
+      if (!['admin', 'owner'].includes(targetUser.role)) return res.status(400).json({ error: 'That account does not have an administrator role.' });
+      const updated = await fetch(`${db}/admins/${encodeURIComponent(target)}?updateMask.fieldPaths=role`, {
+        method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { role: enc(role) } }),
+      });
+      if (!updated.ok) return res.status(503).json({ error: 'Could not update that administrator role.' });
+      return res.status(200).json({ user: { uid: target, email: targetUser.email, role, createdAt: targetUser.createdAt || '' } });
     }
 
     return res.status(400).json({ error: 'Unknown action.' });

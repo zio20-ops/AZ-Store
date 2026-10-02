@@ -106,28 +106,50 @@ export const login = async (email, password, remember = false) => {
   return { ok: true, session: me() };
 };
 
-export const listUsers = async () => ensureUsers().map((u) => ({ id: u.id, email: u.email, role: u.role, provider: u.provider, createdAt: u.createdAt }));
+export const listUsers = async () => {
+  if (!me()) return [];
+  return ensureUsers().map((u) => ({ id: u.id, email: u.email, role: u.role, provider: u.provider, createdAt: u.createdAt }));
+};
 
-export const addUser = async ({ email, password }) => {
+export const addUser = async ({ email, password, role = 'admin' }) => {
   const clean = String(email || '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean)) return { ok: false, message: 'Enter a valid email address.' };
   if (String(password || '').length < 8) return { ok: false, message: 'The temporary password needs at least 8 characters.' };
+  const session = me();
+  if (!session || !['admin', 'owner'].includes(session.role)) return { ok: false, message: 'Sign in as an administrator first.' };
+  if (!['admin', 'owner'].includes(role)) return { ok: false, message: 'Choose a valid administrator role.' };
+  if (role === 'owner' && session?.role !== 'owner') return { ok: false, message: 'Only an owner can grant owner access.' };
   const users = ensureUsers();
   if (users.some((u) => u.email.toLowerCase() === clean)) return { ok: false, message: 'That email already has admin access.' };
-  const user = { id: crypto.randomUUID(), email: clean, digest: await sha256(password), role: 'admin', provider: 'password', createdAt: new Date().toISOString() };
+  const user = { id: crypto.randomUUID(), email: clean, digest: await sha256(password), role, provider: 'password', createdAt: new Date().toISOString() };
   writeStorage(USERS_KEY, [...users, user]);
   return { ok: true, user: { id: user.id, email: user.email, role: user.role, provider: user.provider, createdAt: user.createdAt } };
 };
 
 export const removeUser = async (id) => {
+  const session = me();
+  if (!session || !['admin', 'owner'].includes(session.role)) return { ok: false, message: 'Sign in as an administrator first.' };
   const users = ensureUsers();
   const target = users.find((u) => u.id === id);
   if (!target) return { ok: false, message: 'That admin no longer exists.' };
-  if (target.role === 'owner') return { ok: false, message: 'The owner account cannot be removed.' };
-  const session = me();
+  if (target.id === 'owner') return { ok: false, message: 'The primary owner account cannot be removed.' };
+  if (target.role === 'owner' && session?.role !== 'owner') return { ok: false, message: 'Only an owner can remove another owner.' };
   if (session?.uid === id) return { ok: false, message: 'You cannot remove the account you are signed in with.' };
   writeStorage(USERS_KEY, users.filter((u) => u.id !== id));
   return { ok: true };
+};
+
+export const changeUserRole = async (id, role) => {
+  const session = me();
+  if (session?.role !== 'owner') return { ok: false, message: 'Only an owner can change administrator roles.' };
+  if (!['admin', 'owner'].includes(role)) return { ok: false, message: 'Choose a valid administrator role.' };
+  if (id === 'owner') return { ok: false, message: 'The primary owner role cannot be changed.' };
+  if (session.uid === id) return { ok: false, message: 'You cannot change your own role.' };
+  const users = ensureUsers();
+  const target = users.find((u) => u.id === id);
+  if (!target) return { ok: false, message: 'That admin no longer exists.' };
+  writeStorage(USERS_KEY, users.map((u) => u.id === id ? { ...u, role } : u));
+  return { ok: true, user: { id, email: target.email, role } };
 };
 
 export const changePassword = async ({ currentPassword, newPassword }) => {
