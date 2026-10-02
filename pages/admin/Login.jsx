@@ -1,0 +1,93 @@
+import { useCallback, useState } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import * as auth from '../../services/authService.js';
+import { isFirebase } from '../../services/backend.js';
+import '../../styles/admin.css';
+import GoogleSignInButton from '../../components/GoogleSignInButton.jsx';
+
+export default function AdminLogin() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [email, setEmail] = useState(isFirebase ? auth.ADMIN_EMAIL : auth.DEMO_EMAIL);
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState('login');
+
+  const onGoogleCredential = useCallback(async (credential) => {
+    setBusy(true); setError('');
+    try {
+      const result = await auth.loginAdminWithGoogle(credential, remember);
+      if (!result.ok) { setError(result.message); return; }
+      navigate(location.state?.from || '/admin', { replace: true });
+    } catch (err) { setError(err.message || 'Google sign-in failed. Please try again.'); }
+    finally { setBusy(false); }
+  }, [location.state?.from, navigate, remember]);
+
+  if (auth.me()) return <Navigate to="/admin" replace />;
+
+  const submit = async (e) => {
+    e.preventDefault(); setError(''); setNotice('');
+    if (!email.trim() || (mode !== 'reset' && !password)) { setError('Enter your admin email and password.'); return; }
+    setBusy(true);
+    const result = mode === 'register' ? await auth.register(email, password)
+      : mode === 'reset' ? await auth.resetPassword(email) : await auth.login(email, password, remember);
+    setBusy(false);
+    if (!result.ok) { setError(result.message); return; }
+    if (mode === 'register') { setNotice('Admin account created. You can now sign in with this email and password.'); return; }
+    if (mode === 'reset') { setNotice('If an account exists for this email, Firebase has sent a password reset link. Check your inbox and spam folder.'); return; }
+    navigate(location.state?.from || '/admin', { replace: true });
+  };
+
+  return (
+    <div className="adlogin">
+      <div className="adlogin__box">
+        <div className="adlogin__logo">AZ</div>
+        <h1>Admin Portal</h1>
+        <p>Sign in to manage products, orders and inventory.</p>
+        {error && <div className="adlogin__err" role="alert">{error}</div>}
+        {notice && <div className="adlogin__err" role="status">{notice}</div>}
+
+        {mode === 'login' && isFirebase && <GoogleSignInButton onCredential={onGoogleCredential} disabled={busy} />}
+        {mode === 'login' && isFirebase && <div style={{ textAlign: 'center', margin: '10px 0', opacity: 0.55 }}>or use email and password</div>}
+        <form onSubmit={submit} noValidate>
+          <div className="adfield"><label htmlFor="ad-email">Email</label>
+            <input id="ad-email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={isFirebase ? auth.ADMIN_EMAIL : auth.DEMO_EMAIL} /></div>
+          {mode !== 'reset' && <div className="adfield">
+            <label htmlFor="ad-pw">{mode === 'register' ? 'Create password' : 'Password'}</label>
+            <div className="adlogin__pw">
+              <input id="ad-pw" type={showPw ? 'text' : 'password'} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••••" />
+              <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Hide password' : 'Show password'}>{showPw ? 'Hide' : 'Show'}</button>
+            </div>
+          </div>}
+          {mode === 'login' && isFirebase && <button type="button" className="btn btn--text" style={{ marginTop: -8, marginBottom: 12 }} onClick={() => { setMode('reset'); setError(''); setNotice(''); }}>
+            Forgot password?
+          </button>}
+          {mode === 'login' && <label className="adcheck" style={{ margin: '4px 0 18px' }}>
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Remember me on this device
+          </label>}
+          <button className="btn btn--primary btn--block" type="submit" disabled={busy}>
+            {busy ? 'Please wait…' : mode === 'register' ? 'Create admin account' : mode === 'reset' ? 'Send reset link' : 'Login'}
+          </button>
+        </form>
+        {!isFirebase && mode === 'login' && (
+          <div className="adlogin__demo">
+            <small>
+              Demo preview login: <b>{auth.DEMO_EMAIL}</b> / <b>{auth.DEMO_PASSWORD}</b>.
+              On the live Firebase deployment, sign-in uses Google or the verified owner email, and no password is stored in the browser.
+            </small>
+          </div>
+        )}
+        {isFirebase && <div className="adlogin__demo">
+          {mode !== 'login' ? <button type="button" className="btn btn--text" onClick={() => { setMode('login'); setError(''); setNotice(''); }}>Back to login</button> : <>
+            <button type="button" className="btn btn--text" onClick={() => { setMode('register'); setError(''); setNotice(''); }}>First time? Create the admin account</button>
+          </>}
+          {mode === 'register' && <small>Only the store owner email can create the first admin account. No email verification is required to sign in.</small>}
+        </div>}
+      </div>
+    </div>
+  );
+}
