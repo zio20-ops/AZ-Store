@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import * as auth from '../services/authService.js';
@@ -24,14 +24,6 @@ export default function Account() {
   const user = auth.getCurrentUser();
 
   useSeo('Your account | AZ Store', 'Sign in or create your AZ Store account.');
-
-  useEffect(() => {
-    if (new URLSearchParams(location.search).get('verified') === '1') {
-      setMode('login');
-      setNotice('Email verified. Sign in to continue to your account.');
-      navigate('/account', { replace: true });
-    }
-  }, [location.search, navigate]);
 
   const onGoogleCredential = useCallback(async (credential) => {
     setBusy(true); setError('');
@@ -79,7 +71,7 @@ export default function Account() {
         : await auth.loginCustomer(email, password);
     setBusy(false);
     if (!result.ok) { setError(result.message); return; }
-    if (mode === 'signup') { setMode('login'); setNotice('Account created. Sign in with your email and password.'); return; }
+    if (mode === 'signup') { navigate('/account', { replace: true }); return; }
     if (mode === 'reset') { setNotice('Password reset link sent. Check your email inbox.'); return; }
     navigate('/account', { replace: true });
   };

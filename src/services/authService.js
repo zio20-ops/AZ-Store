@@ -28,4 +28,3 @@ export const loginCustomer = (email, password, remember) => (isFirebase ? fb.log
 export const loginWithGoogle = (credential, remember) => (isFirebase ? fb.loginWithGoogle(credential, remember) : Promise.resolve(hostedOnly));
 export const listCustomerActivity = () => (isFirebase ? fb.listCustomerActivity() : Promise.resolve({ ok: true, users: [] }));
 export const resetCustomerPassword = (email) => (isFirebase ? fb.resetCustomerPassword(email) : Promise.resolve(hostedOnly));
-export const applyEmailVerificationAction = (code) => (isFirebase ? fb.applyEmailVerificationAction(code) : Promise.resolve({}));

@@ -8,7 +8,7 @@
 import { ADMIN_EMAIL, firebaseConfig } from './firebaseConfig.js';
 import {
   clearAuth, createAdminAccount, createAccount, readAuth, saveAuth, sendPasswordReset,
-  signIn, signInWithGoogleCredential, currentIdToken, identityToolkitUrl, applyEmailVerificationAction,
+  signIn, signInWithGoogleCredential, currentIdToken, identityToolkitUrl,
 } from './firebaseRest.js';
 import { initializeCatalog } from './productService.js';
 
@@ -38,8 +38,6 @@ const cacheSession = (result, remember, extra = {}) => {
 };
 
 export const logout = async () => { clearAuth(); window.dispatchEvent(new Event('az-auth-changed')); return { ok: true }; };
-export { applyEmailVerificationAction };
-
 const adminMembership = async (idToken, localId, email) => {
   if ((email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) return { role: 'owner' };
   const response = await fetch(`${db}/admins/${encodeURIComponent(localId)}`, { headers: { Authorization: `Bearer ${idToken}` } });
@@ -57,7 +55,12 @@ const ensureVerified = async (result) => {
 };
 
 export const registerCustomer = async ({ name, email, password }) => {
-  try { await createAccount(email.trim(), password, name); return { ok: true }; }
+  try {
+    const result = await createAccount(email.trim(), password, name);
+    cacheSession(result, true);
+    void recordCustomerLogin(result.idToken);
+    return { ok: true, user: getCurrentUser() };
+  }
   catch (error) { return { ok: false, message: error.message }; }
 };
 

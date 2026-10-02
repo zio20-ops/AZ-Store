@@ -40,39 +40,12 @@ export async function createAccount(email, password, displayName = '') {
   const body = await response.json();
   if (!response.ok) throw new Error(authMessage(body.error?.message));
   if (displayName.trim()) {
-    await fetch(identityToolkitUrl('accounts:update'), {
+    const updateResponse = await fetch(identityToolkitUrl('accounts:update'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: body.idToken, displayName: displayName.trim(), returnSecureToken: true }),
     });
-  }
-  return true;
-}
-
-export async function sendEmailVerification(idToken) {
-  const response = await fetch(identityToolkitUrl('accounts:sendOobCode'), {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      requestType: 'VERIFY_EMAIL',
-      idToken,
-      continueUrl: `${window.location.origin}/account?verified=1`,
-    }),
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(authMessage(body.error?.message) || 'Firebase could not send the verification email.');
-}
-
-export async function applyEmailVerificationAction(oobCode) {
-  if (!oobCode) throw new Error('The verification link is incomplete. Request a fresh email and open its newest link.');
-  const response = await fetch(identityToolkitUrl('accounts:update'), {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ oobCode }),
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const code = body.error?.message?.split(' : ')[0] || body.error?.message;
-    if (code === 'EXPIRED_OOB_CODE' || code === 'INVALID_OOB_CODE') {
-      throw new Error('This link has expired or was already used. Try signing in; if Firebase still asks you to verify, request a fresh link and open it once.');
-    }
-    throw new Error(authMessage(code) || 'Firebase could not verify this email. Request a fresh link and try again.');
+    const updated = await updateResponse.json().catch(() => ({}));
+    if (!updateResponse.ok) throw new Error(authMessage(updated.error?.message));
+    return { ...body, ...updated, displayName: displayName.trim() };
   }
   return body;
 }

@@ -81,14 +81,14 @@ export default function Shop() {
           const time = value ? new Date(value).getTime() : 0;
           return Number.isFinite(time) ? time : 0;
         };
-        sorted.sort((a, b) => releaseTime(b) - releaseTime(a));
+        sorted.sort((a, b) => releaseTime(b) - releaseTime(a) || String(a.name).localeCompare(String(b.name)));
         break;
       }
       case 'price-asc': sorted.sort((a, b) => basePrice(a) - basePrice(b)); break;
       case 'price-desc': sorted.sort((a, b) => basePrice(b) - basePrice(a)); break;
       case 'best-rated': sorted.sort((a, b) => b.rating - a.rating); break;
       case 'best-selling':
-      default: sorted.sort((a, b) => (Number(b.sold) || 0) - (Number(a.sold) || 0));
+      default: sorted.sort((a, b) => (Number(b.sold) || 0) - (Number(a.sold) || 0) || String(a.name).localeCompare(String(b.name)));
     }
     return sorted;
   }, [products, chip, q, price, minRating, inStock, onSale, brandAZ, scents, sort]);

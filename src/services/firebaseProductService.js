@@ -39,7 +39,7 @@ const migrateSeed = () => PRODUCTS.map((p) => {
     discount: p.compareAt ? Math.round((1 - variations[0].price / p.compareAt) * 100) : 0,
     stock: variations.reduce((n, v) => n + v.stock, 0), lowStockThreshold: 6, status: 'active', images: p.images.map((i) => ({ ...i })),
     volume: '220 ml', weight: '265 g', scentFamily: p.category, scentNotes: [...p.notes], ingredients: [], benefits: [], howToUse: '',
-    createdAt: now(), updatedAt: now() };
+    createdAt: p.createdAt || now(), updatedAt: now() };
 });
 
 // Public storefront fallback while Firestore is empty or temporarily unavailable.
@@ -81,7 +81,8 @@ export const getProduct = async (id) => getDocument('products', id, admin());
 
 const normalize = (p) => {
   const variations = (p.variations?.length ? p.variations : [{ id: 'default', label: p.volume || 'Standard', price: p.price || 0, stock: p.stock || 0, sku: p.sku || '', image: 0 }]).map((v, i) => ({ ...v, id: v.id || `v${i + 1}`, price: Number(v.price), stock: Number(v.stock) }));
-  return { ...p, variations, price: variations[0].price, sku: variations[0].sku, stock: variations.reduce((n, v) => n + (v.stock || 0), 0), updatedAt: now() };
+  const createdAt = p.createdAt || now();
+  return { ...p, variations, price: variations[0].price, sku: variations[0].sku, stock: variations.reduce((n, v) => n + (v.stock || 0), 0), createdAt, releasedAt: p.releasedAt || createdAt.slice(0, 10), updatedAt: now() };
 };
 export const createProduct = async (draft) => {
   try {

@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     const token = await accessToken();
     const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     const account = await verifyAccount(idToken, token);
-    if (!account || account.emailVerified !== true) return res.status(401).json({ error: 'Sign in with a verified account first.' });
+    if (!account) return res.status(401).json({ error: 'Sign in to your account first.' });
 
     if (req.method === 'POST') {
       if ((account.email || '').toLowerCase() === ownerEmail) return res.status(200).json({ ok: true, skipped: true });
