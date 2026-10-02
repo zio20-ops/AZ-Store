@@ -138,7 +138,6 @@ export default async function handler(req, res) {
       const now = Date.now();
       if (!promo || promo.active === false || (promo.startsAt && Date.parse(promo.startsAt) > now) || (promo.endsAt && Date.parse(promo.endsAt) < now)) return problem(res, 400, 'This promo code is not valid or has expired.');
       if (!['percent', 'fixed'].includes(promo.type) || !['products', 'shipping'].includes(promo.appliesTo || (promo.type === 'shipping' ? 'shipping' : 'products')) || !Number.isFinite(Number(promo.value))) return problem(res, 400, 'This promo code is not configured correctly.');
-      if (Number(promo.minSubtotal || 0) > subtotal) return problem(res, 400, 'This promo code does not meet its minimum order amount.');
       const target = promo.appliesTo || (promo.type === 'shipping' ? 'shipping' : 'products');
       const amount = Number(promo.value);
       if (target === 'shipping') {
@@ -149,8 +148,10 @@ export default async function handler(req, res) {
         const allowedIds = Array.isArray(promo.productIds) ? promo.productIds : [];
         const eligibleTotal = normalizedItems.filter((item) => !allowedIds.length || allowedIds.includes(item.productId)).reduce((sum, item) => sum + item.price * item.qty, 0);
         if (allowedIds.length && !normalizedItems.some((item) => allowedIds.includes(item.productId))) return problem(res, 400, 'This promo code does not apply to the products in this order.');
+        if (Number(promo.minSubtotal || 0) > eligibleTotal) return problem(res, 400, 'This promo code does not meet the minimum amount for eligible products.');
         discount = Math.min(eligibleTotal, Math.max(0, promo.type === 'percent' ? Math.round(eligibleTotal * amount / 100) : amount));
       }
+      if (target === 'shipping' && Number(promo.minSubtotal || 0) > subtotal) return problem(res, 400, 'This promo code does not meet its minimum order amount.');
       appliedPromo = code;
     }
     const id = randomUUID();

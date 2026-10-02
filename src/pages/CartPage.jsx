@@ -6,7 +6,7 @@ import { egp } from '../utils/format.js';
 
 export default function CartPage() {
   useSeo('Your bag | AZ Store', 'Review your AZ bag, apply a promo code and check out securely.');
-  const { cart, subtotal, discount, setQty, removeLine, freeThreshold, applyPromo, promo } = useStore();
+  const { cart, subtotal, discount, setQty, removeLine, freeThreshold, applyPromo, removePromo, promo } = useStore();
   const [code, setCode] = useState('');
   const [promoMsg, setPromoMsg] = useState(null);
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export default function CartPage() {
   const onApply = (e) => {
     e.preventDefault();
     const res = applyPromo(code);
-    setPromoMsg(res);
+    setPromoMsg(res.ok ? null : res);
     if (res.ok) setCode('');
   };
 
@@ -61,7 +61,7 @@ export default function CartPage() {
                       <button className="li__remove" onClick={() => removeLine(line.key)} aria-label={`Remove ${line.product.name} from your bag`} title="Remove item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-.8 13H6.8L6 7m4 4v5m4-5v5" /></svg><span>Remove</span></button>
                     </div>
                   </div>
-                  <b className="li__price">{egp(line.price * line.qty)}</b>
+                  <b className="li__price">{line.promoDiscount ? <><del>{egp(line.price * line.qty)}</del><span className="li__sale-price">{egp(line.promoLineTotal)}</span></> : egp(line.price * line.qty)}</b>
                 </div>
               ))}
             </div>
@@ -72,11 +72,11 @@ export default function CartPage() {
               <button className="btn" type="submit" style={{ padding: '10px 18px' }}>Apply</button>
             </form>
             {promoMsg && <p className={`promo-msg ${promoMsg.ok ? 'promo-msg--ok' : 'promo-msg--err'}`} role="status">{promoMsg.message}</p>}
-            {promo && !promoMsg && <p className="promo-msg promo-msg--ok" role="status">{promo.code} applied</p>}
+            {promo && !promoMsg && <p className="promo-msg promo-msg--ok" role="status">{promo.code} applied <button type="button" className="promo-remove" onClick={() => { removePromo(); setPromoMsg(null); }}>Remove</button></p>}
 
             <div className="drawer__foot">
               {promo && <div className="drawer__subtotal drawer__promo-total"><span>Promo {promo.code}</span><b>{promo.appliesTo === 'shipping' ? 'Delivery discount at checkout' : `−${egp(discount)}`}</b></div>}
-              <div className="drawer__subtotal"><span>Subtotal</span><b>{egp(subtotal)}</b></div>
+              <div className="drawer__subtotal"><span>{promo?.appliesTo === 'products' ? 'Total after promo' : 'Subtotal'}</span><b>{egp(subtotal - discount)}</b></div>
               <button className="btn btn--dark btn--block" onClick={() => navigate('/checkout')}>Go to checkout</button>
             </div>
           </>

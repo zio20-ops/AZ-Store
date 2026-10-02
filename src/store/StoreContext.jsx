@@ -156,7 +156,7 @@ export function StoreProvider({ children }) {
 
   const findProduct = useCallback((id) => allProducts.find((p) => p.id === id), [allProducts]);
 
-  const detailed = useMemo(
+  const baseDetailed = useMemo(
     () =>
       cart
         .map((line) => {
@@ -170,13 +170,31 @@ export function StoreProvider({ children }) {
   );
 
   const count = useMemo(() => cart.reduce((n, l) => n + l.qty, 0), [cart]);
-  const subtotal = useMemo(() => detailed.reduce((n, l) => n + l.qty * l.price, 0), [detailed]);
+  const subtotal = useMemo(() => baseDetailed.reduce((n, l) => n + l.qty * l.price, 0), [baseDetailed]);
 
-  const eligibleSubtotal = useMemo(() => detailed.filter((line) => !promo?.productIds?.length || promo.productIds.includes(line.product.id)).reduce((sum, line) => sum + line.qty * line.price, 0), [detailed, promo]);
+  const eligibleLines = useMemo(() => baseDetailed.filter((line) => !promo?.productIds?.length || promo.productIds.includes(line.product.id)), [baseDetailed, promo]);
+  const eligibleSubtotal = useMemo(() => eligibleLines.reduce((sum, line) => sum + line.qty * line.price, 0), [eligibleLines]);
   const discount = useMemo(() => {
     if (!promo || promo.appliesTo === 'shipping') return 0;
     const amount = promo.type === 'percent' ? Math.round(eligibleSubtotal * promo.value / 100) : Number(promo.value || 0);
     return Math.min(eligibleSubtotal, amount);
+  }, [promo, eligibleSubtotal]);
+  const detailed = useMemo(() => {
+    if (!promo || promo.appliesTo === 'shipping' || !discount || !eligibleSubtotal) return baseDetailed;
+    let remainingDiscount = discount;
+    const lastEligibleIndex = baseDetailed.reduce((last, line, index) => (!promo.productIds?.length || promo.productIds.includes(line.product.id) ? index : last), -1);
+    return baseDetailed.map((line, index) => {
+      if (promo.productIds?.length && !promo.productIds.includes(line.product.id)) return line;
+      const lineTotal = line.qty * line.price;
+      const lineDiscount = index === lastEligibleIndex
+        ? remainingDiscount
+        : Math.min(remainingDiscount, lineTotal, Math.round(discount * lineTotal / eligibleSubtotal));
+      remainingDiscount = Math.max(0, remainingDiscount - lineDiscount);
+      return { ...line, promoDiscount: lineDiscount, promoLineTotal: lineTotal - lineDiscount };
+    });
+  }, [baseDetailed, promo, discount, eligibleSubtotal]);
+  useEffect(() => {
+    if (promo?.appliesTo === 'products' && promo.productIds?.length && eligibleSubtotal === 0) setPromo(null);
   }, [promo, eligibleSubtotal]);
 
   const addToCart = useCallback(
@@ -233,11 +251,14 @@ export function StoreProvider({ children }) {
   const applyPromo = useCallback((code) => {
     const found = promoOffers.find((item) => item.code === code.trim().toUpperCase() && item.active !== false);
     if (!found) return { ok: false, message: 'That code isn’t valid or is no longer active.' };
-    if (found.productIds?.length && !detailed.some((line) => found.productIds.includes(line.product.id))) return { ok: false, message: 'This code does not apply to products in your bag.' };
-    if (Number(found.minSubtotal) > subtotal) return { ok: false, message: `Add ${Number(found.minSubtotal) - subtotal} EGP more to use this code.` };
+    const eligibleTotal = detailed.filter((line) => !found.productIds?.length || found.productIds.includes(line.product.id)).reduce((sum, line) => sum + line.qty * line.price, 0);
+    if (found.productIds?.length && eligibleTotal === 0) return { ok: false, message: 'This code does not apply to products in your bag.' };
+    if (Number(found.minSubtotal) > eligibleTotal) return { ok: false, message: `Add ${Number(found.minSubtotal) - eligibleTotal} EGP more in eligible products to use this code.` };
     setPromo(found);
     return { ok: true, message: `${found.code} applied.` };
-  }, [promoOffers, detailed, subtotal]);
+  }, [promoOffers, baseDetailed, subtotal]);
+
+  const removePromo = useCallback(() => setPromo(null), []);
 
   const placeOrder = useCallback(
     async (payload) => {
@@ -301,6 +322,7 @@ export function StoreProvider({ children }) {
     wishlist,
     toggleWish,
     applyPromo,
+    removePromo,
     promoOffers,
     refreshPromos: loadPromos,
     toasts,

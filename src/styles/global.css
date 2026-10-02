@@ -374,6 +374,8 @@ textarea.field { resize: vertical; min-height: 90px; }
 .li__remove svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .li__remove:hover { opacity: 1; color: #9d302c; border-color: #9d302c !important; background: rgba(157,48,44,.06); }
 .li__price { font-weight: 600; }
+.li__price del { display: block; color: var(--muted, #8e8578); font-size: 12px; font-weight: 400; }
+.li__sale-price { display: block; color: #52764f; }
 .drawer__promo { display: flex; gap: 10px; align-items: flex-end; }
 .drawer__promo .field { flex: 1; }
 .drawer__foot { margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(21,12,8,.13); }
@@ -389,6 +391,7 @@ textarea.field { resize: vertical; min-height: 90px; }
 .promo-msg { font-size: 12px; margin-top: 6px; }
 .promo-msg--ok { color: #3f7a46; }
 .promo-msg--err { color: #b3403a; }
+.promo-remove { margin-left: 8px; padding: 0; border: 0; background: none; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
 
 /* ---------- toast ---------- */
 
