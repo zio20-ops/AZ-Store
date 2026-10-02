@@ -157,6 +157,7 @@ export default function Checkout() {
       <div className="container co">
         <form onSubmit={submit} noValidate>
           <h2>Delivery</h2>
+          {!auth.getCurrentUser() && <p className="checkout-account-note">Want this order saved to your account? <Link to="/account/login">Sign in</Link> before checkout. You can still place an order as a guest and track it with your order number and phone.</p>}
           <div className="co__fields">
             <div>
               <input className={fieldClass('name')} placeholder="Full name" value={form.name} onChange={set('name')} aria-label="Full name" autoComplete="name" />

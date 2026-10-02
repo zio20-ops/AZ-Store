@@ -58,7 +58,7 @@ export default function Orders() {
         <div className="adtable-wrap">
           <table className="adtable responsive">
             <thead>
-              <tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Items</th><th className="num">Total</th><th>Payment</th><th>Status</th><th>Payment status</th></tr>
+              <tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Items</th><th className="num">Total</th><th>Payment</th><th>Status</th><th>Payment status</th><th>Details</th></tr>
             </thead>
             <tbody>
               {rows.map((o) => (
@@ -104,9 +104,24 @@ export default function Orders() {
                       )}
                     </div>
                   </td>
+                  <td data-label="Order details" className="admin-order-detail-cell">
+                    <details className="admin-order-details">
+                      <summary>Full details</summary>
+                      <div className="admin-order-details__content">
+                        <p><b>Email:</b> {o.email || 'Not provided'}</p>
+                        <p><b>Delivery address:</b> {o.address || 'Not provided'}</p>
+                        <p><b>Delivery method:</b> {o.deliveryMethod || 'Not provided'}</p>
+                        {o.notes && <p><b>Customer notes:</b> {o.notes}</p>}
+                        <ul>{(o.items || []).map((item, index) => <li key={`${item.productId}-${item.variationId}-${index}`}>
+                          {item.name} — {item.meta || item.variationId} · Qty {item.qty} · {egp(item.price * item.qty)}
+                        </li>)}</ul>
+                        <p><b>Subtotal:</b> {egp(o.subtotal || 0)} · <b>Discount:</b> {egp(o.discount || 0)} · <b>Delivery:</b> {egp(o.delivery || 0)}</p>
+                      </div>
+                    </details>
+                  </td>
                 </tr>
               ))}
-              {rows.length === 0 && <tr><td colSpan={8}><div className="adempty">No orders in this view.</div></td></tr>}
+              {rows.length === 0 && <tr><td colSpan={9}><div className="adempty">No orders in this view.</div></td></tr>}
             </tbody>
           </table>
         </div>

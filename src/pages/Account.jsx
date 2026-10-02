@@ -1,9 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import * as auth from '../services/authService.js';
 import GoogleSignInButton from '../components/GoogleSignInButton.jsx';
 import { HomeIcon } from '../components/icons.jsx';
+import * as orderService from '../services/orderService.js';
+import { ORDER_STEPS } from '../data/content.js';
+import { egp } from '../utils/format.js';
 import { useSeo } from '../hooks/useSeo.js';
 import '../styles/account.css';
 
@@ -21,9 +24,32 @@ export default function Account() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [customerOrders, setCustomerOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
   const user = auth.getCurrentUser();
 
   useSeo('Your account | AZ Store', 'Sign in or create your AZ Store account.');
+
+  const loadCustomerOrders = useCallback(async () => {
+    if (!user || user.isAdmin) { setCustomerOrders([]); return; }
+    setOrdersLoading(true);
+    setOrdersError('');
+    try { setCustomerOrders(await orderService.listMyOrders()); }
+    catch (loadError) { setOrdersError(loadError.message || 'Could not load your orders.'); }
+    finally { setOrdersLoading(false); }
+  }, [user?.uid, user?.isAdmin]);
+
+  useEffect(() => {
+    void loadCustomerOrders();
+    const refreshOnReturn = () => { if (document.visibilityState === 'visible') void loadCustomerOrders(); };
+    window.addEventListener('focus', refreshOnReturn);
+    document.addEventListener('visibilitychange', refreshOnReturn);
+    return () => {
+      window.removeEventListener('focus', refreshOnReturn);
+      document.removeEventListener('visibilitychange', refreshOnReturn);
+    };
+  }, [loadCustomerOrders]);
 
   const onGoogleCredential = useCallback(async (credential) => {
     setBusy(true); setError('');
@@ -49,6 +75,23 @@ export default function Account() {
           <Link className="btn" to="/wishlist">Your wishlist</Link>
           <button className="btn btn--text" onClick={async () => { await auth.logoutCustomer(); toast('You have been signed out.'); navigate('/'); }}>Sign out</button>
         </div>
+        {!user.isAdmin && <section className="account-orders" aria-labelledby="account-orders-title">
+          <div className="account-orders__heading">
+            <div><span className="auth__eyebrow">YOUR AZ STORE HISTORY</span><h2 id="account-orders-title">Your orders</h2></div>
+            <button type="button" onClick={loadCustomerOrders} disabled={ordersLoading}>{ordersLoading ? 'Refreshing…' : 'Refresh'}</button>
+          </div>
+          {ordersLoading && customerOrders.length === 0 && <p className="account-orders__empty">Loading your orders…</p>}
+          {ordersError && <p className="account-orders__error" role="alert">{ordersError}</p>}
+          {!ordersLoading && !ordersError && customerOrders.length === 0 && <p className="account-orders__empty">You haven’t placed an order yet. Orders placed while you’re signed in will appear here.</p>}
+          <div className="account-orders__list">
+            {customerOrders.map((order) => <article className="account-order" key={order.id}>
+              <div className="account-order__top"><div><b>Order {order.id}</b><small>{new Date(order.placedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</small></div><strong>{egp(order.total)}</strong></div>
+              <p className="account-order__items">{(order.items || []).map((item) => `${item.name} × ${item.qty}${item.meta ? ` · ${item.meta}` : ''}`).join(', ')}</p>
+              <div className="account-order__bottom"><span>{order.cancelled ? 'Cancelled' : ORDER_STEPS[Number(order.status)] || 'Order Received'}</span><span>{order.payment || 'Payment'} · {order.paymentStatus || 'Pending'}</span></div>
+              <p className="account-order__address">Delivery to {order.address}</p>
+            </article>)}
+          </div>
+        </section>}
       </section>
     </div>
   );

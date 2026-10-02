@@ -437,6 +437,8 @@ textarea.field { resize: vertical; min-height: 90px; }
 
 .co { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 60px; padding-block: 50px 70px; align-items: start; }
 .co h2 { font: 400 44px/1.1 var(--disp); margin-bottom: 22px; }
+.checkout-account-note { margin: -8px 0 18px; padding: 12px 14px; border: 1px solid var(--paper-line-soft); border-radius: 10px; color: rgba(21,12,8,.68); font-size: 12px; line-height: 1.55; }
+.checkout-account-note a { color: #7f5118; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .co h5 { font: 600 14px var(--body); margin: 26px 0 8px; }
 .co__grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .co__fields { display: flex; flex-direction: column; gap: 14px; }

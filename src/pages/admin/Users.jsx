@@ -48,7 +48,9 @@ export default function Users() {
     setAdding(false);
     if (!result.ok) { toast(result.message || 'Could not add that admin.'); return; }
     setAddEmail(''); setAddPassword(''); setAddRole('admin');
-    toast(`Added ${result.user.role === 'owner' ? 'owner' : 'administrator'} ${result.user.email}. Share the temporary password securely.`);
+    toast(result.existingAccount
+      ? `Added ${result.user.email} as ${result.user.role}. Their existing account and password are unchanged.`
+      : `Added ${result.user.email} as ${result.user.role}. Share the temporary password securely.`);
     await load();
   };
 
@@ -88,7 +90,7 @@ export default function Users() {
       <section className="adsec" style={{ marginTop: 0 }}>
         <div className="adsec__head"><h2>Administrators</h2></div>
         <p className="hint" style={{ fontSize: 12.5, marginBottom: 12 }}>
-          Administrators can manage store access. Only owners can grant or remove owner access. The primary owner cannot be removed, and you cannot remove your own account.
+          Administrators can manage store access. Only owners can grant or remove owner access. Removing admin access never deletes the person’s store account or changes their password.
         </p>
         {listError && <p className="field-error" role="alert">{listError}</p>}
         <div className="adtable-wrap">
@@ -135,7 +137,7 @@ export default function Users() {
 
       <section className="adsec">
         <h2>Add an administrator</h2>
-        <p className="hint">Create an admin account for a teammate. Only an owner can assign the Owner role.</p>
+        <p className="hint">Enter an existing AZ Store account to grant it admin access, or enter a new email and temporary password. Existing accounts keep their current password. Only an owner can assign the Owner role.</p>
         <form onSubmit={submitAdd}>
           <div className="adgrid">
             <div className="adfield">
@@ -143,9 +145,9 @@ export default function Users() {
               <input id="u-email" type="email" autoComplete="off" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} placeholder="teammate@example.com" required />
             </div>
             <div className="adfield">
-              <label htmlFor="u-pass">Temporary password</label>
-              <input id="u-pass" type="password" autoComplete="new-password" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} placeholder="At least 8 characters" required />
-              <span className="hint">Share it through a private channel; it is stored only as a secure digest.</span>
+              <label htmlFor="u-pass">Temporary password <span className="hint">(new accounts only)</span></label>
+              <input id="u-pass" type="password" autoComplete="new-password" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} placeholder="Leave blank for an existing account" />
+              <span className="hint">An existing account keeps its current sign-in method and password. For a new account, use at least 8 characters and share it privately.</span>
             </div>
             {isOwner && <div className="adfield">
               <label htmlFor="u-role">Access role</label>
@@ -189,7 +191,7 @@ export default function Users() {
       <ConfirmDialog
         open={Boolean(pending)}
         title="Remove administrator"
-        body={pending ? <p style={{ fontSize: 14, opacity: 0.8 }}>Remove admin access for <b>{pending.email}</b>? They will no longer be able to sign in to the admin portal.</p> : null}
+        body={pending ? <p style={{ fontSize: 14, opacity: 0.8 }}>Remove admin access for <b>{pending.email}</b>? Their AZ Store customer account and password will remain available.</p> : null}
         confirmLabel={removing ? 'Removing…' : 'Remove'}
         onConfirm={confirmRemove}
         onCancel={() => setPending(null)}

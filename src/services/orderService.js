@@ -7,6 +7,7 @@ import * as local from './localOrderService.js';
 const impl = isFirebase ? fb : local;
 
 export const listOrders = () => impl.listOrders();
+export const listMyOrders = () => impl.listMyOrders();
 export const createOrder = (order) => impl.createOrder(order);
 export const updateOrder = (id, patch) => impl.updateOrder(id, patch);
 export const trackOrder = (id, phone) => impl.trackOrder(id, phone);

@@ -54,13 +54,6 @@ const adminMembership = async (idToken, localId, email) => {
   return role ? { role } : null;
 };
 
-const ensureVerified = async (result) => {
-  if (result.emailVerified) return true;
-  const error = new Error('The administrator email must be verified before admin sign-in.');
-  error.code = 'EMAIL_NOT_VERIFIED';
-  throw error;
-};
-
 export const registerCustomer = async ({ name, email, password }) => {
   try {
     const result = await createAccount(email.trim(), password, name);
@@ -116,9 +109,12 @@ export const register = async (email, password) => {
 };
 
 export const resetPassword = async (email) => {
-  if ((email || '').trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return { ok: false, message: 'Enter the store owner email to receive a reset link.' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email || '').trim())) return { ok: false, message: 'Enter the admin email address first.' };
   try { await sendPasswordReset(email.trim()); return { ok: true }; }
-  catch (error) { return { ok: false, message: error.message }; }
+  catch (error) {
+    if (/not found|no user|email_not_found/i.test(error.message || '')) return { ok: true };
+    return { ok: false, message: error.message };
+  }
 };
 
 export const resetCustomerPassword = async (email) => {
@@ -129,7 +125,6 @@ export const resetCustomerPassword = async (email) => {
 export const login = async (email, password, remember = false) => {
   try {
     const result = await signIn(email.trim(), password);
-    await ensureVerified(result);
     const membership = await adminMembership(result.idToken, result.localId, result.email);
     if (!membership) {
       clearAdminAuth();
@@ -179,9 +174,9 @@ export const listUsers = async () => {
 
 export const addUser = async ({ email, password, role = 'admin' }) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email || '').trim())) return { ok: false, message: 'Enter a valid email address.' };
-  if (String(password || '').length < 8) return { ok: false, message: 'The temporary password needs at least 8 characters.' };
+  if (password && String(password).length < 8) return { ok: false, message: 'The temporary password needs at least 8 characters.' };
   if (!['admin', 'owner'].includes(role)) return { ok: false, message: 'Choose a valid administrator role.' };
-  try { const result = await adminUsersApi({ action: 'create', email: email.trim(), password, role }); return { ok: true, user: result.user }; }
+  try { const result = await adminUsersApi({ action: 'create', email: email.trim(), password, role }); return { ok: true, user: result.user, existingAccount: Boolean(result.existingAccount) }; }
   catch (error) { return { ok: false, message: error.message }; }
 };
 

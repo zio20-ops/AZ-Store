@@ -56,6 +56,11 @@
 .adtable .num { text-align: end; font-variant-numeric: tabular-nums; }
 .adtable img { width: 44px; height: 56px; object-fit: cover; border-radius: 8px 8px 4px 4px; display: block; }
 .adtable .prod-name { font-weight: 600; }
+.admin-order-details summary { color: var(--gold); cursor: pointer; font-size: 11px; white-space: nowrap; }
+.admin-order-details__content { min-width: 280px; max-width: 430px; padding: 10px 0 2px; color: rgba(244,234,217,.68); font-size: 11px; line-height: 1.6; white-space: normal; }
+.admin-order-details__content p { margin: 4px 0; }
+.admin-order-details__content b { color: var(--pearl); }
+.admin-order-details__content ul { margin: 8px 0; padding-inline-start: 18px; }
 .adtable .prod-sku { display: block; font-size: 11.5px; color: rgba(244, 234, 217, 0.5); }
 .adtable s { opacity: 0.5; font-size: 12px; margin-inline-start: 6px; }
 .ad__actions { display: flex; gap: 6px; flex-wrap: wrap; }

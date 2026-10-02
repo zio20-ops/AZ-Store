@@ -25,7 +25,7 @@ const dec = (v) => {
 const fields = (doc) => Object.fromEntries(Object.entries(doc.fields || {}).map(([k, v]) => [k, dec(v)]));
 const b64url = (v) => Buffer.from(v).toString('base64url');
 
-async function accessToken(scope = 'https://www.googleapis.com/auth/datastore') {
+async function accessToken(scope = 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/identitytoolkit') {
   const cached = tokenCache.get(scope);
   if (cached && cached.exp > Date.now() + 60_000) return cached.value;
   let account;
@@ -41,6 +41,15 @@ async function accessToken(scope = 'https://www.googleapis.com/auth/datastore') 
   if (!response.ok) throw new Error('Unable to authenticate the order API with Firebase.');
   tokenCache.set(scope, { value: data.access_token, exp: Date.now() + data.expires_in * 1000 });
   return data.access_token;
+}
+
+async function verifyCustomer(idToken, serviceToken) {
+  if (!idToken) return null;
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`, {
+    method: 'POST', headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }),
+  });
+  const data = await response.json().catch(() => ({}));
+  return response.ok ? data.users?.[0] || null : false;
 }
 
 async function uploadPaymentProof(dataUrl, id) {
@@ -91,6 +100,9 @@ export default async function handler(req, res) {
     if (typeof customer.name !== 'string' || customer.name.trim().length < 3 || customer.name.length > 120 || !/^01[0125]\d{8}$/.test(String(customer.phone || '').replace(/[\s-]/g, '')) || typeof customer.address !== 'string' || customer.address.trim().length < 8 || customer.address.length > 500 || (customer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) || !Array.isArray(items) || items.length < 1 || items.length > 30) return problem(res, 400, 'Check the customer and item details.');
     if (!['standard', 'express'].includes(deliveryMethod)) return problem(res, 400, 'Invalid delivery method.');
     const token = await accessToken();
+    const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    const verifiedCustomer = await verifyCustomer(idToken, token);
+    if (verifiedCustomer === false) return problem(res, 401, 'Your sign-in expired. Sign in again and place the order.');
     const settings = await firestore('settings/store', token).catch(() => ({ fields: {} }));
     const storeSettings = fields(settings);
     const paymentConfig = storeSettings.paymentMethods || { cod: { enabled: true }, instapay: { enabled: false }, vodafone: { enabled: false } };
@@ -164,6 +176,7 @@ export default async function handler(req, res) {
     const phone = String(customer.phone).replace(/[\s-]/g, '');
     const order = {
       id, placedAt: new Date().toISOString(), status: 0, cancelled: false,
+      ...(verifiedCustomer ? { customerUid: verifiedCustomer.localId } : {}),
       name: customer.name.trim(), phone, email: String(customer.email || '').slice(0, 180),
       address: customer.address.trim(), notes: String(customer.notes || '').slice(0, 500),
       payment: paymentMethod === 'cod' ? 'Cash on delivery' : paymentMethod === 'instapay' ? 'InstaPay' : 'Vodafone Cash',

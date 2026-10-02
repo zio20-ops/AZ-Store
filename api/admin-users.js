@@ -53,6 +53,16 @@ async function callerAccount(idToken) {
   return data.users?.[0] || null;
 }
 
+async function accountByEmail(email, token) {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: [email] }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error('Firebase could not look up that account.');
+  return (data.users || []).find((user) => (user.email || '').toLowerCase() === email.toLowerCase()) || null;
+}
+
 async function callerRole(account, token) {
   if (!account || account.emailVerified !== true) return null;
   if ((account.email || '').toLowerCase() === ADMIN_EMAIL) return 'owner';
@@ -86,28 +96,42 @@ export default async function handler(req, res) {
       const clean = String(email || '').trim().toLowerCase();
       const role = String(req.body?.role || 'admin');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean)) return res.status(400).json({ error: 'Enter a valid email address.' });
-      if (String(password || '').length < 8) return res.status(400).json({ error: 'The temporary password needs at least 8 characters.' });
       if (!['admin', 'owner'].includes(role)) return res.status(400).json({ error: 'Choose a valid account role.' });
       if (role === 'owner' && caller !== 'owner') return res.status(403).json({ error: 'Only an owner can grant owner access.' });
       if (clean === ADMIN_EMAIL) return res.status(400).json({ error: 'The owner account already exists.' });
-      const created = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`, {
-        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: clean, password, emailVerified: true }),
-      });
-      const body = await created.json().catch(() => ({}));
-      if (!created.ok) return res.status(409).json({ error: body.error?.message === 'EMAIL_EXISTS' ? 'That email already has an account. Use a password reset instead.' : 'Firebase could not create the account.' });
-      const membership = await fetch(`${db}/admins?documentId=${encodeURIComponent(body.localId)}`, {
+      const existing = await accountByEmail(clean, token);
+      let target = existing;
+      let createdNewAccount = false;
+      if (!target) {
+        if (String(password || '').length < 8) return res.status(400).json({ error: 'This email is not registered yet. Enter a temporary password to create its account.' });
+        const created = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`, {
+          method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: clean, password, emailVerified: true }),
+        });
+        const body = await created.json().catch(() => ({}));
+        if (!created.ok) return res.status(409).json({ error: body.error?.message === 'EMAIL_EXISTS' ? 'This account was just created elsewhere. Retry adding its admin access.' : 'Firebase could not create the account.' });
+        target = body;
+        createdNewAccount = true;
+      }
+
+      const priorMembership = await fetch(`${db}/admins/${encodeURIComponent(target.localId)}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (priorMembership.ok) return res.status(409).json({ error: 'This account already has admin access. Find it in the Administrators list.' });
+      if (priorMembership.status !== 404) return res.status(503).json({ error: 'Could not check this account’s current access.' });
+
+      const membership = await fetch(`${db}/admins?documentId=${encodeURIComponent(target.localId)}`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: { email: enc(clean), role: enc(role), createdAt: enc(new Date().toISOString()) } }),
       });
       if (!membership.ok) {
-        await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:delete`, {
-          method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ localId: body.localId }),
-        }).catch(() => {});
-        return res.status(503).json({ error: 'Could not save the access role. The new account was rolled back.' });
+        if (createdNewAccount) {
+          await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:delete`, {
+            method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ localId: target.localId }),
+          }).catch(() => {});
+        }
+        return res.status(503).json({ error: createdNewAccount ? 'Could not save the admin role. The new account was rolled back.' : 'Could not add the admin role. The existing account was left unchanged.' });
       }
-      return res.status(201).json({ user: { uid: body.localId, email: clean, role, createdAt: new Date().toISOString() } });
+      return res.status(201).json({ user: { uid: target.localId, email: clean, role, createdAt: new Date().toISOString() }, existingAccount: Boolean(existing) });
     }
 
     if (action === 'delete') {
@@ -120,12 +144,8 @@ export default async function handler(req, res) {
       if ((targetUser.email || '').toLowerCase() === ADMIN_EMAIL) return res.status(400).json({ error: 'The primary owner account cannot be removed.' });
       if (targetUser.role === 'owner' && caller !== 'owner') return res.status(403).json({ error: 'Only an owner can remove another owner.' });
       if (!['admin', 'owner'].includes(targetUser.role)) return res.status(400).json({ error: 'That account does not have an administrator role.' });
-      const deleted = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:delete`, {
-        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ localId: target }),
-      });
-      if (!deleted.ok) return res.status(404).json({ error: 'That admin no longer exists.' });
-      await fetch(`${db}/admins/${encodeURIComponent(target)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      const removed = await fetch(`${db}/admins/${encodeURIComponent(target)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      if (!removed.ok) return res.status(503).json({ error: 'Could not remove that administrator role.' });
       return res.status(200).json({ ok: true });
     }
 

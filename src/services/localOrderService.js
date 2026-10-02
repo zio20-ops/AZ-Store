@@ -43,6 +43,7 @@ const readOrders = () => {
 };
 
 export const listOrders = async () => readOrders();
+export const listMyOrders = async () => [];
 
 export const findOrder = async (id, phone) =>
   readOrders().find(

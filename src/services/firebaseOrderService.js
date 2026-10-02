@@ -1,8 +1,18 @@
-import { listDocuments, getDocument, putDocument } from './firebaseRest.js';
+import { listDocuments, getDocument, putDocument, currentCustomerIdToken } from './firebaseRest.js';
+import * as auth from './authService.js';
 
 export const listOrders = () => listDocuments('orders', true);
+export const listMyOrders = async () => {
+  const idToken = await currentCustomerIdToken();
+  const response = await fetch('/api/customer-orders', { headers: { Authorization: `Bearer ${idToken}`, Accept: 'application/json' } });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Could not load your orders. Please try again.');
+  return result.orders || [];
+};
 export const createOrder = async (order) => {
-  const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+  const user = auth.getCurrentUser();
+  const idToken = user && !user.isAdmin ? await currentCustomerIdToken() : null;
+  const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) }, body: JSON.stringify({
     customer: { name: order.name, phone: order.phone, email: order.email, address: order.address, notes: order.notes },
     items: order.items.map((item) => ({ productId: item.productId, variationId: item.variationId, qty: item.qty })),
     deliveryMethod: order.deliveryOption,

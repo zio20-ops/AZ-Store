@@ -19,6 +19,7 @@ export default function OrderConfirmation() {
         <h1>No order found.</h1>
         <p>We couldn’t find an order for this session. Head back to the store whenever you’re ready.</p>
         <div className="confirm__actions">
+          {order.customerUid && <Link className="btn btn--ghost" to="/account">View your orders</Link>}
           <Link className="btn btn--dark" to="/shop">Continue shopping</Link>
         </div>
       </div>
