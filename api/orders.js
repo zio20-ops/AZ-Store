@@ -193,7 +193,20 @@ export default async function handler(req, res) {
     writes.push({ create: { name: docName('orders', id), fields: Object.fromEntries(Object.entries(order).map(([k, v]) => [k, enc(v)])) } });
     const commit = await fetch(`${db}:commit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ writes }) });
     const result = await commit.json();
-    if (!commit.ok) return problem(res, commit.status === 409 || commit.status === 400 ? 409 : 502, 'The order could not be confirmed. Please refresh the cart and retry.');
+    if (!commit.ok) {
+      const firestoreError = result.error || {};
+      const code = String(firestoreError.status || firestoreError.code || `HTTP_${commit.status}`).toUpperCase();
+      console.error('Firestore order commit rejected:', code, firestoreError.message || 'No error message returned.');
+      const messages = {
+        ABORTED: 'The product stock changed while your order was saving. Return to your bag, refresh, and try again.',
+        FAILED_PRECONDITION: 'The store data changed during checkout. Refresh the page and try again.',
+        INVALID_ARGUMENT: 'The store database rejected the order data. Please contact the store owner and share error code INVALID_ARGUMENT.',
+        PERMISSION_DENIED: 'The store database refused to save this order. The store owner needs to check Firebase permissions.',
+        NOT_FOUND: 'A store record needed for this order could not be found. Please contact the store owner.',
+      };
+      const status = code === 'ABORTED' || code === 'FAILED_PRECONDITION' ? 409 : code === 'INVALID_ARGUMENT' ? 400 : 503;
+      return res.status(status).json({ error: messages[code] || 'The order database could not save this order. Please contact the store owner.', code });
+    }
     return res.status(201).json({ order });
   } catch (error) {
     console.error('Order API error:', error.message);

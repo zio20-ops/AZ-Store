@@ -14,7 +14,7 @@ const initialForm = {
 
 export default function Checkout() {
   useSeo('Checkout | AZ Store', 'Choose a payment method and complete your AZ Store order.');
-  const { cart, subtotal, discount, promo, removePromo, freeThreshold, settings, placeOrder } = useStore();
+  const { cart, subtotal, discount, promo, removePromo, freeThreshold, settings, placeOrder, setCartOpen } = useStore();
   const navigate = useNavigate();
 
   const [form, setForm] = useState(() => {
@@ -46,6 +46,11 @@ export default function Checkout() {
   const payment = PAYMENT_METHODS.find((p) => p.id === paymentId);
   const paymentOptions = PAYMENT_METHODS.filter((p) => settings.paymentMethods?.[p.id]?.enabled ?? p.id === 'cod');
   const paymentConfig = settings.paymentMethods?.[paymentId] || {};
+
+  const returnToBag = () => {
+    setCartOpen(true);
+    navigate('/');
+  };
 
   useEffect(() => {
     if (paymentOptions.length && !paymentOptions.some((p) => p.id === paymentId)) setPaymentId(paymentOptions[0].id);
@@ -95,7 +100,7 @@ export default function Checkout() {
       });
       navigate('/order-confirmation', { state: { id: order.id, order } });
     } catch (error) {
-      setErrors((old) => ({ ...old, submit: error.message || 'Unable to save the order. Please try again.' }));
+      setErrors((old) => ({ ...old, submit: `${error.message || 'Unable to save the order. Please try again.'}${error.code ? ` (Error code: ${error.code})` : ''}` }));
     } finally { setPlacing(false); }
   };
 
@@ -151,7 +156,7 @@ export default function Checkout() {
       <div className="cohead">
         <Link to="/" className="logo" aria-label="AZ Store home">AZ</Link>
           <span>Checkout</span>
-        <Link to="/cart">Back to bag</Link>
+        <Link to="/" onClick={returnToBag}>Back to bag</Link>
       </div>
 
       <div className="container co">

@@ -22,7 +22,11 @@ export const createOrder = async (order) => {
     paymentProof: order.paymentProof || '',
   }) });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || 'Could not place the order. Please retry.');
+  if (!response.ok) {
+    const error = new Error(result.error || 'Could not place the order. Please retry.');
+    error.code = result.code || '';
+    throw error;
+  }
   return result.order;
 };
 export const updateOrder = async (id, patch) => {
