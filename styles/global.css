@@ -694,6 +694,12 @@ textarea.field { resize: vertical; min-height: 90px; }
   .pdp__sticky { display: none; }
 }
 
+/* Keep the fixed product action on phones even when browser zoom changes the CSS viewport width. */
+@media (hover: none) and (pointer: coarse) {
+  .pdp__sticky { position: fixed; inset-inline: 14px; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); z-index: 45; display: block; }
+  .pdp__buy-primary { display: none !important; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .reveal { opacity: 1; transform: none; }
