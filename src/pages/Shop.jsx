@@ -35,13 +35,20 @@ export default function Shop() {
 
   const [refineOpen, setRefineOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [price, setPrice] = useState('any');
   const [inStock, setInStock] = useState(false);
   const [onSale, setOnSale] = useState(false);
   const [brandAZ, setBrandAZ] = useState(true);
 
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && setSortOpen(false);
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      setSortOpen(false);
+      setTypeMenuOpen(false);
+      setCategoryMenuOpen(false);
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
@@ -70,6 +77,8 @@ export default function Shop() {
     return names.map((name) => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), id: categories.find((category) => category.name === name)?.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [categories, products]);
+  const selectedTypeLabel = FILTER_CHIPS.find((chip) => chip.id === typeFilter)?.label || 'All';
+  const selectedCategoryLabel = categoryOptions.find((category) => category.id === categoryFilter || category.slug === categoryFilter)?.name || 'All categories';
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -127,18 +136,24 @@ export default function Shop() {
 
       <div className="shopbar">
         <div className="shop-filters">
-          <div className="shop-filter-group" role="group" aria-label="Filter by product type">
+          <div className={`shop-filter-group shop-filter-group--dropdown${typeMenuOpen ? ' is-open' : ''}`} role="group" aria-label="Filter by product type">
             <span className="shop-filter-group__label">Product type</span>
+            <button type="button" className="shop-filter-group__toggle" aria-expanded={typeMenuOpen} onClick={() => { setTypeMenuOpen((open) => !open); setCategoryMenuOpen(false); }}>
+              <span>Product type</span><b>{selectedTypeLabel}</b><i aria-hidden="true">⌄</i>
+            </button>
             <div className="shop-filter-group__chips">
-              {FILTER_CHIPS.map((c) => <button key={c.id} className={`chip ${typeFilter === c.id ? 'chip--on' : ''}`} aria-pressed={typeFilter === c.id} onClick={() => setTypeFilter(c.id)}>{c.label}</button>)}
+              {FILTER_CHIPS.map((c) => <button key={c.id} className={`chip ${typeFilter === c.id ? 'chip--on' : ''}`} aria-pressed={typeFilter === c.id} onClick={() => { setTypeFilter(c.id); setTypeMenuOpen(false); }}>{c.label}</button>)}
             </div>
           </div>
-          <div className="shop-filter-group" role="group" aria-label="Filter by category">
+          <div className={`shop-filter-group shop-filter-group--dropdown${categoryMenuOpen ? ' is-open' : ''}`} role="group" aria-label="Filter by category">
             <span className="shop-filter-group__label">Category</span>
+            <button type="button" className="shop-filter-group__toggle" aria-expanded={categoryMenuOpen} onClick={() => { setCategoryMenuOpen((open) => !open); setTypeMenuOpen(false); }}>
+              <span>Category</span><b>{selectedCategoryLabel}</b><i aria-hidden="true">⌄</i>
+            </button>
             <div className="shop-filter-group__chips">
-              <button className={`chip ${!categoryFilter ? 'chip--on' : ''}`} aria-pressed={!categoryFilter} onClick={() => setCategoryFilter('')}>All categories</button>
+              <button className={`chip ${!categoryFilter ? 'chip--on' : ''}`} aria-pressed={!categoryFilter} onClick={() => { setCategoryFilter(''); setCategoryMenuOpen(false); }}>All categories</button>
               {categoryOptions.map((category) => {
-                return <button key={category.id} className={`chip ${categoryFilter === category.id || categoryFilter === category.slug ? 'chip--on' : ''}`} aria-pressed={categoryFilter === category.id || categoryFilter === category.slug} onClick={() => setCategoryFilter(category.id)}>{category.name}</button>;
+                return <button key={category.id} className={`chip ${categoryFilter === category.id || categoryFilter === category.slug ? 'chip--on' : ''}`} aria-pressed={categoryFilter === category.id || categoryFilter === category.slug} onClick={() => { setCategoryFilter(category.id); setCategoryMenuOpen(false); }}>{category.name}</button>;
               })}
             </div>
           </div>
