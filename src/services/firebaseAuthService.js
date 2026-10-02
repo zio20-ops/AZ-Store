@@ -51,7 +51,7 @@ const adminMembership = async (idToken, localId, email) => {
   if (!response.ok) return null;
   const doc = await response.json().catch(() => null);
   const role = doc?.fields?.role?.stringValue;
-  return role ? { role } : null;
+  return ['owner', 'admin'].includes(role) ? { role } : null;
 };
 
 export const registerCustomer = async ({ name, email, password }) => {

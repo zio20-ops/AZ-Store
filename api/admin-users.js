@@ -64,7 +64,7 @@ async function accountByEmail(email, token) {
 }
 
 async function callerRole(account, token) {
-  if (!account || account.emailVerified !== true) return null;
+  if (!account) return null;
   if ((account.email || '').toLowerCase() === ADMIN_EMAIL) return 'owner';
   const response = await fetch(`${db}/admins/${encodeURIComponent(account.localId)}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!response.ok) return null;

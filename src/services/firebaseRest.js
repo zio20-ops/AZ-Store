@@ -80,10 +80,6 @@ export async function createAdminAccount(email, password) {
   });
   const body = await response.json();
   if (!response.ok) throw new Error(authMessage(body.error?.message));
-  const verify = await fetch(identityToolkitUrl('accounts:sendOobCode'), {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: body.idToken }),
-  });
-  if (!verify.ok) throw new Error('Account created, but Firebase could not send the verification email. Check Firebase Authentication settings.');
   return true;
 }
 
