@@ -190,7 +190,12 @@ export default async function handler(req, res) {
       product.stock = (product.variations || []).reduce((total, v) => total + Number(v.stock || 0), 0);
       return { update: { name: doc.name, fields: Object.fromEntries(Object.entries(product).map(([k, v]) => [k, enc(v)])) }, currentDocument: { updateTime: doc.updateTime } };
     });
-    writes.push({ create: { name: docName('orders', id), fields: Object.fromEntries(Object.entries(order).map(([k, v]) => [k, enc(v)])) } });
+    // Firestore Commit's Write union has update/delete/transform operations;
+    // document creation is expressed as an update guarded by exists:false.
+    writes.push({
+      update: { name: docName('orders', id), fields: Object.fromEntries(Object.entries(order).map(([k, v]) => [k, enc(v)])) },
+      currentDocument: { exists: false },
+    });
     const commit = await fetch(`${db}:commit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ writes }) });
     const result = await commit.json();
     if (!commit.ok) {
