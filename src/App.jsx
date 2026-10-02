@@ -28,6 +28,7 @@ import AdminInventory from './pages/admin/Inventory.jsx';
 import AdminCustomers from './pages/admin/Customers.jsx';
 import AdminUsers from './pages/admin/Users.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
+import AdminPromos from './pages/admin/Promos.jsx';
 import Account from './pages/Account.jsx';
 
 function ScrollToTop() {
@@ -102,6 +103,7 @@ export default function App() {
         <Route path="/admin/products/new" element={<AdminProductForm />} />
         <Route path="/admin/products/edit/:id" element={<AdminProductForm />} />
         <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin/promos" element={<AdminPromos />} />
         <Route path="/admin/categories" element={<AdminCategories />} />
         <Route path="/admin/inventory" element={<AdminInventory />} />
         <Route path="/admin/customers" element={<AdminCustomers />} />

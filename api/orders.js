@@ -116,8 +116,36 @@ export default async function handler(req, res) {
       subtotal += Number(variation.price) * line.qty;
       normalizedItems.push({ productId: product.id || line.productId, variationId: variation.id, name: product.name, meta: variation.label, qty: line.qty, price: Number(variation.price), image: product.images?.[variation.image]?.src || product.images?.[0]?.src || '' });
     }
-    const discount = promoCode === 'AZ10' ? Math.round(subtotal * 0.1) : 0;
-    const deliveryFee = promoCode === 'FREESHIP' || (deliveryMethod === 'standard' && subtotal >= Number(storeSettings.freeDeliveryThreshold ?? 1800)) ? 0 : deliveryMethod === 'express' ? 110 : 60;
+    const standardFree = deliveryMethod === 'standard' && subtotal >= Number(storeSettings.freeDeliveryThreshold ?? 1800);
+    const baseDeliveryFee = standardFree ? 0 : deliveryMethod === 'express' ? 110 : 60;
+    let discount = 0;
+    let shippingDiscount = 0;
+    let deliveryFee = baseDeliveryFee;
+    let appliedPromo = null;
+    if (String(promoCode).trim()) {
+      const code = String(promoCode).trim().toUpperCase();
+      const promoDoc = await firestore(`promos/${encodeURIComponent(code)}`, token).catch(() => null);
+      const promo = promoDoc ? fields(promoDoc) : code === 'AZ10'
+        ? { code, type: 'percent', value: 10, appliesTo: 'products', productIds: [], active: true }
+        : code === 'FREESHIP' ? { code, type: 'fixed', value: 0, appliesTo: 'shipping', productIds: [], active: true } : null;
+      const now = Date.now();
+      if (!promo || promo.active === false || (promo.startsAt && Date.parse(promo.startsAt) > now) || (promo.endsAt && Date.parse(promo.endsAt) < now)) return problem(res, 400, 'This promo code is not valid or has expired.');
+      if (!['percent', 'fixed'].includes(promo.type) || !['products', 'shipping'].includes(promo.appliesTo || (promo.type === 'shipping' ? 'shipping' : 'products')) || !Number.isFinite(Number(promo.value))) return problem(res, 400, 'This promo code is not configured correctly.');
+      if (Number(promo.minSubtotal || 0) > subtotal) return problem(res, 400, 'This promo code does not meet its minimum order amount.');
+      const target = promo.appliesTo || (promo.type === 'shipping' ? 'shipping' : 'products');
+      const amount = Number(promo.value);
+      if (target === 'shipping') {
+        shippingDiscount = amount === 0 && code === 'FREESHIP' ? baseDeliveryFee : promo.type === 'percent' ? Math.round(baseDeliveryFee * amount / 100) : amount;
+        shippingDiscount = Math.min(baseDeliveryFee, Math.max(0, shippingDiscount));
+        deliveryFee = baseDeliveryFee - shippingDiscount;
+      } else {
+        const allowedIds = Array.isArray(promo.productIds) ? promo.productIds : [];
+        const eligibleTotal = normalizedItems.filter((item) => !allowedIds.length || allowedIds.includes(item.productId)).reduce((sum, item) => sum + item.price * item.qty, 0);
+        if (allowedIds.length && !normalizedItems.some((item) => allowedIds.includes(item.productId))) return problem(res, 400, 'This promo code does not apply to the products in this order.');
+        discount = Math.min(eligibleTotal, Math.max(0, promo.type === 'percent' ? Math.round(eligibleTotal * amount / 100) : amount));
+      }
+      appliedPromo = code;
+    }
     const id = randomUUID();
     const paymentProofUrl = paymentMethod === 'cod' || !paymentProof ? null : await uploadPaymentProof(paymentProof, id);
     const phone = String(customer.phone).replace(/[\s-]/g, '');
@@ -130,7 +158,7 @@ export default async function handler(req, res) {
       paymentProofUrl,
       paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Verification Required',
       deliveryMethod: deliveryMethod === 'express' ? 'Express, next day' : 'Standard, 2 to 4 days',
-      items: normalizedItems, subtotal, discount, delivery: deliveryFee, total: subtotal - discount + deliveryFee,
+      items: normalizedItems, subtotal, discount, shippingDiscount, promoCode: appliedPromo, delivery: deliveryFee, total: subtotal - discount + deliveryFee,
     };
     const writes = [...products.values()].map(({ doc, product }) => {
       product.stock = (product.variations || []).reduce((total, v) => total + Number(v.stock || 0), 0);

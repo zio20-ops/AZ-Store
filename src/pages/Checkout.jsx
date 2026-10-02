@@ -32,9 +32,10 @@ export default function Checkout() {
 
   const method = DELIVERY_METHODS.find((m) => m.id === deliveryId);
   const deliveryFee = useMemo(() => {
-    if (promo?.type === 'shipping') return 0;
-    if (deliveryId === 'standard' && subtotal >= freeThreshold) return 0;
-    return method.price;
+    const base = deliveryId === 'standard' && subtotal >= freeThreshold ? 0 : method.price;
+    if (!promo || promo.appliesTo !== 'shipping') return base;
+    const reduction = promo.type === 'percent' ? Math.round(base * promo.value / 100) : Number(promo.value || 0);
+    return Math.max(0, base - reduction);
   }, [deliveryId, subtotal, freeThreshold, method, promo]);
 
   const total = subtotal - discount + deliveryFee;
@@ -83,6 +84,7 @@ export default function Checkout() {
         deliveryMethod: `${method.label}, ${method.eta.toLowerCase()}`,
         deliveryOption: deliveryId,
         promoCode: promo?.code || '',
+        discount,
         delivery: deliveryFee,
         address: [form.address.trim(), form.apartment.trim(), form.city.trim(), form.governorate].filter(Boolean).join(', '),
         notes: form.notes.trim(),
@@ -256,8 +258,8 @@ export default function Checkout() {
           <div className="sum__row"><span>Delivery</span><span>{deliveryFee === 0 ? 'Free' : egp(deliveryFee)}</span></div>
           {promo && (
             <div className="sum__row">
-              <span>Promo {promo.code}</span>
-              <span className="sum__discount">−{egp(discount)}</span>
+              <span>Promo {promo.code}{promo.appliesTo === 'shipping' ? ' · delivery' : ''}</span>
+              <span className="sum__discount">−{egp(promo.appliesTo === 'shipping' ? Math.max(0, (deliveryId === 'standard' && subtotal >= freeThreshold ? 0 : method.price) - deliveryFee) : discount)}</span>
             </div>
           )}
           <div className="sum__total"><span>Total</span><span>{egp(total)}</span></div>

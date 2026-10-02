@@ -7,6 +7,7 @@ const NAV = [
   { to: '/admin', label: 'Dashboard', end: true, icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
   { to: '/admin/products', label: 'Products', icon: 'M20 7l-8-4-8 4v10l8 4 8-4V7zm-8 2L6 6l6-3 6 3-6 3zm-6 .8l6 3v7.4l-6-3V8.8zm8 9.4v-7.4l6-3v7.4l-6 3z' },
   { to: '/admin/orders', label: 'Orders', icon: 'M7 3h10v2H7V3zm-2 4h14v14H5V7zm2 3v2h10v-2H7zm0 4v2h7v-2H7z' },
+  { to: '/admin/promos', label: 'Promo codes', icon: 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 8A1.5 1.5 0 1 0 7.5 5a1.5 1.5 0 0 0 0 3z' },
   { to: '/admin/categories', label: 'Categories', icon: 'M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z' },
   { to: '/admin/inventory', label: 'Inventory', icon: 'M3 5h18v4H3V5zm0 6h18v4H3v-4zm0 6h18v4H3v-4z' },
   { to: '/admin/customers', label: 'Customers', icon: 'M8 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm8 1a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM2 20c0-3.3 2.7-6 6-6s6 2.7 6 6v1H2v-1zm14 1v-1c0-1.8-.8-3.4-2-4.5.6-.3 1.3-.5 2-.5 2.8 0 5 2.2 5 5v1h-5z' },

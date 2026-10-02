@@ -96,6 +96,7 @@
 .adgrid--3 { grid-template-columns: repeat(3, 1fr); }
 .adcheck { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(244, 234, 217, 0.8); }
 .adcheck input { width: auto; accent-color: var(--gold); }
+.promo-products { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 9px 18px; border: 1px solid var(--line-2); border-radius: 12px; padding: 14px; max-height: 220px; overflow: auto; }
 .adradio { display: flex; gap: 8px; flex-wrap: wrap; }
 .adradio label { border: 1px solid var(--line-3); border-radius: 99px; padding: 7px 16px; font-size: 13px; cursor: pointer; color: rgba(244, 234, 217, 0.75); }
 .adradio label:has(input:checked) { border-color: var(--gold); color: var(--gold); background: rgba(226, 173, 85, 0.1); }

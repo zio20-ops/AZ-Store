@@ -6,7 +6,7 @@ import { egp } from '../utils/format.js';
 
 export default function CartPage() {
   useSeo('Your bag | AZ Store', 'Review your AZ bag, apply a promo code and check out securely.');
-  const { cart, subtotal, setQty, removeLine, freeThreshold, applyPromo, promo } = useStore();
+  const { cart, subtotal, discount, setQty, removeLine, freeThreshold, applyPromo, promo } = useStore();
   const [code, setCode] = useState('');
   const [promoMsg, setPromoMsg] = useState(null);
   const navigate = useNavigate();
@@ -51,14 +51,14 @@ export default function CartPage() {
               {cart.map((line) => (
                 <div className="li" key={line.key}>
                   <div className="li__img"><img src={line.image} alt={line.product.name} loading="lazy" /></div>
-                  <div>
+                  <div className="li__body">
                     <div className="li__name">{line.product.name}</div>
                     <div className="li__meta">{line.variation.label} · Qty {line.qty}</div>
                     <div className="li__ctrl">
                       <button onClick={() => setQty(line.key, line.qty - 1)} aria-label={`Decrease quantity of ${line.product.name}`}>−</button>
                       <span aria-live="polite">{line.qty}</span>
                       <button onClick={() => setQty(line.key, line.qty + 1)} disabled={line.qty >= line.variation.stock} aria-label={`Increase quantity of ${line.product.name}`}>+</button>
-                      <button className="li__remove" onClick={() => removeLine(line.key)}>Remove</button>
+                      <button className="li__remove" onClick={() => removeLine(line.key)} aria-label={`Remove ${line.product.name} from your bag`} title="Remove item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-.8 13H6.8L6 7m4 4v5m4-5v5" /></svg><span>Remove</span></button>
                     </div>
                   </div>
                   <b className="li__price">{egp(line.price * line.qty)}</b>
@@ -75,6 +75,7 @@ export default function CartPage() {
             {promo && !promoMsg && <p className="promo-msg promo-msg--ok" role="status">{promo.code} applied</p>}
 
             <div className="drawer__foot">
+              {promo && <div className="drawer__subtotal drawer__promo-total"><span>Promo {promo.code}</span><b>{promo.appliesTo === 'shipping' ? 'Delivery discount at checkout' : `−${egp(discount)}`}</b></div>}
               <div className="drawer__subtotal"><span>Subtotal</span><b>{egp(subtotal)}</b></div>
               <button className="btn btn--dark btn--block" onClick={() => navigate('/checkout')}>Go to checkout</button>
             </div>

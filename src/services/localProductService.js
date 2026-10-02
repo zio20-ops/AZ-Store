@@ -285,6 +285,24 @@ export const saveSettings = async (patch) => {
   return { ok: true, settings: next };
 };
 
+export const listPromos = async () => readStorage('az.promos', [
+  { id: 'AZ10', code: 'AZ10', label: '10% off products', type: 'percent', value: 10, appliesTo: 'products', productIds: [], active: true },
+  { id: 'FREESHIP', code: 'FREESHIP', label: 'Free delivery', type: 'percent', value: 100, appliesTo: 'shipping', productIds: [], active: true },
+]);
+export const savePromo = async (draft) => {
+  const code = String(draft.code || '').trim().toUpperCase();
+  const value = Number(draft.value);
+  if (!/^[A-Z0-9_-]{3,24}$/.test(code) || !Number.isFinite(value) || value < 0 || (draft.type === 'percent' && (value < 1 || value > 100))) return { ok: false, message: 'Check the promo code and discount value.' };
+  const promo = { ...draft, id: code, code, value, productIds: draft.appliesTo === 'products' ? (draft.productIds || []) : [], active: draft.active !== false };
+  const all = await listPromos();
+  if (!persist('az.promos', [...all.filter((item) => item.code !== code), promo])) return { ok: false, message: 'Unable to save promo.' };
+  return { ok: true, promo };
+};
+export const deletePromo = async (code) => {
+  const all = await listPromos();
+  return persist('az.promos', all.filter((item) => item.code !== String(code).toUpperCase())) ? { ok: true } : { ok: false, message: 'Unable to remove promo.' };
+};
+
 export const DEFAULT_SETTINGS = {
   announcement: 'Free gift cards with every trio box',
   freeDeliveryThreshold: 1800,

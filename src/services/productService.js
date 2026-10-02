@@ -24,3 +24,6 @@ export const saveCategory = (category) => impl.saveCategory(category);
 export const deleteCategory = (id) => impl.deleteCategory(id);
 export const getSettings = () => impl.getSettings();
 export const saveSettings = (patch) => impl.saveSettings(patch);
+export const listPromos = () => impl.listPromos();
+export const savePromo = (draft) => impl.savePromo(draft);
+export const deletePromo = (code) => impl.deletePromo(code);

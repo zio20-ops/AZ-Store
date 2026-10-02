@@ -17,6 +17,8 @@ export default function Orders() {
     if (filter === 'all') return true;
     if (filter === 'cancelled') return !!o.cancelled;
     if (filter === 'pending') return !o.cancelled && o.status < 4;
+    if (filter === 'paid') return !o.cancelled && o.paymentStatus === 'Paid';
+    if (filter === 'verification') return !o.cancelled && o.paymentStatus === 'Verification Required';
     return !o.cancelled && o.status === Number(filter);
   });
 
@@ -42,6 +44,8 @@ export default function Orders() {
           <select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filter orders">
             <option value="all">All orders</option>
             <option value="pending">Pending fulfilment</option>
+            <option value="paid">Paid orders</option>
+            <option value="verification">Awaiting payment review</option>
             {ORDER_STEPS.map((s, i) => <option key={s} value={i}>{s}</option>)}
             <option value="cancelled">Cancelled</option>
           </select>
@@ -50,6 +54,7 @@ export default function Orders() {
 
       <section className="adsec" style={{ marginTop: 0 }}>
         <div className="adsec__head"><h2>{rows.length} {rows.length === 1 ? 'order' : 'orders'}</h2></div>
+        <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.55)', marginBottom: 14 }}>Set delivery progress and payment confirmation manually here. “Paid” means you verified the transfer outside the store.</p>
         <div className="adtable-wrap">
           <table className="adtable responsive">
             <thead>

@@ -24,10 +24,12 @@ export default function Dashboard() {
   const stats = useMemo(() => {
     const pending = orders.filter((o) => !o.cancelled && o.status < 4).length;
     const revenue = orders.filter((o) => !o.cancelled).reduce((n, o) => n + o.total, 0);
+    const paid = orders.filter((o) => !o.cancelled && o.paymentStatus === 'Paid').length;
+    const completed = orders.filter((o) => !o.cancelled && o.status === 4).length;
     const lowStock = allProducts.filter((p) =>
       p.status !== 'archived' && getVariations(p).some((v) => v.stock <= (p.lowStockThreshold ?? 6)),
     ).length;
-    return { pending, revenue, lowStock };
+    return { pending, revenue, paid, completed, lowStock };
   }, [allProducts, orders]);
 
   const recent = orders.slice(0, 6);
@@ -42,6 +44,8 @@ export default function Dashboard() {
         <div className="adcard"><span>Products</span><b>{allProducts.length}</b><small>{allProducts.filter((p) => p.status === 'active').length} live in store</small></div>
         <div className="adcard"><span>Orders</span><b>{orders.length}</b><small>all time</small></div>
         <div className="adcard"><span>Pending</span><b className={stats.pending ? 'adcard--warn' : ''}>{stats.pending}</b><small>not yet delivered</small></div>
+        <div className="adcard"><span>Paid orders</span><b>{stats.paid}</b><small>manually marked as paid</small></div>
+        <div className="adcard"><span>Completed</span><b>{stats.completed}</b><small>delivered orders</small></div>
         <div className="adcard"><span>Revenue</span><b>{egp(stats.revenue)}</b><small>excludes cancelled</small></div>
         <div className="adcard"><span>Low Stock</span><b className={stats.lowStock ? 'adcard--warn' : ''}>{stats.lowStock}</b><small>products at or below threshold</small></div>
         <div className="adcard"><span>Customer accounts</span><b>{customerLogins.length}</b><small>customers who signed in</small></div>

@@ -132,7 +132,7 @@ export const stockStatus = (stock, threshold = 6) => (stock <= 0 ? 'out' : stock
 
 export const PROMOS = {
   AZ10: { code: 'AZ10', type: 'percent', value: 10, label: 'Promo AZ10' },
-  FREESHIP: { code: 'FREESHIP', type: 'shipping', value: 0, label: 'Promo FREESHIP' },
+  FREESHIP: { code: 'FREESHIP', type: 'percent', value: 100, appliesTo: 'shipping', label: 'Promo FREESHIP' },
 };
 
 export const FREE_DELIVERY_THRESHOLD = 1800;

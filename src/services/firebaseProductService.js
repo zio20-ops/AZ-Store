@@ -71,6 +71,24 @@ export async function initializeCatalog() {
     try { await createDocument('settings', 'store', DEFAULT_SETTINGS, true); }
     catch (error) { if (error.code !== 409 && error.code !== 'ALREADY_EXISTS') throw error; }
   }
+
+  try {
+    const currentPromos = await listDocuments('promos', true);
+    const existingPromos = new Set(currentPromos.map((promo) => promo.id));
+    const starterPromos = [
+      { id: 'AZ10', code: 'AZ10', label: '10% off products', type: 'percent', value: 10, appliesTo: 'products', productIds: [], active: true },
+      { id: 'FREESHIP', code: 'FREESHIP', label: 'Free delivery', type: 'percent', value: 100, appliesTo: 'shipping', productIds: [], active: true },
+    ];
+    for (const promo of starterPromos) {
+      if (existingPromos.has(promo.id)) continue;
+      try { await createDocument('promos', promo.id, promo, true); }
+      catch (error) { if (error.code !== 409 && error.code !== 'ALREADY_EXISTS') throw error; }
+    }
+  } catch (error) {
+    // Keep existing admin sign-in usable if Firestore promo rules have not been
+    // deployed yet; promo CRUD itself will show the actionable permission error.
+    console.warn('Promo setup skipped:', error.message);
+  }
 }
 
 export const listProducts = async () => {
@@ -127,3 +145,22 @@ export const saveSettings = async (patch) => { try {
   await putDocument('settings', 'store', settings, true);
   return { ok: true, settings };
 } catch (e) { return { ok: false, message: e.message }; } };
+
+export const listPromos = () => listDocuments('promos', admin());
+export const savePromo = async (draft) => {
+  const code = String(draft.code || '').trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{3,24}$/.test(code)) return { ok: false, message: 'Use 3–24 letters, numbers, hyphens or underscores for the code.' };
+  const value = Number(draft.value);
+  if (!Number.isFinite(value) || value < 0 || (draft.type === 'percent' && (value < 1 || value > 100))) return { ok: false, message: 'Enter a valid discount amount. Percentages must be between 1 and 100.' };
+  if (!['percent', 'fixed'].includes(draft.type) || !['products', 'shipping'].includes(draft.appliesTo)) return { ok: false, message: 'Choose a valid discount type and target.' };
+  if (draft.appliesTo === 'shipping' && draft.productIds?.length) return { ok: false, message: 'Shipping discounts cannot be limited to products.' };
+  const promo = { id: code, code, label: String(draft.label || '').trim().slice(0, 80), type: draft.type, value, appliesTo: draft.appliesTo,
+    productIds: draft.appliesTo === 'products' ? [...new Set((draft.productIds || []).filter((id) => /^[a-z0-9-]{1,80}$/.test(id)))] : [],
+    minSubtotal: Math.max(0, Number(draft.minSubtotal || 0)), active: draft.active !== false, updatedAt: now() };
+  try { await putDocument('promos', code, promo, true); return { ok: true, promo }; }
+  catch (error) { return { ok: false, message: error.message }; }
+};
+export const deletePromo = async (code) => {
+  try { await deleteDocument('promos', String(code).toUpperCase(), true); return { ok: true }; }
+  catch (error) { return { ok: false, message: error.message }; }
+};
