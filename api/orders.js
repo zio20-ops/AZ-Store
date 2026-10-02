@@ -85,7 +85,8 @@ async function firestore(path, token) {
   return doc;
 }
 
-const docName = (collection, id) => `${db}/${collection}/${id}`;
+// Commit Write.update.name is a Firestore resource name, not an HTTPS URL.
+const docName = (collection, id) => `projects/${projectId}/databases/(default)/documents/${collection}/${id}`;
 const problem = (res, status, message) => res.status(status).json({ error: message });
 
 export default async function handler(req, res) {
