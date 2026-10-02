@@ -76,6 +76,10 @@ export default function Checkout() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!auth.getCurrentUser()) {
+      setErrors((old) => ({ ...old, submit: 'Sign in or create an account before placing your order.' }));
+      return;
+    }
     if (!validate()) {
       document.querySelector('.field--error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -162,7 +166,11 @@ export default function Checkout() {
       <div className="container co">
         <form onSubmit={submit} noValidate>
           <h2>Delivery</h2>
-          {!auth.getCurrentUser() && <p className="checkout-account-note">Want this order saved to your account? <Link to="/account/login">Sign in</Link> before checkout. You can still place an order as a guest and track it with your order number and phone.</p>}
+          {!auth.getCurrentUser() && <div className="checkout-account-note" role="note">
+            <b>Sign in required to place an order.</b>
+            <span>Your bag will be saved to your account if you don’t already have a saved bag.</span>
+            <span><Link to="/account/login" state={{ returnTo: '/checkout' }}>Sign in</Link> or <Link to="/account/signup" state={{ returnTo: '/checkout' }}>create an account</Link> to continue.</span>
+          </div>}
           <div className="co__fields">
             <div>
               <input className={fieldClass('name')} placeholder="Full name" value={form.name} onChange={set('name')} aria-label="Full name" autoComplete="name" />
@@ -254,9 +262,12 @@ export default function Checkout() {
 
           {errors.submit && <p className="field-error" role="alert">{errors.submit}</p>}
 
-          <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || compressingProof || paymentOptions.length === 0 || promoShippingMethodMismatch || promoShippingMinimum}>
+          {auth.getCurrentUser() ? <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || compressingProof || paymentOptions.length === 0 || promoShippingMethodMismatch || promoShippingMinimum}>
             {compressingProof ? 'Preparing screenshot…' : placing ? 'Placing order…' : `Place order · ${egp(total)}`}
-          </button>
+          </button> : <div className="checkout-account-cta">
+            <Link className="btn btn--primary btn--lg" to="/account/login" state={{ returnTo: '/checkout' }}>Sign in to place your order</Link>
+            <Link to="/account/signup" state={{ returnTo: '/checkout' }}>Create account</Link>
+          </div>}
         </form>
 
         <aside className="sum" aria-label="Order summary">

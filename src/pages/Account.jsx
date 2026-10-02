@@ -27,7 +27,13 @@ export default function Account() {
   const [customerOrders, setCustomerOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState('');
+  const [cancellingOrderId, setCancellingOrderId] = useState('');
   const user = auth.getCurrentUser();
+  const returnTo = typeof location.state?.returnTo === 'string'
+    && location.state.returnTo.startsWith('/')
+    && !location.state.returnTo.startsWith('//')
+    ? location.state.returnTo
+    : '/account';
 
   useSeo('Your account | AZ Store', 'Sign in or create your AZ Store account.');
 
@@ -51,13 +57,29 @@ export default function Account() {
     };
   }, [loadCustomerOrders]);
 
+  const cancelOrder = async (order) => {
+    const manualPayment = order.payment && order.payment !== 'Cash on delivery';
+    if (!window.confirm(`Cancel order ${order.id}?${manualPayment ? ' If you already transferred money, contact the store about your refund; refunds are not automatic.' : ''}`)) return;
+    setCancellingOrderId(order.id);
+    setOrdersError('');
+    try {
+      const cancelled = await orderService.cancelMyOrder(order.id);
+      setCustomerOrders((current) => current.map((item) => item.id === order.id ? { ...item, ...cancelled } : item));
+      toast('Your order has been cancelled.');
+    } catch (cancelError) {
+      setOrdersError(cancelError.message || 'Could not cancel this order. Please try again.');
+    } finally {
+      setCancellingOrderId('');
+    }
+  };
+
   const onGoogleCredential = useCallback(async (credential) => {
     setBusy(true); setError('');
     const result = await auth.loginWithGoogle(credential);
     setBusy(false);
     if (!result.ok) { setError(result.message); return; }
-    navigate('/account', { replace: true });
-  }, [navigate]);
+    navigate(returnTo, { replace: true });
+  }, [navigate, returnTo]);
 
   if (user) return (
     <div className="auth">
@@ -95,6 +117,12 @@ export default function Account() {
                 <div><span className="account-order__label">PAYMENT</span><strong className="account-order__payment">{order.payment || 'Payment'} · {order.paymentStatus || 'Pending'}</strong></div>
               </div>
               {order.address && <p className="account-order__address"><b>Delivery address</b><span>{order.address}</span></p>}
+              {!order.cancelled && Number(order.status) < 2 && <div className="account-order__actions">
+                <span>You can cancel this order before preparation begins.</span>
+                <button type="button" onClick={() => cancelOrder(order)} disabled={cancellingOrderId === order.id}>
+                  {cancellingOrderId === order.id ? 'Cancelling…' : 'Cancel order'}
+                </button>
+              </div>}
             </article>)}
           </div>
         </section>}
@@ -120,9 +148,9 @@ export default function Account() {
         : await auth.loginCustomer(email, password);
     setBusy(false);
     if (!result.ok) { setError(result.message); return; }
-    if (mode === 'signup') { navigate('/account', { replace: true }); return; }
+    if (mode === 'signup') { navigate(returnTo, { replace: true }); return; }
     if (mode === 'reset') { setNotice('Password reset link sent. Check your email inbox.'); return; }
-    navigate('/account', { replace: true });
+    navigate(returnTo, { replace: true });
   };
 
   return (

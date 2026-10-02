@@ -104,6 +104,7 @@ export default async function handler(req, res) {
     const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     const verifiedCustomer = await verifyCustomer(idToken, token);
     if (verifiedCustomer === false) return problem(res, 401, 'Your sign-in expired. Sign in again and place the order.');
+    if (!verifiedCustomer) return problem(res, 401, 'Sign in or create an account before placing an order.');
     const settings = await firestore('settings/store', token).catch(() => ({ fields: {} }));
     const storeSettings = fields(settings);
     const paymentConfig = storeSettings.paymentMethods || { cod: { enabled: true }, instapay: { enabled: false }, vodafone: { enabled: false } };

@@ -102,12 +102,13 @@ export function StoreProvider({ children }) {
     window.addEventListener('focus', refreshOrders);
     document.addEventListener('visibilitychange', refreshOrders);
     let mounted = true;
-    const hydrateCart = async (uid) => {
+    const hydrateCart = async (uid, guestCart = []) => {
       if (!uid) return;
       try {
         const saved = await customerCart.load();
         if (!mounted || cartOwner.current !== uid) return;
-        const next = saved?.exists ? (saved.items || []) : readCart(uid);
+        const savedLocalCart = readCart(uid);
+        const next = saved?.exists ? (saved.items || []) : (savedLocalCart.length ? savedLocalCart : guestCart);
         setCart(next);
         writeStorage(cartStorageKey(uid), next);
         setCartReady(true);
@@ -119,6 +120,8 @@ export function StoreProvider({ children }) {
       loadCatalog(); loadOrders();
       const nextUid = activeCustomerUid();
       if (nextUid === cartOwner.current) return;
+      const previousUid = cartOwner.current;
+      const guestCart = previousUid ? [] : latestCart.current;
       writeStorage(cartStorageKey(cartOwner.current), latestCart.current);
       cartOwner.current = nextUid;
       clearTimeout(cartSyncTimer.current);
@@ -129,9 +132,10 @@ export function StoreProvider({ children }) {
         setCartReady(true);
         return;
       }
-      setCart(readCart(nextUid));
+      const savedLocalCart = readCart(nextUid);
+      setCart(savedLocalCart.length ? savedLocalCart : guestCart);
       setCartReady(false);
-      void hydrateCart(nextUid);
+      void hydrateCart(nextUid, guestCart);
     };
     window.addEventListener('az-auth-changed', refresh);
     if (cartOwner.current) {
