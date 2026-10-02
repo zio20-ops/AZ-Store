@@ -136,7 +136,7 @@ export default function ProductDetails() {
             <QuantitySelector value={qty} onChange={setQty} max={Math.max(1, variation.stock)} />
             <button
               className={`btn btn--primary pdp__buy-primary ${soldOut ? 'btn--disabled' : ''}`}
-              style={{ flex: 1, minWidth: 180 }}
+              style={{ flex: 1 }}
               onClick={() => addToCart(product.id, variation.id, qty)}
               disabled={soldOut}
             >
@@ -171,17 +171,6 @@ export default function ProductDetails() {
             <Accordion items={accordionItems} />
           </div>
         </div>
-      </div>
-
-      <div className="pdp__sticky">
-        <button
-          className={`btn btn--primary btn--block ${soldOut ? 'btn--disabled' : ''}`}
-          style={{ '--product-accent': product.accentHex || '#e2ad55' }}
-          onClick={() => addToCart(product.id, variation.id, qty)}
-          disabled={soldOut}
-        >
-          {soldOut ? 'Sold out' : `Add to bag · ${egp(currentPrice * qty)}`}
-        </button>
       </div>
 
       <section className="container sec" style={{ paddingInline: 0 }}>
