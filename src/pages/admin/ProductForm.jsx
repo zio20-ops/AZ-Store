@@ -111,17 +111,22 @@ export default function ProductForm() {
       return;
     }
     setSaving(true);
-    const result = editing
-      ? await catalog.updateProduct(editing.id, draft)
-      : await catalog.createProduct(draft);
-    setSaving(false);
-    if (!result.ok) {
-      toast(result.message || 'Unable to save product.');
-      return;
+    try {
+      const result = editing
+        ? await catalog.updateProduct(editing.id, draft)
+        : await catalog.createProduct(draft);
+      if (!result.ok) {
+        toast(result.message || 'Unable to save product.');
+        return;
+      }
+      await refreshCatalog();
+      toast(editing ? 'Product updated successfully.' : 'Product created successfully.');
+      navigate('/admin/products');
+    } catch (error) {
+      toast(error?.message || 'Unable to save product. Please try again.');
+    } finally {
+      setSaving(false);
     }
-    await refreshCatalog();
-    toast(editing ? 'Product updated successfully.' : 'Product created successfully.');
-    navigate('/admin/products');
   };
 
   const fieldError = (key) => (errors[key] ? <span className="err">{errors[key]}</span> : null);

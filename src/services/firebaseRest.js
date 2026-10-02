@@ -139,7 +139,15 @@ async function token(key, accountType) {
 export async function request(path, { method = 'GET', data, admin = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (admin) headers.Authorization = `Bearer ${await currentAdminIdToken()}`;
-  const response = await fetch(`${db}/${path}`, { method, headers, ...(data === undefined ? {} : { body: JSON.stringify({ fields: encodeFields(data) }) }) });
+  let response;
+  try {
+    const options = { method, headers, ...(data === undefined ? {} : { body: JSON.stringify({ fields: encodeFields(data) }) }) };
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') options.signal = AbortSignal.timeout(20000);
+    response = await fetch(`${db}/${path}`, options);
+  } catch (error) {
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') throw new Error('Firebase took too long to respond. Check your connection and try saving again.');
+    throw new Error('Could not connect to Firebase. Check your internet connection and try again.');
+  }
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const code = body.error?.status;

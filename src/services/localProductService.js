@@ -252,7 +252,7 @@ export const saveCategory = async (category) => {
   await delay(40);
   const all = readStorage(CATEGORIES_KEY, []);
   const index = all.findIndex((c) => c.id === category.id);
-  const entry = { id: category.id || slugify(category.name), name: category.name.trim(), image: category.image || '' };
+  const entry = { id: category.id || slugify(category.name), name: category.name.trim() };
   if (!entry.name) return { ok: false, message: 'Category name is required.' };
   if (all.some((c) => c.name.toLowerCase() === entry.name.toLowerCase() && c.id !== entry.id)) {
     return { ok: false, message: 'A category with this name already exists.' };
