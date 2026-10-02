@@ -117,9 +117,12 @@ export default async function handler(req, res) {
       const compareAt = Number(product.compareAtPrice ?? product.compareAt ?? 0);
       const isPrimaryVariation = product.variations?.[0]?.id === variation.id;
       const appliedDiscount = Math.min(90, Math.max(0, Number(product.discount || 0)));
-      const unitPrice = isPrimaryVariation && compareAt > regularPrice
-        ? regularPrice
-        : appliedDiscount ? Math.max(0, Math.round(regularPrice * (100 - appliedDiscount) / 100)) : regularPrice;
+      const hasVariationSale = Object.hasOwn(variation, 'discount') || Object.hasOwn(variation, 'compareAtPrice');
+      const variationCompareAt = Number(variation.compareAtPrice || 0);
+      const variationDiscount = Math.min(90, Math.max(0, Number(variation.discount || 0)));
+      const unitPrice = hasVariationSale
+        ? variationCompareAt > regularPrice ? regularPrice : variationDiscount ? Math.max(0, Math.round(regularPrice * (100 - variationDiscount) / 100)) : regularPrice
+        : isPrimaryVariation && compareAt > regularPrice ? regularPrice : appliedDiscount ? Math.max(0, Math.round(regularPrice * (100 - appliedDiscount) / 100)) : regularPrice;
       subtotal += unitPrice * line.qty;
       normalizedItems.push({ productId: product.id || line.productId, variationId: variation.id, name: product.name, meta: variation.label, qty: line.qty, price: unitPrice, image: product.images?.[variation.image]?.src || product.images?.[0]?.src || '' });
     }

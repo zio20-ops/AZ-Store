@@ -12,6 +12,7 @@ export default function ProductCard({ product }) {
   const currentPrice = productPrice(product, defaultVariation);
   const comparePrice = productComparePrice(product, defaultVariation);
   const discountPercent = productDiscountPercent(product, defaultVariation);
+  const hasOtherSizeOffer = getVariations(product).slice(1).some((variation) => productDiscountPercent(product, variation) > 0);
 
   return (
     <article className="card" style={{ '--product-accent': product.accentHex || '#e2ad55' }}>
@@ -20,7 +21,7 @@ export default function ProductCard({ product }) {
           <img src={product.images[0].src} alt={product.images[0].alt} loading="lazy" decoding="async" />
         </Link>
         {product.badge && <span className="card__badge">{product.badge}</span>}
-        {discountPercent > 0 && <span className="card__sale">Save {discountPercent}%</span>}
+        {discountPercent > 0 ? <span className="card__sale">Save {discountPercent}%</span> : hasOtherSizeOffer && <span className="card__sale">Offers on sizes</span>}
         <button
           className={`card__quick ${soldOut ? 'card__quick--off' : ''}`}
           onClick={() => addToCart(product.id, defaultVariation.id, 1)}

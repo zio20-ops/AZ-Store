@@ -24,15 +24,15 @@ export const validateProduct = (draft, all = []) => {
   else if (all.some((p) => p.id !== draft.id && p.sku === draft.sku.trim())) errors.sku = 'This SKU is already used by another product.';
   if (!draft.category?.trim()) errors.category = 'Category is required.';
   if (!Number.isFinite(Number(draft.price)) || Number(draft.price) <= 0) errors.price = 'Enter a valid price greater than 0.';
-  const discount = Number(draft.discount || 0);
-  if (!Number.isFinite(discount) || discount < 0 || discount > 90) errors.discount = 'Discount must be between 0 and 90.';
-  if (draft.compareAtPrice && Number(draft.compareAtPrice) <= Number(draft.price)) errors.compareAtPrice = 'Compare-at price must be higher than the regular price.';
   if (draft.accentHex && !/^#[0-9a-f]{6}$/i.test(draft.accentHex)) errors.accentHex = 'Choose a valid six-digit colour.';
   if (!Number.isInteger(Number(draft.stock)) || Number(draft.stock) < 0) errors.stock = 'Stock must be a whole number of 0 or more.';
   if (!Number.isInteger(Number(draft.lowStockThreshold)) || Number(draft.lowStockThreshold) < 0) errors.lowStockThreshold = 'Threshold must be a whole number of 0 or more.';
   if (!draft.images?.length) errors.images = 'Add at least one product image.';
   (draft.variations || []).forEach((v, i) => {
     if (!v.label?.trim() || !v.sku?.trim() || !Number.isFinite(Number(v.price)) || Number(v.price) <= 0) errors[`variation-${i}`] = 'Each size needs a label, SKU and valid price.';
+    const discount = Number(v.discount || 0);
+    if (!Number.isFinite(discount) || discount < 0 || discount > 90) errors[`variation-sale-${i}`] = 'Discount must be between 0 and 90.';
+    if (v.compareAtPrice && (!Number.isFinite(Number(v.compareAtPrice)) || Number(v.compareAtPrice) <= Number(v.price))) errors[`variation-sale-${i}`] = 'Compare-at price must be higher than this size price.';
   });
   return errors;
 };
@@ -102,12 +102,12 @@ export const listProducts = async () => {
 export const getProduct = async (id) => getDocument('products', id, admin());
 
 const normalize = (p) => {
-  const variations = (p.variations?.length ? p.variations : [{ id: 'default', label: p.volume || 'Standard', price: p.price || 0, stock: p.stock || 0, sku: p.sku || '', image: 0 }]).map((v, i) => ({ ...v, id: v.id || `v${i + 1}`, price: Number(v.price), stock: Number(v.stock) }));
+  const variations = (p.variations?.length ? p.variations : [{ id: 'default', label: p.volume || 'Standard', price: p.price || 0, stock: p.stock || 0, sku: p.sku || '', image: 0 }]).map((v, i) => ({ ...v, id: v.id || `v${i + 1}`, price: Number(v.price), stock: Number(v.stock), ...(Object.hasOwn(v, 'discount') || Object.hasOwn(v, 'compareAtPrice') ? { discount: Number(v.discount || 0), compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : null } : {}) }));
   const createdAt = p.createdAt || now();
   const compareAtPrice = Number(p.compareAtPrice || 0);
   const discount = compareAtPrice > variations[0].price
     ? Math.round((1 - variations[0].price / compareAtPrice) * 100)
-    : Number(p.discount || 0);
+    : (Object.hasOwn(variations[0], 'discount') ? Number(variations[0].discount || 0) : Number(p.discount || 0));
   return { ...p, variations, price: variations[0].price, sku: variations[0].sku, stock: variations.reduce((n, v) => n + (v.stock || 0), 0), discount, createdAt, releasedAt: p.releasedAt || createdAt.slice(0, 10), updatedAt: now() };
 };
 export const createProduct = async (draft) => {

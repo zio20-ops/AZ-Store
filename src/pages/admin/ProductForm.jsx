@@ -9,7 +9,7 @@ import { egp } from '../../utils/format.js';
 const blank = (categories) => ({
   name: '', sku: '', category: categories[0]?.name || '', brand: 'AZ',
   tagline: '', description: '',
-  price: 450, compareAtPrice: '', discount: 0,
+  price: 450,
   stock: 10, lowStockThreshold: 6, available: true,
   volume: '220 ml', weight: '265 g', scent: '', scentFamily: categories[0]?.name || '',
   ingredients: '', howToUse: '', benefits: '',
@@ -22,14 +22,21 @@ const blank = (categories) => ({
 const fromProduct = (p) => ({
   name: p.name, sku: p.sku, category: p.category, brand: p.brand || 'AZ',
   tagline: p.tagline || '', description: p.description || '',
-  price: p.price, compareAtPrice: p.compareAtPrice || '', discount: p.discount || 0,
+  price: p.price,
   stock: p.stock, lowStockThreshold: p.lowStockThreshold ?? 6, available: p.stock > 0,
   volume: p.volume || '', weight: p.weight || '', scent: (p.scentNotes || []).join(', '), scentFamily: p.scentFamily || p.category,
   ingredients: (p.ingredients || []).join('\n'), howToUse: p.howToUse || '', benefits: (p.benefits || []).join('\n'),
   type: p.type || 'mist', badge: p.badge || '', accentHex: p.accentHex || '#e2ad55',
   status: p.status,
   images: p.images.map((i) => ({ ...i })),
-  variations: p.variations.map((v) => ({ ...v })),
+  variations: p.variations.map((v, i) => {
+    const legacyCompareAt = i === 0 && Number(p.compareAtPrice ?? p.compareAt ?? 0) > Number(v.price) ? Number(p.compareAtPrice ?? p.compareAt) : '';
+    return {
+      ...v,
+      compareAtPrice: v.compareAtPrice || legacyCompareAt || '',
+      discount: v.discount ?? (legacyCompareAt ? 0 : Number(p.discount || 0)),
+    };
+  }),
 });
 
 export default function ProductForm() {
@@ -91,8 +98,8 @@ export default function ProductForm() {
       tagline: form.tagline.trim(),
       description: form.description.trim(),
       price: Number(form.price),
-      compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : null,
-      discount: Number(form.discount || 0),
+      compareAtPrice: null,
+      discount: 0,
       stock: Number(form.stock),
       lowStockThreshold: Number(form.lowStockThreshold),
       scentNotes: form.scent ? form.scent.split(',').map((s) => s.trim()).filter(Boolean) : [],
@@ -102,7 +109,12 @@ export default function ProductForm() {
       howToUse: form.howToUse.trim(),
       notes: form.scent ? form.scent.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 3) : [],
       badge: form.badge.trim() || null,
-      variations: form.variations.map((v, i) => (i === 0 ? { ...v, sku: (form.sku || v.sku || '').trim() } : v)),
+      variations: form.variations.map((v, i) => ({ ...v,
+        sku: (i === 0 ? form.sku || v.sku : v.sku || '').trim(),
+        price: Number(v.price),
+        compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : null,
+        discount: Number(v.discount || 0),
+      })),
     };
     const found = catalog.validateProduct(draft, allProducts);
     setErrors(found);
@@ -170,24 +182,14 @@ export default function ProductForm() {
 
         <section className="adsec">
           <h2>Pricing</h2>
-          <div className="adgrid--3 adgrid">
+          <div className="adgrid">
             <div className={`adfield ${errors.price ? 'adfield--err' : ''}`}>
               <label htmlFor="pf-price">Regular price (EGP) *</label>
               <input id="pf-price" type="number" min="1" value={form.price} onChange={(e) => setPrimary('price', Number(e.target.value))} />
               {fieldError('price')}
             </div>
-            <div className="adfield">
-              <label htmlFor="pf-compare">Compare-at price</label>
-              <input id="pf-compare" type="number" min="0" value={form.compareAtPrice} onChange={(e) => set('compareAtPrice', e.target.value)} placeholder="500" />
-              {fieldError('compareAtPrice')}
-            </div>
-            <div className={`adfield ${errors.discount ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-discount">Discount % (when compare-at is empty)</label>
-              <input id="pf-discount" type="number" min="0" max="90" value={form.discount} onChange={(e) => set('discount', e.target.value)} disabled={Boolean(form.compareAtPrice)} />
-              {fieldError('discount')}
-            </div>
           </div>
-          <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.5)' }}>Set the regular price, then either enter a higher compare-at price (regular price becomes the sale price) or leave it empty and use the discount percentage. The reduced price is used in the store and checkout.</p>
+          <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.5)' }}>Regular price is set separately for each size. Add a sale price or discount to the specific sizes below; leave both empty for no discount.</p>
         </section>
 
         <section className="adsec">
@@ -217,7 +219,7 @@ export default function ProductForm() {
           </p>
           {form.variations.map((v, i) => (
             <div className="advar" key={v.id || i}>
-              <div className="advar__row">
+            <div className="advar__row">
                 <div className={`adfield ${errors[`variation-${i}`] ? 'adfield--err' : ''}`}>
                   <label>Size label</label>
                   <input value={v.label} onChange={(e) => setVariation(i, 'label', e.target.value)} placeholder="220 ml / 7.4 fl oz" />
@@ -237,6 +239,18 @@ export default function ProductForm() {
                 <button type="button" className="btn btn--text danger" style={{ color: '#ff9a9a' }} onClick={() => removeVariation(i)} disabled={form.variations.length === 1}>
                   Remove
                 </button>
+              </div>
+              <div className="advar__sale">
+                <div className="adfield">
+                  <label>Compare-at price (EGP)</label>
+                  <input type="number" min="0" value={v.compareAtPrice || ''} onChange={(e) => { setVariation(i, 'compareAtPrice', e.target.value); if (e.target.value) setVariation(i, 'discount', 0); }} placeholder="Leave empty for none" />
+                </div>
+                <div className="adfield">
+                  <label>Discount % (if compare-at is empty)</label>
+                  <input type="number" min="0" max="90" value={v.discount ?? 0} onChange={(e) => setVariation(i, 'discount', e.target.value)} disabled={Boolean(v.compareAtPrice)} />
+                </div>
+                <p className="hint">Sale price: {egp(Number(v.compareAtPrice) > Number(v.price) ? v.price : Number(v.price || 0) * (100 - Number(v.discount || 0)) / 100)}</p>
+                {errors[`variation-sale-${i}`] && <span className="err" style={{ color: '#ff9a9a', fontSize: 12 }}>{errors[`variation-sale-${i}`]}</span>}
               </div>
               {errors[`variation-${i}`] && <span className="err" style={{ color: '#ff9a9a', fontSize: 12 }}>{errors[`variation-${i}`]}</span>}
             </div>
@@ -265,7 +279,7 @@ export default function ProductForm() {
             <div className="adfield"><label htmlFor="pf-badge">Badge (e.g. Best seller)</label><input id="pf-badge" value={form.badge} onChange={(e) => set('badge', e.target.value)} /></div>
             <div className="adfield"><label htmlFor="pf-accent">Accent colour</label><div className="accent-editor"><input id="pf-accent" type="color" value={/^#[0-9a-f]{6}$/i.test(form.accentHex) ? form.accentHex : '#e2ad55'} onChange={(e) => set('accentHex', e.target.value)} aria-label="Choose accent colour" /><input type="text" value={form.accentHex} onChange={(e) => set('accentHex', e.target.value)} aria-label="Accent colour hex value" placeholder="#e2ad55" maxLength={7} /></div>{fieldError('accentHex')}</div>
           </div>
-          <div className="accent-preview" style={{ '--product-accent': /^#[0-9a-f]{6}$/i.test(form.accentHex) ? form.accentHex : '#e2ad55' }}><span className="accent-preview__swatch" /><div><b>{form.name || 'Product name'}</b><small>Live accent preview · title, price, sale badge and product detail</small></div><strong>{egp(Number(form.price || 0) * (form.compareAtPrice ? 1 : (100 - Number(form.discount || 0)) / 100))}</strong></div>
+          <div className="accent-preview" style={{ '--product-accent': /^#[0-9a-f]{6}$/i.test(form.accentHex) ? form.accentHex : '#e2ad55' }}><span className="accent-preview__swatch" /><div><b>{form.name || 'Product name'}</b><small>Live accent preview · title, price, sale badge and product detail</small></div><strong>{egp(Number(form.variations[0]?.price || form.price || 0) * (form.variations[0]?.compareAtPrice ? 1 : (100 - Number(form.variations[0]?.discount || 0)) / 100))}</strong></div>
         </section>
 
         <section className="adsec">

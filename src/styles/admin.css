@@ -115,6 +115,9 @@
 .advar { border: 1px solid var(--line-2); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
 .advar__row { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr 1fr auto; gap: 8px; align-items: end; }
 .advar__row .adfield { margin-bottom: 0; }
+.advar__sale { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; margin-top: 10px; }
+.advar__sale .adfield { margin-bottom: 0; }
+.advar__sale .hint, .advar__sale .err { grid-column: 1 / -1; margin: 0; }
 
 /* image manager */
 .imgs { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -173,6 +176,8 @@
   .ad__top { padding: 12px 16px; }
   .adgrid, .adgrid--3 { grid-template-columns: 1fr; }
   .advar__row { grid-template-columns: 1fr 1fr; }
+  .advar__sale { grid-template-columns: 1fr; }
+  .advar__sale .hint, .advar__sale .err { grid-column: auto; }
   .adpreview { grid-template-columns: 140px 1fr; }
 }
 

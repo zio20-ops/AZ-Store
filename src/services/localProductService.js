@@ -128,7 +128,7 @@ const recompute = (p) => {
     price: variations[0].price,
     sku: variations[0].sku,
     stock: variations.reduce((n, v) => n + (v.stock || 0), 0),
-    discount: p.compareAtPrice ? Math.max(0, Math.round((1 - variations[0].price / p.compareAtPrice) * 100)) : (p.discount || 0),
+    discount: p.compareAtPrice ? Math.max(0, Math.round((1 - variations[0].price / p.compareAtPrice) * 100)) : (Object.hasOwn(variations[0], 'discount') ? Number(variations[0].discount || 0) : (p.discount || 0)),
     updatedAt: now(),
   };
 };
@@ -145,15 +145,15 @@ export const validateProduct = (draft, all = []) => {
   if (!Number.isInteger(stock) || stock < 0) errors.stock = 'Stock must be a whole number of 0 or more.';
   const threshold = Number(draft.lowStockThreshold);
   if (!Number.isInteger(threshold) || threshold < 0) errors.lowStockThreshold = 'Threshold must be a whole number of 0 or more.';
-  const discount = Number(draft.discount || 0);
-  if (!Number.isFinite(discount) || discount < 0 || discount > 90) errors.discount = 'Discount must be between 0 and 90.';
-  if (draft.compareAtPrice && Number(draft.compareAtPrice) <= price) errors.compareAtPrice = 'Compare-at price must be higher than the regular price.';
   if (draft.accentHex && !/^#[0-9a-f]{6}$/i.test(draft.accentHex)) errors.accentHex = 'Choose a valid six-digit colour.';
   if (!draft.images || draft.images.length === 0) errors.images = 'Add at least one product image.';
   (draft.variations || []).forEach((v, i) => {
     if (!v.label || !v.label.trim()) errors[`variation-${i}`] = 'Every size needs a label.';
     else if (!Number.isFinite(Number(v.price)) || Number(v.price) <= 0) errors[`variation-${i}`] = 'Every size needs a valid price.';
     else if (!v.sku || !v.sku.trim()) errors[`variation-${i}`] = 'Every size needs a SKU.';
+    const variationDiscount = Number(v.discount || 0);
+    if (!Number.isFinite(variationDiscount) || variationDiscount < 0 || variationDiscount > 90) errors[`variation-sale-${i}`] = 'Discount must be between 0 and 90.';
+    if (v.compareAtPrice && (!Number.isFinite(Number(v.compareAtPrice)) || Number(v.compareAtPrice) <= Number(v.price))) errors[`variation-sale-${i}`] = 'Compare-at price must be higher than this size price.';
   });
   return errors;
 };
@@ -188,6 +188,8 @@ export const createProduct = async (draft) => {
       stock: Number(v.stock),
       sku: (v.sku || '').trim(),
       image: Number(v.image || 0),
+      compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : null,
+      discount: Number(v.discount || 0),
     })),
     rating: draft.rating || 0,
     reviews: draft.reviews || 0,

@@ -38,8 +38,9 @@ export default function Products() {
       if (price === 'u300' && productPrice(p) >= 300) return false;
       if (price === '300-600' && (productPrice(p) < 300 || productPrice(p) > 600)) return false;
       if (price === 'o600' && productPrice(p) <= 600) return false;
-      if (discount === 'yes' && !productDiscountPercent(p)) return false;
-      if (discount === 'no' && productDiscountPercent(p)) return false;
+      const hasDiscount = getVariations(p).some((variation) => productDiscountPercent(p, variation) > 0);
+      if (discount === 'yes' && !hasDiscount) return false;
+      if (discount === 'no' && hasDiscount) return false;
       return true;
     });
   }, [allProducts, q, category, status, stock, price, discount]);
@@ -139,6 +140,7 @@ export default function Products() {
                 const currentPrice = productPrice(p, primary);
                 const comparePrice = productComparePrice(p, primary);
                 const discountPercent = productDiscountPercent(p, primary);
+                const hasOtherVariantDiscount = getVariations(p).slice(1).some((variation) => productDiscountPercent(p, variation) > 0);
                 const threshold = p.lowStockThreshold ?? 6;
                 const [badgeClass, badgeLabel] = STATUS_BADGE[p.status] || STATUS_BADGE.draft;
                 return (
@@ -153,7 +155,7 @@ export default function Products() {
                       {egp(currentPrice)}
                       {comparePrice && <s>{egp(comparePrice)}</s>}
                     </td>
-                    <td data-label="Discount">{discountPercent ? `${discountPercent}%` : '—'}</td>
+                    <td data-label="Discount">{discountPercent ? `${discountPercent}%` : hasOtherVariantDiscount ? 'Other sizes' : '—'}</td>
                     <td data-label="Stock">
                       {total}{' '}
                       <span className={`badge ${total === 0 ? 'badge--bad' : total <= threshold ? 'badge--warn' : 'badge--ok'}`}>

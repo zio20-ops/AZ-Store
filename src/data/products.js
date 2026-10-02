@@ -128,6 +128,13 @@ export const basePrice = (product) => getVariations(product)[0].price;
 
 export const productPrice = (product, variation = getVariations(product)[0]) => {
   const regular = Number(variation?.price || 0);
+  const hasVariationSale = variation && (Object.hasOwn(variation, 'discount') || Object.hasOwn(variation, 'compareAtPrice'));
+  if (hasVariationSale) {
+    const compareAt = Number(variation.compareAtPrice || 0);
+    if (compareAt > regular) return regular;
+    const discount = Math.min(90, Math.max(0, Number(variation.discount || 0)));
+    return discount ? Math.max(0, Math.round(regular * (100 - discount) / 100)) : regular;
+  }
   const compareAt = Number(product?.compareAtPrice ?? product?.compareAt ?? 0);
   const isPrimary = getVariations(product)[0]?.id === variation?.id;
   if (isPrimary && compareAt > regular) return regular;
@@ -137,6 +144,12 @@ export const productPrice = (product, variation = getVariations(product)[0]) => 
 
 export const productComparePrice = (product, variation = getVariations(product)[0]) => {
   const regular = Number(variation?.price || 0);
+  const hasVariationSale = variation && (Object.hasOwn(variation, 'discount') || Object.hasOwn(variation, 'compareAtPrice'));
+  if (hasVariationSale) {
+    const compareAt = Number(variation.compareAtPrice || 0);
+    if (compareAt > regular) return compareAt;
+    return Number(variation.discount) > 0 ? regular : null;
+  }
   const compareAt = Number(product?.compareAtPrice ?? product?.compareAt ?? 0);
   const isPrimary = getVariations(product)[0]?.id === variation?.id;
   if (isPrimary && compareAt > regular) return compareAt;
@@ -145,6 +158,12 @@ export const productComparePrice = (product, variation = getVariations(product)[
 
 export const productDiscountPercent = (product, variation = getVariations(product)[0]) => {
   const regular = Number(variation?.price || 0);
+  const hasVariationSale = variation && (Object.hasOwn(variation, 'discount') || Object.hasOwn(variation, 'compareAtPrice'));
+  if (hasVariationSale) {
+    const compareAt = Number(variation.compareAtPrice || 0);
+    if (compareAt > regular) return Math.round((1 - regular / compareAt) * 100);
+    return Math.min(90, Math.max(0, Number(variation.discount || 0)));
+  }
   const compareAt = Number(product?.compareAtPrice ?? product?.compareAt ?? 0);
   const isPrimary = getVariations(product)[0]?.id === variation?.id;
   if (isPrimary && compareAt > regular) return Math.round((1 - regular / compareAt) * 100);
