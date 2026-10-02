@@ -7,8 +7,6 @@ export const PRODUCTS = [
     accent: 'var(--sky)',
     accentHex: '#8fa6ff',
     badge: null,
-    rating: 4.8,
-    reviews: 126,
     sold: 840,
     releasedAt: '2025-11-02',
     featured: 2,
@@ -24,7 +22,7 @@ export const PRODUCTS = [
     ],
     variations: [
       { id: '220', label: '220 ml / 7.4 fl oz', price: 450, stock: 14, sku: 'AZ-TTN-220', image: 0 },
-      { id: '100', label: '100 ml / 3.4 fl oz', price: 280, stock: 0, sku: 'AZ-TTN-100', image: 1 },
+      { id: '100', label: '100 ml / 3.4 fl oz', price: 280, stock: 0, sku: 'AZ-TTN-100', image: 0 },
     ],
   },
   {
@@ -35,8 +33,6 @@ export const PRODUCTS = [
     accent: 'var(--gold)',
     accentHex: '#e2ad55',
     badge: 'Best seller',
-    rating: 4.9,
-    reviews: 342,
     sold: 2150,
     releasedAt: '2025-09-14',
     featured: 1,
@@ -52,7 +48,7 @@ export const PRODUCTS = [
     ],
     variations: [
       { id: '220', label: '220 ml / 7.4 fl oz', price: 450, stock: 22, sku: 'AZ-BLK-220', image: 0 },
-      { id: '100', label: '100 ml / 3.4 fl oz', price: 280, stock: 6, sku: 'AZ-BLK-100', image: 1 },
+      { id: '100', label: '100 ml / 3.4 fl oz', price: 280, stock: 6, sku: 'AZ-BLK-100', image: 0 },
     ],
   },
   {
@@ -63,8 +59,6 @@ export const PRODUCTS = [
     accent: 'var(--rose)',
     accentHex: '#ff8fc6',
     badge: null,
-    rating: 4.7,
-    reviews: 98,
     sold: 610,
     releasedAt: '2026-02-20',
     featured: 3,
@@ -80,7 +74,7 @@ export const PRODUCTS = [
     ],
     variations: [
       { id: '220', label: '220 ml / 7.4 fl oz', price: 450, stock: 11, sku: 'AZ-MLD-220', image: 0 },
-      { id: '100', label: '100 ml / 3.4 fl oz', price: 280, stock: 4, sku: 'AZ-MLD-100', image: 1 },
+      { id: '100', label: '100 ml / 3.4 fl oz', price: 280, stock: 4, sku: 'AZ-MLD-100', image: 0 },
     ],
   },
   {
@@ -92,8 +86,6 @@ export const PRODUCTS = [
     accentHex: '#f4ead9',
     badge: 'Save 11%',
     compareAt: 1350,
-    rating: 4.9,
-    reviews: 210,
     sold: 970,
     releasedAt: '2026-05-05',
     featured: 0,
@@ -123,6 +115,16 @@ export const getVariations = (product) =>
 
 export const getVariation = (product, variationId) =>
   getVariations(product).find((v) => v.id === variationId) || getVariations(product)[0];
+
+export const variationImageIndex = (product, variation) => {
+  const images = Array.isArray(product?.images) ? product.images : [];
+  const index = Number.isInteger(Number(variation?.image)) ? Number(variation.image) : 0;
+  const candidate = images[index];
+  const isCollectionShot = product?.type === 'mist' && /trio|gift|box|collection/i.test(`${candidate?.src || ''} ${candidate?.alt || ''}`);
+  if (candidate?.src && !isCollectionShot) return index;
+  const primary = images.findIndex((image) => image?.src && !(product?.type === 'mist' && /trio|gift|box|collection/i.test(`${image.src} ${image.alt || ''}`)));
+  return primary >= 0 ? primary : images.findIndex((image) => image?.src);
+};
 
 export const basePrice = (product) => getVariations(product)[0].price;
 

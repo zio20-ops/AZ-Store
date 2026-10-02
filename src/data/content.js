@@ -17,7 +17,6 @@ export const TRUST_ITEMS = [
 export const FILTER_CHIPS = [
   { id: 'all', label: 'All' },
   { id: 'mists', label: 'Mists' },
-  { id: 'serums', label: 'Serums' },
   { id: 'gift-sets', label: 'Gift sets' },
 ];
 
@@ -26,7 +25,6 @@ export const SORT_OPTIONS = [
   { id: 'newest', label: 'Newest' },
   { id: 'price-asc', label: 'Price: Low to High' },
   { id: 'price-desc', label: 'Price: High to Low' },
-  { id: 'best-rated', label: 'Best Rated' },
   { id: 'best-selling', label: 'Best Selling' },
 ];
 
@@ -65,9 +63,9 @@ export const FAQS = [
 export const CONTACT_INFO = [
   { label: 'Phone', value: '+20 155 293 5950', href: 'tel:+201552935950' },
   { label: 'Email', value: 'azstore700@gmail.com', href: 'mailto:azstore700@gmail.com' },
-  { label: 'Instagram', value: '@az.store', href: 'https://instagram.com' },
-  { label: 'Facebook', value: 'AZ Store', href: 'https://facebook.com' },
-  { label: 'TikTok', value: '@az.store', href: 'https://tiktok.com' },
+  { label: 'Instagram', value: 'Profile link not set', href: null },
+  { label: 'Facebook', value: 'Profile link not set', href: null },
+  { label: 'TikTok', value: 'Profile link not set', href: null },
   { label: 'WhatsApp', value: '+20 155 293 5950', href: 'https://wa.me/201552935950' },
 ];
 

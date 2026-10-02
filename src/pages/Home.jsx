@@ -54,7 +54,7 @@ export default function Home() {
           <Link className="btn btn--text" to="/shop">View all</Link>
         </Reveal>
         <div className="grid">
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
+          {products.map((p, index) => <ProductCard key={p.id} product={p} priority={index < 2} />)}
         </div>
       </section>
 

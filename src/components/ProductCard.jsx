@@ -4,7 +4,7 @@ import { getVariations, productComparePrice, productDiscountPercent, productPric
 import { egp } from '../utils/format.js';
 import { HeartIcon } from './icons.jsx';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, priority = false }) {
   const { addToCart, wishlist, toggleWish } = useStore();
   const wished = wishlist.includes(product.id);
   const defaultVariation = getVariations(product)[0];
@@ -18,7 +18,7 @@ export default function ProductCard({ product }) {
     <article className="card" style={{ '--product-accent': product.accentHex || '#e2ad55' }}>
       <div className="card__media">
         <Link to={`/product/${product.id}`} aria-label={`View ${product.name}`}>
-          <img src={product.images[0].src} alt={product.images[0].alt} loading="lazy" decoding="async" />
+          <img src={product.images[0].src} alt={product.images[0].alt} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" />
         </Link>
         {product.badge && <span className="card__badge">{product.badge}</span>}
         {discountPercent > 0 ? <span className="card__sale">Save {discountPercent}%</span> : hasOtherSizeOffer && <span className="card__sale">Offers on sizes</span>}
@@ -47,7 +47,6 @@ export default function ProductCard({ product }) {
         <span className="card__cat">{product.category}</span>
         <b className="card__price"><span>{egp(currentPrice)}</span>{comparePrice && <s>{egp(comparePrice)}</s>}</b>
       </div>
-      <div className="card__rating">★ {product.rating} · {product.reviews} reviews</div>
     </article>
   );
 }

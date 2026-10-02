@@ -17,19 +17,18 @@ const PRICE_BANDS = [
 const chipTest = (id) => (p) => {
   switch (id) {
     case 'mists': return p.type === 'mist';
-    case 'serums': return p.type === 'serum';
     case 'gift-sets': return p.type === 'gift';
     default: return true;
   }
 };
 
 export default function Shop() {
-  useSeo('Shop all | AZ Store', 'Browse the AZ collection: fine fragrance mists and gift sets. Filter by mood, price and rating.');
+  useSeo('Shop all | AZ Store', 'Browse the AZ collection: fine fragrance mists and gift sets. Filter by mood and price.');
   const { products, categories } = useStore();
   const [params, setParams] = useSearchParams();
 
   const legacyFilter = params.get('filter') || 'all';
-  const typeFilter = params.get('type') || (['mists', 'serums', 'gift-sets'].includes(legacyFilter) ? legacyFilter : 'all');
+  const typeFilter = params.get('type') || (['mists', 'gift-sets'].includes(legacyFilter) ? legacyFilter : 'all');
   const categoryFilter = params.get('category') || (legacyFilter.startsWith('category:') ? legacyFilter.slice('category:'.length) : ({ 'calm-and-deep': 'calm-and-deep', bold: 'bold', soft: 'soft-and-dreamy' }[legacyFilter] || ''));
   const sort = params.get('sort') || 'best-selling';
   const q = params.get('q') || '';
@@ -37,7 +36,6 @@ export default function Shop() {
   const [refineOpen, setRefineOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [price, setPrice] = useState('any');
-  const [minRating, setMinRating] = useState(0);
   const [inStock, setInStock] = useState(false);
   const [onSale, setOnSale] = useState(false);
   const [brandAZ, setBrandAZ] = useState(true);
@@ -83,7 +81,6 @@ export default function Shop() {
     }
     const band = PRICE_BANDS.find((b) => b.id === price) || PRICE_BANDS[0];
     list = list.filter(band.test);
-    if (minRating) list = list.filter((p) => p.rating >= minRating);
     if (inStock) list = list.filter((p) => getVariations(p).some((v) => v.stock > 0));
     if (onSale) list = list.filter((p) => getVariations(p).some((variation) => productDiscountPercent(p, variation) > 0));
     if (!brandAZ) list = [];
@@ -102,18 +99,17 @@ export default function Shop() {
       }
       case 'price-asc': sorted.sort((a, b) => productPrice(a) - productPrice(b)); break;
       case 'price-desc': sorted.sort((a, b) => productPrice(b) - productPrice(a)); break;
-      case 'best-rated': sorted.sort((a, b) => b.rating - a.rating); break;
       case 'best-selling':
       default: sorted.sort((a, b) => (Number(b.sold) || 0) - (Number(a.sold) || 0) || String(a.name).localeCompare(String(b.name)));
     }
     return sorted;
-  }, [products, categoryOptions, typeFilter, categoryFilter, q, price, minRating, inStock, onSale, brandAZ, sort]);
+  }, [products, categoryOptions, typeFilter, categoryFilter, q, price, inStock, onSale, brandAZ, sort]);
 
   const sortLabel = SORT_OPTIONS.find((s) => s.id === sort)?.label || 'Best Selling';
-  const activeRefinements = (price !== 'any') + (minRating ? 1 : 0) + (inStock ? 1 : 0) + (onSale ? 1 : 0) + (!brandAZ ? 1 : 0);
+  const activeRefinements = (price !== 'any') + (inStock ? 1 : 0) + (onSale ? 1 : 0) + (!brandAZ ? 1 : 0);
 
   const clearAll = () => {
-    setPrice('any'); setMinRating(0); setInStock(false); setOnSale(false); setBrandAZ(true);
+    setPrice('any'); setInStock(false); setOnSale(false); setBrandAZ(true);
     setParams(new URLSearchParams(), { replace: true });
   };
 
@@ -179,15 +175,6 @@ export default function Shop() {
             ))}
           </div>
           <div>
-            <h4>Rating</h4>
-            {[0, 4.5, 4.8].map((r) => (
-              <label key={r}>
-                <input type="radio" name="rating" checked={minRating === r} onChange={() => setMinRating(r)} />
-                {r === 0 ? 'Any rating' : `${r}★ & up`}
-              </label>
-            ))}
-          </div>
-          <div>
             <h4>More</h4>
             <label><input type="checkbox" checked={inStock} onChange={() => setInStock(inStock === false)} /> In stock only</label>
             <label><input type="checkbox" checked={onSale} onChange={() => setOnSale(onSale === false)} /> On sale</label>
@@ -207,7 +194,7 @@ export default function Shop() {
         </div>
       ) : (
         <div className="grid">
-          {results.map((p) => <ProductCard key={p.id} product={p} />)}
+          {results.map((p, index) => <ProductCard key={p.id} product={p} priority={index < 2} />)}
         </div>
       )}
     </div>

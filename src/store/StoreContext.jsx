@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { getVariations, productPrice, PROMOS, FREE_DELIVERY_THRESHOLD } from '../data/products.js';
+import { getVariations, productPrice, variationImageIndex, PROMOS, FREE_DELIVERY_THRESHOLD } from '../data/products.js';
 import { readStorage, writeStorage } from '../utils/format.js';
 import * as catalog from '../services/productService.js';
 import * as orderService from '../services/orderService.js';
@@ -176,7 +176,7 @@ export function StoreProvider({ children }) {
           const product = findProduct(line.productId);
           if (!product) return null;
           const variation = getVariations(product).find((v) => v.id === line.variationId) || getVariations(product)[0];
-      return { ...line, product, variation, price: productPrice(product, variation), image: product.images[variation.image]?.src || product.images[0].src };
+      return { ...line, product, variation, price: productPrice(product, variation), image: product.images[variationImageIndex(product, variation)]?.src || product.images.find((image) => image?.src)?.src || '' };
         })
         .filter(Boolean),
     [cart, findProduct],

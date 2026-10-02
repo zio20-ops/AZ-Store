@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
-import { getVariations, productComparePrice, productDiscountPercent, productPrice } from '../data/products.js';
+import { getVariations, productComparePrice, productDiscountPercent, productPrice, variationImageIndex } from '../data/products.js';
 import { egp } from '../utils/format.js';
 import QuantitySelector from '../components/QuantitySelector.jsx';
 import Accordion from '../components/Accordion.jsx';
@@ -46,7 +46,6 @@ export default function ProductDetails() {
       description: product.description,
       image: product.images.map((g) => g.src),
       brand: { '@type': 'Brand', name: 'AZ' },
-      aggregateRating: { '@type': 'AggregateRating', ratingValue: product.rating, reviewCount: product.reviews },
       offers: {
         '@type': 'Offer',
         priceCurrency: 'EGP',
@@ -86,7 +85,7 @@ export default function ProductDetails() {
 
       <div className="pdp" style={{ '--product-accent': product.accentHex || '#e2ad55' }}>
         <div className="thumbs" role="group" aria-label="Product images">
-          {product.images.map((g, i) => (
+          {product.images.map((g, i) => g?.src ? (
             <button
               key={g.src + i}
               className={`thumb ${imageIndex === i ? 'thumb--on' : ''}`}
@@ -96,11 +95,11 @@ export default function ProductDetails() {
             >
               <img src={g.src} alt="" loading="lazy" />
             </button>
-          ))}
+          ) : null)}
         </div>
 
         <div className="pdp__main">
-          <img src={product.images[imageIndex].src} alt={product.images[imageIndex].alt} />
+          <img src={(product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.src} alt={(product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.alt || product.name} />
         </div>
 
         <div className="pdp__info">
@@ -125,7 +124,7 @@ export default function ProductDetails() {
                   key={v.id}
                   className={`chip ${v.id === variation.id ? 'chip--on' : ''}`}
                   aria-pressed={v.id === variation.id}
-                  onClick={() => { setVariationId(v.id); setImageIndex(v.image); setQty(1); }}
+                  onClick={() => { setVariationId(v.id); setImageIndex(variationImageIndex(product, v)); setQty(1); }}
                 >
                   {v.label}
                 </button>
