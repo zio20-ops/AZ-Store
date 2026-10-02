@@ -13,12 +13,22 @@ export default function Dashboard() {
 
   useEffect(() => {
     let active = true;
-    auth.listCustomerActivity().then((result) => {
+    const loadCustomerLogins = () => auth.listCustomerActivity().then((result) => {
       if (!active) return;
-      if (result.ok) setCustomerLogins(result.users);
+      if (result.ok) { setCustomerLogins(result.users); setCustomerLoginsError(false); }
       else setCustomerLoginsError(true);
     });
-    return () => { active = false; };
+    const refresh = () => { if (document.visibilityState === 'visible') void loadCustomerLogins(); };
+    void loadCustomerLogins();
+    const poll = window.setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      active = false;
+      window.clearInterval(poll);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, []);
 
   const stats = useMemo(() => {

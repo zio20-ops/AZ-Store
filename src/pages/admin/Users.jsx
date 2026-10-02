@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
+import GoogleSignInButton from '../../components/GoogleSignInButton.jsx';
 import * as auth from '../../services/authService.js';
 import { useStore } from '../../store/StoreContext.jsx';
 
@@ -66,16 +67,14 @@ export default function Users() {
     toast('Password changed.');
   };
 
-  const sendMyResetLink = async () => {
-    if (session?.providerId === 'google.com') {
-      toast('This account uses Google sign-in. Change its password in your Google account.');
-      return;
-    }
-    setSendingReset(true);
-    const result = await auth.resetPassword(session?.email || '');
-    setSendingReset(false);
-    if (!result.ok) { toast(result.message || 'Could not send the reset link.'); return; }
-    toast(`If password sign-in is enabled for ${session.email}, Firebase sent a reset link to that email.`);
+  const submitGooglePassword = async (credential) => {
+    if (next !== confirm) { toast('The new passwords do not match.'); return; }
+    setChanging(true);
+    const result = await auth.changePassword({ newPassword: next, googleCredential: credential });
+    setChanging(false);
+    if (!result.ok) { toast(result.message || 'Could not set the password.'); return; }
+    setNext(''); setConfirm('');
+    toast('Password set. You can now use this email and password or continue with Google.');
   };
 
   const confirmRemove = async () => {
@@ -179,7 +178,22 @@ export default function Users() {
 
       <section className="adsec">
         <h2>Change my password</h2>
-        {session?.providerId === 'google.com' ? <p className="hint">This account uses Google sign-in. Manage its password through Google.</p> : <>
+        {session?.providerId === 'google.com' ? <>
+        <p className="hint">This account uses Google sign-in and has no AZ Store password yet. Choose a password, then confirm your Google account below. Both sign-in methods will keep working.</p>
+        <div className="adgrid">
+          <div className="adfield">
+            <label htmlFor="p-new">New password</label>
+            <input id="p-new" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} minLength={8} required />
+          </div>
+          <div className="adfield">
+            <label htmlFor="p-conf">Confirm new password</label>
+            <input id="p-conf" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} minLength={8} required />
+          </div>
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <GoogleSignInButton onCredential={submitGooglePassword} disabled={changing} />
+        </div>
+        </> : <>
         <p className="hint">Confirm your current password, then choose a new one of at least 8 characters. Password reset changes this same Firebase account used on the storefront.</p>
         <form onSubmit={submitPassword}>
           <div className="adgrid">
@@ -198,7 +212,13 @@ export default function Users() {
           </div>
           <div className="adbar" style={{ marginTop: 16 }}>
             <button className="btn btn--primary" type="submit" disabled={changing}>{changing ? 'Updating…' : 'Update password'}</button>
-            <button className="btn btn--ghost" type="button" onClick={sendMyResetLink} disabled={sendingReset}>{sendingReset ? 'Sending…' : 'Forgot current password? Email me a reset link'}</button>
+            <button className="btn btn--ghost" type="button" onClick={async () => {
+              setSendingReset(true);
+              const result = await auth.resetPassword(session?.email || '');
+              setSendingReset(false);
+              if (!result.ok) { toast(result.message || 'Could not send the reset link.'); return; }
+              toast(`If an account exists for ${session.email}, Firebase sent a reset link to that email.`);
+            }} disabled={sendingReset}>{sendingReset ? 'Sending…' : 'Forgot current password? Email me a reset link'}</button>
           </div>
         </form>
         </>}

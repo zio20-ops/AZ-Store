@@ -53,7 +53,7 @@ async function verifyAccount(idToken, token) {
 }
 
 async function isAdmin(account, token) {
-  if (!account || account.emailVerified !== true) return false;
+  if (!account) return false;
   if ((account.email || '').toLowerCase() === ownerEmail) return true;
   const response = await fetch(`${db}/admins/${encodeURIComponent(account.localId)}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!response.ok) return false;

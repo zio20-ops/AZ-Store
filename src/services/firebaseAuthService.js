@@ -136,23 +136,32 @@ export const login = async (email, password, remember = false) => {
   } catch (error) { return { ok: false, message: error.message }; }
 };
 
-export const changePassword = async ({ currentPassword, newPassword }) => {
+export const changePassword = async ({ currentPassword, newPassword, googleCredential }) => {
   const session = readAdminAuth();
   if (!session) return { ok: false, message: 'Your session expired. Sign in again.' };
-  if (session.providerId === 'google.com') return { ok: false, message: 'This admin signs in with Google, so the password is managed by the Google account.' };
   if (String(newPassword || '').length < 8) return { ok: false, message: 'The new password needs at least 8 characters.' };
-  try {
-    await signIn(session.email, currentPassword || '');
-  } catch {
-    return { ok: false, message: 'Your current password is not correct.' };
+  let idToken = session.idToken;
+  if (session.providerId === 'google.com') {
+    if (!googleCredential) return { ok: false, message: 'Confirm your Google account before setting the password.' };
+    let freshSession;
+    try { freshSession = await signInWithGoogleCredential(googleCredential); }
+    catch (error) { return { ok: false, message: error.message || 'Google could not confirm your account.' }; }
+    if (freshSession.localId !== session.uid) return { ok: false, message: 'Choose the same Google account that is signed in to this admin portal.' };
+    idToken = freshSession.idToken;
+  } else {
+    try {
+      await signIn(session.email, currentPassword || '');
+    } catch {
+      return { ok: false, message: 'Your current password is not correct.' };
+    }
   }
   const response = await fetch(identityToolkitUrl('accounts:update'), {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idToken: session.idToken, password: newPassword, returnSecureToken: true }),
+    body: JSON.stringify({ idToken, password: newPassword, returnSecureToken: true }),
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) return { ok: false, message: body.error?.message || 'Firebase rejected the password change.' };
-  saveAdminAuth({ ...session, idToken: body.idToken, refreshToken: body.refreshToken, expiresAt: Date.now() + Number(body.expiresIn) * 1000 }, session.remember);
+  saveAdminAuth({ ...session, providerId: 'password', idToken: body.idToken, refreshToken: body.refreshToken, expiresAt: Date.now() + Number(body.expiresIn) * 1000 }, session.remember);
   return { ok: true };
 };
 

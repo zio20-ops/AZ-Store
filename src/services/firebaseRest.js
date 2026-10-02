@@ -137,7 +137,7 @@ export async function request(path, { method = 'GET', data, admin = false } = {}
   if (admin) headers.Authorization = `Bearer ${await currentAdminIdToken()}`;
   let response;
   try {
-    const options = { method, headers, ...(data === undefined ? {} : { body: JSON.stringify({ fields: encodeFields(data) }) }) };
+    const options = { method, headers, ...(method === 'GET' ? { cache: 'no-store' } : {}), ...(data === undefined ? {} : { body: JSON.stringify({ fields: encodeFields(data) }) }) };
     if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') options.signal = AbortSignal.timeout(20000);
     response = await fetch(`${db}/${path}`, options);
   } catch (error) {

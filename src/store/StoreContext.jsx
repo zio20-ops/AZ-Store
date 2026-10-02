@@ -95,6 +95,12 @@ export function StoreProvider({ children }) {
 
   useEffect(() => {
     loadOrders();
+    const refreshOrders = () => {
+      if (document.visibilityState === 'visible' && auth.me()) void loadOrders();
+    };
+    const orderPoll = window.setInterval(refreshOrders, 15000);
+    window.addEventListener('focus', refreshOrders);
+    document.addEventListener('visibilitychange', refreshOrders);
     let mounted = true;
     const hydrateCart = async (uid) => {
       if (!uid) return;
@@ -132,7 +138,14 @@ export function StoreProvider({ children }) {
       setCartReady(false);
       void hydrateCart(cartOwner.current);
     }
-    return () => { mounted = false; clearTimeout(cartSyncTimer.current); window.removeEventListener('az-auth-changed', refresh); };
+    return () => {
+      mounted = false;
+      clearTimeout(cartSyncTimer.current);
+      window.clearInterval(orderPoll);
+      window.removeEventListener('focus', refreshOrders);
+      document.removeEventListener('visibilitychange', refreshOrders);
+      window.removeEventListener('az-auth-changed', refresh);
+    };
   }, [loadCatalog, loadOrders]);
 
   useEffect(() => {

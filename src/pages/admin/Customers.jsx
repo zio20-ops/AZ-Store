@@ -11,11 +11,21 @@ export default function Customers() {
 
   useEffect(() => {
     let active = true;
-    auth.listCustomerActivity().then((result) => {
+    const loadAccounts = () => auth.listCustomerActivity().then((result) => {
       if (!active) return;
-      if (result.ok) setAccounts(result.users || []); else setAccountsError(true);
+      if (result.ok) { setAccounts(result.users || []); setAccountsError(false); } else setAccountsError(true);
     }).catch(() => { if (active) setAccountsError(true); });
-    return () => { active = false; };
+    const refresh = () => { if (document.visibilityState === 'visible') void loadAccounts(); };
+    void loadAccounts();
+    const poll = window.setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      active = false;
+      window.clearInterval(poll);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, []);
 
   const rows = useMemo(() => {
