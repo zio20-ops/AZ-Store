@@ -161,9 +161,18 @@ export default function ProductForm() {
             </div>
             <div className={`adfield ${errors.category ? 'adfield--err' : ''}`}>
               <label htmlFor="pf-cat">Category *</label>
-              <input id="pf-cat" list="az-categories" value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="Bold" />
-              <datalist id="az-categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
+              <select id="pf-cat" value={form.category} onChange={(e) => set('category', e.target.value)}>
+                <option value="" disabled>Select a category</option>
+                {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
               {fieldError('category')}
+              <span className="hint">This changes the category for this product. Add new categories in Admin → Categories.</span>
+            </div>
+            <div className="adfield">
+              <label htmlFor="pf-type">Product type *</label>
+              <select id="pf-type" value={form.type} onChange={(e) => set('type', e.target.value)}>
+                <option value="mist">Mist</option><option value="serum">Serum</option><option value="gift">Gift set</option>
+              </select>
             </div>
             <div className="adfield">
               <label htmlFor="pf-brand">Brand</label>
@@ -269,13 +278,7 @@ export default function ProductForm() {
           <div className="adfield"><label htmlFor="pf-ing">Ingredients (one per line)</label><textarea id="pf-ing" value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} rows={3} /></div>
           <div className="adfield"><label htmlFor="pf-use">How to use</label><textarea id="pf-use" value={form.howToUse} onChange={(e) => set('howToUse', e.target.value)} rows={2} /></div>
           <div className="adfield"><label htmlFor="pf-ben">Benefits (one per line)</label><textarea id="pf-ben" value={form.benefits} onChange={(e) => set('benefits', e.target.value)} rows={2} /></div>
-          <div className="adgrid--3 adgrid">
-            <div className="adfield">
-              <label htmlFor="pf-type">Product type</label>
-              <select id="pf-type" value={form.type} onChange={(e) => set('type', e.target.value)}>
-                <option value="mist">Mist</option><option value="serum">Serum</option><option value="gift">Gift set</option>
-              </select>
-            </div>
+          <div className="adgrid">
             <div className="adfield"><label htmlFor="pf-badge">Badge (e.g. Best seller)</label><input id="pf-badge" value={form.badge} onChange={(e) => set('badge', e.target.value)} /></div>
             <div className="adfield"><label htmlFor="pf-accent">Accent colour</label><div className="accent-editor"><input id="pf-accent" type="color" value={/^#[0-9a-f]{6}$/i.test(form.accentHex) ? form.accentHex : '#e2ad55'} onChange={(e) => set('accentHex', e.target.value)} aria-label="Choose accent colour" /><input type="text" value={form.accentHex} onChange={(e) => set('accentHex', e.target.value)} aria-label="Accent colour hex value" placeholder="#e2ad55" maxLength={7} /></div>{fieldError('accentHex')}</div>
           </div>

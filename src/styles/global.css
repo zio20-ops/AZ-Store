@@ -272,6 +272,10 @@ textarea.field { resize: vertical; min-height: 90px; }
 .crumb a:hover { color: var(--gold); }
 .shopbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-block: 20px; flex-wrap: wrap; }
 .chips { display: flex; gap: 10px; flex-wrap: wrap; }
+.shop-filters { display: grid; flex: 1 1 620px; min-width: 0; gap: 12px; }
+.shop-filter-group { display: flex; align-items: flex-start; gap: 14px; }
+.shop-filter-group__label { flex: 0 0 100px; padding-top: 9px; color: rgba(244,234,217,.52); font: 600 10px/1.2 var(--body); letter-spacing: .12em; text-transform: uppercase; }
+.shop-filter-group__chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .shopbar__right { display: flex; gap: 10px; align-items: center; }
 
 .sort { position: relative; }
@@ -655,6 +659,10 @@ textarea.field { resize: vertical; min-height: 90px; }
   .drawer { padding: 26px 20px; }
   .statement { padding-block: 60px; }
   .shopbar { padding-block: 14px; }
+  .shop-filter-group { display: block; }
+  .shop-filter-group__label { display: block; padding: 0 0 8px; }
+  .shop-filter-group__chips { overflow-x: auto; flex-wrap: nowrap; padding: 0 20px 6px; margin-inline: -20px; scrollbar-width: none; }
+  .shop-filter-group__chips::-webkit-scrollbar { display: none; }
   .chips { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 6px; margin-inline: -20px; padding-inline: 20px; scrollbar-width: none; }
   .chips::-webkit-scrollbar { display: none; }
 }

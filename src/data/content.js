@@ -19,9 +19,6 @@ export const FILTER_CHIPS = [
   { id: 'mists', label: 'Mists' },
   { id: 'serums', label: 'Serums' },
   { id: 'gift-sets', label: 'Gift sets' },
-  { id: 'calm-and-deep', label: 'Calm and deep' },
-  { id: 'bold', label: 'Bold' },
-  { id: 'soft', label: 'Soft' },
 ];
 
 export const SORT_OPTIONS = [
