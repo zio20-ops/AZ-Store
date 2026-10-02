@@ -147,6 +147,8 @@ export const validateProduct = (draft, all = []) => {
   if (!Number.isInteger(threshold) || threshold < 0) errors.lowStockThreshold = 'Threshold must be a whole number of 0 or more.';
   const discount = Number(draft.discount || 0);
   if (!Number.isFinite(discount) || discount < 0 || discount > 90) errors.discount = 'Discount must be between 0 and 90.';
+  if (draft.compareAtPrice && Number(draft.compareAtPrice) <= price) errors.compareAtPrice = 'Compare-at price must be higher than the regular price.';
+  if (draft.accentHex && !/^#[0-9a-f]{6}$/i.test(draft.accentHex)) errors.accentHex = 'Choose a valid six-digit colour.';
   if (!draft.images || draft.images.length === 0) errors.images = 'Add at least one product image.';
   (draft.variations || []).forEach((v, i) => {
     if (!v.label || !v.label.trim()) errors[`variation-${i}`] = 'Every size needs a label.';

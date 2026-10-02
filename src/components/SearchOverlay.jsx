@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { egp } from '../utils/format.js';
-import { basePrice } from '../data/products.js';
+import { getVariations, productComparePrice, productPrice } from '../data/products.js';
 
 export default function SearchOverlay() {
   const { searchOpen, setSearchOpen, products } = useStore();
@@ -77,7 +77,7 @@ export default function SearchOverlay() {
                     <b style={{ color: p.accentHex }}>{p.name}</b>
                     <small>{p.category}</small>
                   </span>
-                  <span>{egp(basePrice(p))}</span>
+                  <span className="search__price">{egp(productPrice(p))}{productComparePrice(p, getVariations(p)[0]) && <s>{egp(productComparePrice(p, getVariations(p)[0]))}</s>}</span>
                 </button>
               ))
             )}

@@ -126,6 +126,31 @@ export const getVariation = (product, variationId) =>
 
 export const basePrice = (product) => getVariations(product)[0].price;
 
+export const productPrice = (product, variation = getVariations(product)[0]) => {
+  const regular = Number(variation?.price || 0);
+  const compareAt = Number(product?.compareAtPrice ?? product?.compareAt ?? 0);
+  const isPrimary = getVariations(product)[0]?.id === variation?.id;
+  if (isPrimary && compareAt > regular) return regular;
+  const discount = Math.min(90, Math.max(0, Number(product?.discount || 0)));
+  return discount ? Math.max(0, Math.round(regular * (100 - discount) / 100)) : regular;
+};
+
+export const productComparePrice = (product, variation = getVariations(product)[0]) => {
+  const regular = Number(variation?.price || 0);
+  const compareAt = Number(product?.compareAtPrice ?? product?.compareAt ?? 0);
+  const isPrimary = getVariations(product)[0]?.id === variation?.id;
+  if (isPrimary && compareAt > regular) return compareAt;
+  return Number(product?.discount) > 0 ? regular : null;
+};
+
+export const productDiscountPercent = (product, variation = getVariations(product)[0]) => {
+  const regular = Number(variation?.price || 0);
+  const compareAt = Number(product?.compareAtPrice ?? product?.compareAt ?? 0);
+  const isPrimary = getVariations(product)[0]?.id === variation?.id;
+  if (isPrimary && compareAt > regular) return Math.round((1 - regular / compareAt) * 100);
+  return Math.min(90, Math.max(0, Number(product?.discount || 0)));
+};
+
 export const totalStock = (product) => getVariations(product).reduce((n, v) => n + (v.stock || 0), 0);
 
 export const stockStatus = (stock, threshold = 6) => (stock <= 0 ? 'out' : stock <= threshold ? 'low' : 'in');

@@ -6,7 +6,7 @@ import { useStore } from '../../store/StoreContext.jsx';
 import * as catalog from '../../services/productService.js';
 
 export default function Categories() {
-  const { allProducts, toast } = useStore();
+  const { allProducts, refreshCatalog, toast } = useStore();
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState('');
   const [image, setImage] = useState('');
@@ -42,6 +42,7 @@ export default function Categories() {
     setName('');
     setImage('');
     await load();
+    await refreshCatalog();
     toast('Category created.');
   };
 
@@ -62,6 +63,7 @@ export default function Categories() {
     }
     setEditing(null);
     await load();
+    await refreshCatalog();
     toast('Category updated.');
   };
 
@@ -74,6 +76,7 @@ export default function Categories() {
       return;
     }
     await load();
+    await refreshCatalog();
     toast('Category deleted.');
   };
 

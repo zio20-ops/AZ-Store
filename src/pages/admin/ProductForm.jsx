@@ -4,6 +4,7 @@ import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import ImageManager from '../../components/admin/ImageManager.jsx';
 import { useStore } from '../../store/StoreContext.jsx';
 import * as catalog from '../../services/productService.js';
+import { egp } from '../../utils/format.js';
 
 const blank = (categories) => ({
   name: '', sku: '', category: categories[0]?.name || '', brand: 'AZ',
@@ -34,9 +35,9 @@ const fromProduct = (p) => ({
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { allProducts, productsLoading, refreshCatalog, toast } = useStore();
+  const { allProducts, categories: savedCategories, productsLoading, refreshCatalog, toast } = useStore();
   const editing = allProducts.find((p) => p.id === id);
-  const categories = useMemo(() => [...new Set(allProducts.map((p) => p.category))], [allProducts]);
+  const categories = useMemo(() => [...new Set([...savedCategories.map((category) => category.name), ...allProducts.map((p) => p.category)].filter(Boolean))], [savedCategories, allProducts]);
 
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
@@ -166,20 +167,22 @@ export default function ProductForm() {
           <h2>Pricing</h2>
           <div className="adgrid--3 adgrid">
             <div className={`adfield ${errors.price ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-price">Price (EGP) *</label>
+              <label htmlFor="pf-price">Regular price (EGP) *</label>
               <input id="pf-price" type="number" min="1" value={form.price} onChange={(e) => setPrimary('price', Number(e.target.value))} />
               {fieldError('price')}
             </div>
             <div className="adfield">
               <label htmlFor="pf-compare">Compare-at price</label>
               <input id="pf-compare" type="number" min="0" value={form.compareAtPrice} onChange={(e) => set('compareAtPrice', e.target.value)} placeholder="500" />
+              {fieldError('compareAtPrice')}
             </div>
             <div className={`adfield ${errors.discount ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-discount">Discount %</label>
-              <input id="pf-discount" type="number" min="0" max="90" value={form.discount} onChange={(e) => set('discount', e.target.value)} />
+              <label htmlFor="pf-discount">Discount % (when compare-at is empty)</label>
+              <input id="pf-discount" type="number" min="0" max="90" value={form.discount} onChange={(e) => set('discount', e.target.value)} disabled={Boolean(form.compareAtPrice)} />
               {fieldError('discount')}
             </div>
           </div>
+          <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.5)' }}>Set the regular price, then either enter a higher compare-at price (regular price becomes the sale price) or leave it empty and use the discount percentage. The reduced price is used in the store and checkout.</p>
         </section>
 
         <section className="adsec">
@@ -255,8 +258,9 @@ export default function ProductForm() {
               </select>
             </div>
             <div className="adfield"><label htmlFor="pf-badge">Badge (e.g. Best seller)</label><input id="pf-badge" value={form.badge} onChange={(e) => set('badge', e.target.value)} /></div>
-            <div className="adfield"><label htmlFor="pf-accent">Accent colour</label><input id="pf-accent" type="color" value={form.accentHex} onChange={(e) => set('accentHex', e.target.value)} /></div>
+            <div className="adfield"><label htmlFor="pf-accent">Accent colour</label><div className="accent-editor"><input id="pf-accent" type="color" value={/^#[0-9a-f]{6}$/i.test(form.accentHex) ? form.accentHex : '#e2ad55'} onChange={(e) => set('accentHex', e.target.value)} aria-label="Choose accent colour" /><input type="text" value={form.accentHex} onChange={(e) => set('accentHex', e.target.value)} aria-label="Accent colour hex value" placeholder="#e2ad55" maxLength={7} /></div>{fieldError('accentHex')}</div>
           </div>
+          <div className="accent-preview" style={{ '--product-accent': /^#[0-9a-f]{6}$/i.test(form.accentHex) ? form.accentHex : '#e2ad55' }}><span className="accent-preview__swatch" /><div><b>{form.name || 'Product name'}</b><small>Live accent preview · title, price, sale badge and product detail</small></div><strong>{egp(Number(form.price || 0) * (form.compareAtPrice ? 1 : (100 - Number(form.discount || 0)) / 100))}</strong></div>
         </section>
 
         <section className="adsec">

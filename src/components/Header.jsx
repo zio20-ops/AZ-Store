@@ -45,7 +45,7 @@ export default function Header() {
 
   return (
     <>
-      <p className="ann">{announcement}</p>
+      {announcement && <p className="ann">{announcement}</p>}
       <header className="header">
         <div className="header__in">
           <Link to="/" className="logo logo--header" aria-label="AZ Store home">AZ</Link>

@@ -4,14 +4,14 @@ import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
 import ProductCard from '../components/ProductCard.jsx';
 import { FILTER_CHIPS, SORT_OPTIONS, SCENT_PROFILES } from '../data/content.js';
-import { basePrice, getVariations } from '../data/products.js';
+import { getVariations, productPrice } from '../data/products.js';
 
 const PRICE_BANDS = [
   { id: 'any', label: 'Any price', test: () => true },
-  { id: 'u300', label: 'Under EGP 300', test: (p) => basePrice(p) < 300 },
-  { id: '300-500', label: 'EGP 300 – 500', test: (p) => basePrice(p) >= 300 && basePrice(p) <= 500 },
-  { id: '500-1000', label: 'EGP 500 – 1,000', test: (p) => basePrice(p) > 500 && basePrice(p) <= 1000 },
-  { id: 'o1000', label: 'Over EGP 1,000', test: (p) => basePrice(p) > 1000 },
+  { id: 'u300', label: 'Under EGP 300', test: (p) => productPrice(p) < 300 },
+  { id: '300-500', label: 'EGP 300 – 500', test: (p) => productPrice(p) >= 300 && productPrice(p) <= 500 },
+  { id: '500-1000', label: 'EGP 500 – 1,000', test: (p) => productPrice(p) > 500 && productPrice(p) <= 1000 },
+  { id: 'o1000', label: 'Over EGP 1,000', test: (p) => productPrice(p) > 1000 },
 ];
 
 const chipTest = (id) => (p) => {
@@ -28,7 +28,7 @@ const chipTest = (id) => (p) => {
 
 export default function Shop() {
   useSeo('Shop all | AZ Store', 'Browse the AZ collection: fine fragrance mists and gift sets. Filter by mood, price and rating.');
-  const { products } = useStore();
+  const { products, categories } = useStore();
   const [params, setParams] = useSearchParams();
 
   const chip = params.get('filter') || 'all';
@@ -59,7 +59,8 @@ export default function Shop() {
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
-    let list = products.filter(chipTest(chip));
+    const selectedCategory = chip.startsWith('category:') ? categories.find((category) => category.id === chip.slice('category:'.length)) : null;
+    let list = products.filter(selectedCategory ? (product) => product.category === selectedCategory.name : chipTest(chip));
     if (term) {
       list = list.filter((p) =>
         [p.name, p.category, p.tagline, p.description, p.sku, ...(p.scentNotes || p.notes || [])].join(' ').toLowerCase().includes(term));
@@ -84,14 +85,17 @@ export default function Shop() {
         sorted.sort((a, b) => releaseTime(b) - releaseTime(a) || String(a.name).localeCompare(String(b.name)));
         break;
       }
-      case 'price-asc': sorted.sort((a, b) => basePrice(a) - basePrice(b)); break;
-      case 'price-desc': sorted.sort((a, b) => basePrice(b) - basePrice(a)); break;
+      case 'price-asc': sorted.sort((a, b) => productPrice(a) - productPrice(b)); break;
+      case 'price-desc': sorted.sort((a, b) => productPrice(b) - productPrice(a)); break;
       case 'best-rated': sorted.sort((a, b) => b.rating - a.rating); break;
       case 'best-selling':
       default: sorted.sort((a, b) => (Number(b.sold) || 0) - (Number(a.sold) || 0) || String(a.name).localeCompare(String(b.name)));
     }
     return sorted;
-  }, [products, chip, q, price, minRating, inStock, onSale, brandAZ, scents, sort]);
+  }, [products, categories, chip, q, price, minRating, inStock, onSale, brandAZ, scents, sort]);
+
+  const builtInCategories = new Set(['Calm and deep', 'Bold', 'Soft and dreamy']);
+  const extraCategories = categories.filter((category) => category.name && !builtInCategories.has(category.name));
 
   const sortLabel = SORT_OPTIONS.find((s) => s.id === sort)?.label || 'Best Selling';
   const activeRefinements = (price !== 'any') + (minRating ? 1 : 0) + (inStock ? 1 : 0) + (onSale ? 1 : 0) + (!brandAZ ? 1 : 0) + (scents.length ? 1 : 0);
@@ -119,6 +123,10 @@ export default function Shop() {
               {c.label}
             </button>
           ))}
+          {extraCategories.map((category) => {
+            const id = `category:${category.id}`;
+            return <button key={id} className={`chip ${chip === id ? 'chip--on' : ''}`} aria-pressed={chip === id} onClick={() => setParam('filter', id, 'all')}>{category.name}</button>;
+          })}
         </div>
         <div className="shopbar__right">
           <button className="btn btn--text" onClick={() => setRefineOpen((v) => !v)} aria-expanded={refineOpen}>

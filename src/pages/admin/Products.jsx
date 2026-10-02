@@ -5,7 +5,7 @@ import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
 import { useStore } from '../../store/StoreContext.jsx';
 import * as catalog from '../../services/productService.js';
 import { egp } from '../../utils/format.js';
-import { basePrice, getVariations, totalStock } from '../../data/products.js';
+import { getVariations, productComparePrice, productDiscountPercent, productPrice, totalStock } from '../../data/products.js';
 
 const STATUS_BADGE = { active: ['badge--ok', 'Active'], draft: ['badge--mute', 'Draft'], archived: ['badge--info', 'Archived'] };
 
@@ -35,11 +35,11 @@ export default function Products() {
       if (stock === 'in' && !(total > threshold)) return false;
       if (stock === 'low' && !(total > 0 && total <= threshold)) return false;
       if (stock === 'out' && total !== 0) return false;
-      if (price === 'u300' && basePrice(p) >= 300) return false;
-      if (price === '300-600' && (basePrice(p) < 300 || basePrice(p) > 600)) return false;
-      if (price === 'o600' && basePrice(p) <= 600) return false;
-      if (discount === 'yes' && !(p.compareAtPrice || p.discount)) return false;
-      if (discount === 'no' && (p.compareAtPrice || p.discount)) return false;
+      if (price === 'u300' && productPrice(p) >= 300) return false;
+      if (price === '300-600' && (productPrice(p) < 300 || productPrice(p) > 600)) return false;
+      if (price === 'o600' && productPrice(p) <= 600) return false;
+      if (discount === 'yes' && !productDiscountPercent(p)) return false;
+      if (discount === 'no' && productDiscountPercent(p)) return false;
       return true;
     });
   }, [allProducts, q, category, status, stock, price, discount]);
@@ -135,6 +135,10 @@ export default function Products() {
             <tbody>
               {rows.map((p) => {
                 const total = totalStock(p);
+                const primary = getVariations(p)[0];
+                const currentPrice = productPrice(p, primary);
+                const comparePrice = productComparePrice(p, primary);
+                const discountPercent = productDiscountPercent(p, primary);
                 const threshold = p.lowStockThreshold ?? 6;
                 const [badgeClass, badgeLabel] = STATUS_BADGE[p.status] || STATUS_BADGE.draft;
                 return (
@@ -146,10 +150,10 @@ export default function Products() {
                     </td>
                     <td data-label="Category">{p.category}</td>
                     <td data-label="Price">
-                      {egp(basePrice(p))}
-                      {p.compareAtPrice && <s>{egp(p.compareAtPrice)}</s>}
+                      {egp(currentPrice)}
+                      {comparePrice && <s>{egp(comparePrice)}</s>}
                     </td>
-                    <td data-label="Discount">{p.discount ? `${p.discount}%` : '—'}</td>
+                    <td data-label="Discount">{discountPercent ? `${discountPercent}%` : '—'}</td>
                     <td data-label="Stock">
                       {total}{' '}
                       <span className={`badge ${total === 0 ? 'badge--bad' : total <= threshold ? 'badge--warn' : 'badge--ok'}`}>
@@ -206,11 +210,11 @@ export default function Products() {
               <img src={preview.images[0]?.src} alt={preview.images[0]?.alt || preview.name} />
               <div>
                 <span className="badge badge--mute">{preview.category}</span>
-                <h4 style={{ color: preview.accentHex }}>{preview.name}</h4>
+                <h4 style={{ color: preview.accentHex, borderInlineStart: `3px solid ${preview.accentHex}`, paddingInlineStart: 9 }}>{preview.name}</h4>
                 <div className="price">
-                  {egp(basePrice(preview))}
-                  {preview.compareAtPrice && <s style={{ fontSize: 15, opacity: 0.55, marginInlineStart: 8 }}>{egp(preview.compareAtPrice)}</s>}
-                  {preview.discount ? <span className="badge badge--warn" style={{ marginInlineStart: 8 }}>Save {preview.discount}%</span> : null}
+                  {egp(productPrice(preview, getVariations(preview)[0]))}
+                  {productComparePrice(preview, getVariations(preview)[0]) && <s style={{ fontSize: 15, opacity: 0.55, marginInlineStart: 8 }}>{egp(productComparePrice(preview, getVariations(preview)[0]))}</s>}
+                  {productDiscountPercent(preview, getVariations(preview)[0]) ? <span className="badge badge--warn" style={{ marginInlineStart: 8, background: preview.accentHex, color: '#241408' }}>Save {productDiscountPercent(preview, getVariations(preview)[0])}%</span> : null}
                 </div>
                 <p style={{ marginBottom: 14 }}>{preview.description}</p>
                 <p style={{ fontSize: 12.5, marginBottom: 14 }}>

@@ -4,8 +4,7 @@
 // identical across transports.
 
 import { readStorage, writeStorage, makeOrderNumber } from '../utils/format.js';
-import { getVariations } from '../data/products.js';
-import { PROMOS } from '../data/products.js';
+import { getVariations, productPrice, PROMOS } from '../data/products.js';
 import { ensureCatalog, readSettings } from './localStore.js';
 
 const ORDERS_KEY = 'az.orders';
@@ -75,14 +74,21 @@ export const createOrder = async (order) => {
     const variation = product ? getVariations(product).find((v) => v.id === line.variationId) : null;
     if (!product || product.status !== 'active' || !variation) throw new Error('A product in your bag is no longer available.');
     if (variation.stock < line.qty) throw new Error(`${product.name} is out of stock for the selected size.`);
-    subtotal += Number(variation.price) * line.qty;
-    items.push({ ...line, price: Number(variation.price) });
+    const price = productPrice(product, variation);
+    subtotal += price * line.qty;
+    items.push({ ...line, price });
   }
 
-  const promo = PROMOS[String(order.promoCode || '').trim().toUpperCase()];
-  const discount = promo?.type === 'percent' ? Math.round((subtotal * promo.value) / 100) : 0;
-  const freeShip = promo?.type === 'shipping' || (order.deliveryOption === 'standard' && subtotal >= Number(settings.freeDeliveryThreshold ?? 1800));
-  const delivery = freeShip ? 0 : order.deliveryOption === 'express' ? 110 : 60;
+  const savedPromos = readStorage('az.promos', Object.values(PROMOS).map((promo) => ({ ...promo, active: true, appliesTo: promo.appliesTo || (promo.type === 'shipping' ? 'shipping' : 'products') })));
+  const promo = savedPromos.find((entry) => entry.code === String(order.promoCode || '').trim().toUpperCase() && entry.active !== false);
+  const target = promo?.appliesTo || (promo?.type === 'shipping' ? 'shipping' : 'products');
+  const eligibleSubtotal = promo?.productIds?.length ? items.filter((item) => promo.productIds.includes(item.productId)).reduce((sum, item) => sum + item.price * item.qty, 0) : subtotal;
+  const discount = target === 'products' && promo
+    ? Math.min(eligibleSubtotal, promo.type === 'percent' ? Math.round(eligibleSubtotal * Number(promo.value) / 100) : Number(promo.value || 0))
+    : 0;
+  const baseDelivery = order.deliveryOption === 'standard' && subtotal >= Number(settings.freeDeliveryThreshold ?? 1800) ? 0 : order.deliveryOption === 'express' ? 110 : 60;
+  const shippingDiscount = target === 'shipping' && promo ? Math.min(baseDelivery, promo.type === 'percent' ? Math.round(baseDelivery * Number(promo.value) / 100) : Number(promo.value || 0)) : 0;
+  const delivery = baseDelivery - shippingDiscount;
 
   const saved = {
     ...order,
@@ -90,6 +96,7 @@ export const createOrder = async (order) => {
     items,
     subtotal,
     discount,
+    shippingDiscount,
     delivery,
     total: subtotal - discount + delivery,
     id: order.id || makeOrderNumber(),

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { getVariations, PROMOS, FREE_DELIVERY_THRESHOLD } from '../data/products.js';
+import { getVariations, productPrice, PROMOS, FREE_DELIVERY_THRESHOLD } from '../data/products.js';
 import { readStorage, writeStorage } from '../utils/format.js';
 import * as catalog from '../services/productService.js';
 import * as orderService from '../services/orderService.js';
@@ -44,6 +44,7 @@ export function StoreProvider({ children }) {
   const toastId = useRef(0);
 
   const [allProducts, setAllProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [settings, setSettings] = useState({});
   const [promoOffers, setPromoOffers] = useState(Object.values(PROMOS).map((item) => ({ ...item, type: item.type === 'shipping' ? 'percent' : item.type, value: item.type === 'shipping' ? 100 : item.value, active: true, appliesTo: item.appliesTo || (item.type === 'shipping' ? 'shipping' : 'products'), productIds: [] })));
   const [productsLoading, setProductsLoading] = useState(true);
@@ -56,10 +57,13 @@ export function StoreProvider({ children }) {
 
   const loadCatalog = useCallback(() => {
     setProductsLoading(true);
-    Promise.allSettled([catalog.listProducts(), catalog.getSettings()]).then(([productsResult, settingsResult]) => {
+    return Promise.allSettled([catalog.listProducts(), catalog.getSettings(), catalog.listCategories()]).then(([productsResult, settingsResult, categoriesResult]) => {
       const products = productsResult.status === 'fulfilled' ? productsResult.value : [];
       const nextSettings = settingsResult.status === 'fulfilled' ? settingsResult.value : catalog.DEFAULT_SETTINGS;
-      setAllProducts(products.length ? products : catalog.getSeedProducts());
+      const visibleProducts = products.length ? products : catalog.getSeedProducts();
+      setAllProducts(visibleProducts);
+      const loadedCategories = categoriesResult.status === 'fulfilled' ? categoriesResult.value : [];
+      setCategories(loadedCategories.length ? loadedCategories : [...new Set(visibleProducts.map((product) => product.category).filter(Boolean))].map((name) => ({ id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name, image: '' })));
       setSettings(nextSettings);
       setProductsLoading(false);
       const error = productsResult.status === 'rejected' ? productsResult.reason : settingsResult.status === 'rejected' ? settingsResult.reason : null;
@@ -77,7 +81,7 @@ export function StoreProvider({ children }) {
     loadPromos();
     // Keep other tabs (customer session while admin edits) in sync.
     const onStorage = (e) => {
-      if (e.key === 'az.products' || e.key === 'az.settings') loadCatalog();
+      if (e.key === 'az.products' || e.key === 'az.settings' || e.key === 'az.categories') loadCatalog();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -159,7 +163,7 @@ export function StoreProvider({ children }) {
           const product = findProduct(line.productId);
           if (!product) return null;
           const variation = getVariations(product).find((v) => v.id === line.variationId) || getVariations(product)[0];
-          return { ...line, product, variation, price: variation.price, image: product.images[variation.image]?.src || product.images[0].src };
+      return { ...line, product, variation, price: productPrice(product, variation), image: product.images[variation.image]?.src || product.images[0].src };
         })
         .filter(Boolean),
     [cart, findProduct],
@@ -275,10 +279,11 @@ export function StoreProvider({ children }) {
   const value = {
     products,
     allProducts,
+    categories,
     productsLoading,
     refreshCatalog: loadCatalog,
     settings,
-    announcement: settings.announcement ?? 'Free gift cards with every trio box',
+    announcement: typeof settings.announcement === 'string' ? settings.announcement.trim() : 'Free gift cards with every trio box',
     cart: detailed,
     count,
     subtotal,

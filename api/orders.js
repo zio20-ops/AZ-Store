@@ -113,8 +113,15 @@ export default async function handler(req, res) {
       const variation = (product.variations || []).find((v) => v.id === line.variationId);
       if (product.status !== 'active' || !variation || !Number.isInteger(variation.stock) || variation.stock < line.qty) return problem(res, 409, `${product.name || 'A product'} is out of stock for the selected size.`);
       variation.stock -= line.qty;
-      subtotal += Number(variation.price) * line.qty;
-      normalizedItems.push({ productId: product.id || line.productId, variationId: variation.id, name: product.name, meta: variation.label, qty: line.qty, price: Number(variation.price), image: product.images?.[variation.image]?.src || product.images?.[0]?.src || '' });
+      const regularPrice = Number(variation.price);
+      const compareAt = Number(product.compareAtPrice ?? product.compareAt ?? 0);
+      const isPrimaryVariation = product.variations?.[0]?.id === variation.id;
+      const appliedDiscount = Math.min(90, Math.max(0, Number(product.discount || 0)));
+      const unitPrice = isPrimaryVariation && compareAt > regularPrice
+        ? regularPrice
+        : appliedDiscount ? Math.max(0, Math.round(regularPrice * (100 - appliedDiscount) / 100)) : regularPrice;
+      subtotal += unitPrice * line.qty;
+      normalizedItems.push({ productId: product.id || line.productId, variationId: variation.id, name: product.name, meta: variation.label, qty: line.qty, price: unitPrice, image: product.images?.[variation.image]?.src || product.images?.[0]?.src || '' });
     }
     const standardFree = deliveryMethod === 'standard' && subtotal >= Number(storeSettings.freeDeliveryThreshold ?? 1800);
     const baseDeliveryFee = standardFree ? 0 : deliveryMethod === 'express' ? 110 : 60;

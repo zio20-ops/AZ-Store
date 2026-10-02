@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
-import { getVariations } from '../data/products.js';
+import { getVariations, productComparePrice, productDiscountPercent, productPrice } from '../data/products.js';
 import { egp } from '../utils/format.js';
 import QuantitySelector from '../components/QuantitySelector.jsx';
 import Accordion from '../components/Accordion.jsx';
@@ -50,7 +50,7 @@ export default function ProductDetails() {
       offers: {
         '@type': 'Offer',
         priceCurrency: 'EGP',
-        price: variation.price,
+        price: productPrice(product, variation),
         availability: variation.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
         sku: variation.sku,
       },
@@ -66,6 +66,9 @@ export default function ProductDetails() {
 
   const soldOut = variation.stock === 0;
   const wished = wishlist.includes(product.id);
+  const currentPrice = productPrice(product, variation);
+  const comparePrice = productComparePrice(product, variation);
+  const discountPercent = productDiscountPercent(product, variation);
 
   const accordionItems = [
     { q: 'Scent notes', a: (product.scentNotes || product.notes || []).join(' · ') },
@@ -81,7 +84,7 @@ export default function ProductDetails() {
         <Link to="/">Home</Link> / <Link to="/shop">Shop all</Link> / <span>{product.name}</span>
       </nav>
 
-      <div className="pdp">
+      <div className="pdp" style={{ '--product-accent': product.accentHex || '#e2ad55' }}>
         <div className="thumbs" role="group" aria-label="Product images">
           {product.images.map((g, i) => (
             <button
@@ -102,15 +105,16 @@ export default function ProductDetails() {
 
         <div className="pdp__info">
           <span className="chip">{product.category}</span>
-          <h1 className="pdp__title" style={{ color: product.accentHex }}>{product.name}</h1>
+          <h1 className="pdp__title" style={{ color: 'var(--product-accent)' }}>{product.name}</h1>
           <p className="pdp__lead">{product.tagline}</p>
           <div className="pdp__notes">
             {(product.scentNotes || product.notes || []).map((n) => <span className="chip" key={n}>{n}</span>)}
           </div>
 
           <div className="pdp__price">
-            <span>{egp(variation.price)}</span>
-            {product.compareAt && <s>{egp(product.compareAt)}</s>}
+            <span>{egp(currentPrice)}</span>
+            {comparePrice && <s>{egp(comparePrice)}</s>}
+            {discountPercent > 0 && <b className="pdp__sale">Save {discountPercent}%</b>}
             <small>{variation.label}</small>
           </div>
 
@@ -173,10 +177,11 @@ export default function ProductDetails() {
       <div className="pdp__sticky">
         <button
           className={`btn btn--primary btn--block ${soldOut ? 'btn--disabled' : ''}`}
+          style={{ '--product-accent': product.accentHex || '#e2ad55' }}
           onClick={() => addToCart(product.id, variation.id, qty)}
           disabled={soldOut}
         >
-          {soldOut ? 'Sold out' : `Add to bag · ${egp(variation.price * qty)}`}
+          {soldOut ? 'Sold out' : `Add to bag · ${egp(currentPrice * qty)}`}
         </button>
       </div>
 

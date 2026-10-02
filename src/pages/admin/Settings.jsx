@@ -66,7 +66,7 @@ export default function Settings() {
           <div className="adfield">
             <label htmlFor="set-ann">Announcement bar</label>
             <input id="set-ann" value={form.announcement} onChange={(e) => setForm({ ...form, announcement: e.target.value })} />
-            <span className="hint">Shown at the top of every customer page.</span>
+            <span className="hint">Shown at the top of every customer page. Leave this empty and save to hide the announcement completely.</span>
           </div>
           <div className="adgrid">
             <div className="adfield">
