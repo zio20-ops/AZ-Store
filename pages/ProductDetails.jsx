@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useParams } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
@@ -135,7 +136,7 @@ export default function ProductDetails() {
           <div className="pdp__buy">
             <QuantitySelector value={qty} onChange={setQty} max={Math.max(1, variation.stock)} />
             <button
-              className={`btn btn--primary ${soldOut ? 'btn--disabled' : ''}`}
+              className={`btn btn--primary pdp__buy-primary ${soldOut ? 'btn--disabled' : ''}`}
               style={{ flex: 1, minWidth: 180 }}
               onClick={() => addToCart(product.id, variation.id, qty)}
               disabled={soldOut}
@@ -173,16 +174,19 @@ export default function ProductDetails() {
         </div>
       </div>
 
-      <div className="pdp__sticky">
-        <button
-          className={`btn btn--primary btn--block ${soldOut ? 'btn--disabled' : ''}`}
-          style={{ '--product-accent': product.accentHex || '#e2ad55' }}
-          onClick={() => addToCart(product.id, variation.id, qty)}
-          disabled={soldOut}
-        >
-          {soldOut ? 'Sold out' : `Add to bag · ${egp(currentPrice * qty)}`}
-        </button>
-      </div>
+      {createPortal(
+        <div className="pdp__sticky">
+          <button
+            className={`btn btn--primary btn--block ${soldOut ? 'btn--disabled' : ''}`}
+            style={{ '--product-accent': product.accentHex || '#e2ad55' }}
+            onClick={() => addToCart(product.id, variation.id, qty)}
+            disabled={soldOut}
+          >
+            {soldOut ? 'Sold out' : `Add to bag · ${egp(currentPrice * qty)}`}
+          </button>
+        </div>,
+        document.body,
+      )}
 
       <section className="container sec" style={{ paddingInline: 0 }}>
         <div className="sec__head">
