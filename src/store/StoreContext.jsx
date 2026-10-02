@@ -310,6 +310,11 @@ export function StoreProvider({ children }) {
     return updated;
   }, []);
 
+  const deleteOrder = useCallback(async (id) => {
+    await orderService.deleteOrder(id);
+    setOrders((current) => current.filter((order) => order.id !== id));
+  }, []);
+
   const value = {
     products,
     allProducts,
@@ -343,6 +348,7 @@ export function StoreProvider({ children }) {
     orders,
     placeOrder,
     updateOrder,
+    deleteOrder,
     lastOrder,
   };
 

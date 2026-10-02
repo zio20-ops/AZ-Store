@@ -1,4 +1,4 @@
-import { listDocuments, getDocument, putDocument, currentCustomerIdToken } from './firebaseRest.js';
+import { listDocuments, getDocument, putDocument, deleteDocument, currentCustomerIdToken } from './firebaseRest.js';
 import * as auth from './authService.js';
 
 export const listOrders = () => listDocuments('orders', true);
@@ -36,6 +36,7 @@ export const updateOrder = async (id, patch) => {
   await putDocument('orders', id, next, true);
   return next;
 };
+export const deleteOrder = (id) => deleteDocument('orders', id, true);
 export const trackOrder = async (id, phone) => {
   const response = await fetch(`/api/track?id=${encodeURIComponent(id)}&phone=${encodeURIComponent(phone)}`, { headers: { Accept: 'application/json' } });
   const result = await response.json().catch(() => ({}));

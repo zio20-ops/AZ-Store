@@ -134,3 +134,9 @@ export const updateOrder = async (id, patch) => {
   writeStorage(ORDERS_KEY, orders.map((o) => (o.id === id ? next : o)));
   return next;
 };
+
+export const deleteOrder = async (id) => {
+  const orders = readOrders();
+  if (!orders.some((order) => order.id === id)) throw new Error('Order not found.');
+  writeStorage(ORDERS_KEY, orders.filter((order) => order.id !== id));
+};

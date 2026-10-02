@@ -10,7 +10,7 @@ const PAY_BADGE = {
 };
 
 export default function Orders() {
-  const { orders, updateOrder, toast } = useStore();
+  const { orders, updateOrder, deleteOrder, toast } = useStore();
   const [filter, setFilter] = useState('all');
 
   const rows = orders.filter((o) => {
@@ -37,6 +37,12 @@ export default function Orders() {
     catch (error) { toast(error.message || 'Could not update payment status.'); }
   };
 
+  const removeOrder = async (order) => {
+    if (!window.confirm(`Delete order ${order.id}? This cannot be undone.`)) return;
+    try { await deleteOrder(order.id); toast(`Order ${order.id} deleted.`); }
+    catch (error) { toast(error.message || 'Could not delete this order.'); }
+  };
+
   return (
     <AdminLayout title="Orders">
       <div className="adbar">
@@ -58,7 +64,7 @@ export default function Orders() {
         <div className="adtable-wrap">
           <table className="adtable responsive">
             <thead>
-              <tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Items</th><th className="num">Total</th><th>Payment</th><th>Status</th><th>Payment status</th><th>Details</th></tr>
+              <tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Items</th><th className="num">Total</th><th>Payment</th><th>Status</th><th>Payment status</th><th>Details</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {rows.map((o) => (
@@ -119,9 +125,10 @@ export default function Orders() {
                       </div>
                     </details>
                   </td>
+                  <td data-label="Actions"><div className="ad__actions"><button type="button" className="danger" onClick={() => removeOrder(o)}>Delete order</button></div></td>
                 </tr>
               ))}
-              {rows.length === 0 && <tr><td colSpan={9}><div className="adempty">No orders in this view.</div></td></tr>}
+              {rows.length === 0 && <tr><td colSpan={10}><div className="adempty">No orders in this view.</div></td></tr>}
             </tbody>
           </table>
         </div>
