@@ -161,10 +161,14 @@ export const savePromo = async (draft) => {
   const value = Number(draft.value);
   if (!Number.isFinite(value) || value < 0 || (draft.type === 'percent' && (value < 1 || value > 100))) return { ok: false, message: 'Enter a valid discount amount. Percentages must be between 1 and 100.' };
   if (!['percent', 'fixed'].includes(draft.type) || !['products', 'shipping'].includes(draft.appliesTo)) return { ok: false, message: 'Choose a valid discount type and target.' };
+  if (draft.appliesTo === 'shipping' && !['standard', 'express', 'any'].includes(draft.shippingMethod || 'standard')) return { ok: false, message: 'Choose which delivery option this code covers.' };
+  const minSubtotal = Number(draft.minSubtotal || 0);
+  if (!Number.isFinite(minSubtotal) || minSubtotal < 0) return { ok: false, message: 'Enter a valid minimum order amount.' };
   if (draft.appliesTo === 'shipping' && draft.productIds?.length) return { ok: false, message: 'Shipping discounts cannot be limited to products.' };
   const promo = { id: code, code, label: String(draft.label || '').trim().slice(0, 80), type: draft.type, value, appliesTo: draft.appliesTo,
     productIds: draft.appliesTo === 'products' ? [...new Set((draft.productIds || []).filter((id) => /^[a-z0-9-]{1,80}$/.test(id)))] : [],
-    minSubtotal: Math.max(0, Number(draft.minSubtotal || 0)), active: draft.active !== false, updatedAt: now() };
+    shippingMethod: draft.appliesTo === 'shipping' ? (draft.shippingMethod || 'standard') : null,
+    minSubtotal, active: draft.active !== false, updatedAt: now() };
   try { await putDocument('promos', code, promo, true); return { ok: true, promo }; }
   catch (error) { return { ok: false, message: error.message }; }
 };

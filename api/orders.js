@@ -137,13 +137,16 @@ export default async function handler(req, res) {
       const promoDoc = await firestore(`promos/${encodeURIComponent(code)}`, token).catch(() => null);
       const promo = promoDoc ? fields(promoDoc) : code === 'AZ10'
         ? { code, type: 'percent', value: 10, appliesTo: 'products', productIds: [], active: true }
-        : code === 'FREESHIP' ? { code, type: 'fixed', value: 0, appliesTo: 'shipping', productIds: [], active: true } : null;
+        : code === 'FREESHIP' ? { code, type: 'fixed', value: 0, appliesTo: 'shipping', shippingMethod: 'standard', productIds: [], active: true } : null;
       const now = Date.now();
       if (!promo || promo.active === false || (promo.startsAt && Date.parse(promo.startsAt) > now) || (promo.endsAt && Date.parse(promo.endsAt) < now)) return problem(res, 400, 'This promo code is not valid or has expired.');
       if (!['percent', 'fixed'].includes(promo.type) || !['products', 'shipping'].includes(promo.appliesTo || (promo.type === 'shipping' ? 'shipping' : 'products')) || !Number.isFinite(Number(promo.value))) return problem(res, 400, 'This promo code is not configured correctly.');
       const target = promo.appliesTo || (promo.type === 'shipping' ? 'shipping' : 'products');
       const amount = Number(promo.value);
       if (target === 'shipping') {
+        const shippingMethod = ['standard', 'express', 'any'].includes(promo.shippingMethod) ? promo.shippingMethod : 'standard';
+        if (shippingMethod !== 'any' && shippingMethod !== deliveryMethod) return problem(res, 400, `This code applies to ${shippingMethod} delivery only.`);
+        if (Number(promo.minSubtotal || 0) > subtotal) return problem(res, 400, 'This promo code does not meet its minimum order amount.');
         shippingDiscount = amount === 0 && code === 'FREESHIP' ? baseDeliveryFee : promo.type === 'percent' ? Math.round(baseDeliveryFee * amount / 100) : amount;
         shippingDiscount = Math.min(baseDeliveryFee, Math.max(0, shippingDiscount));
         deliveryFee = baseDeliveryFee - shippingDiscount;
@@ -154,7 +157,6 @@ export default async function handler(req, res) {
         if (Number(promo.minSubtotal || 0) > eligibleTotal) return problem(res, 400, 'This promo code does not meet the minimum amount for eligible products.');
         discount = Math.min(eligibleTotal, Math.max(0, promo.type === 'percent' ? Math.round(eligibleTotal * amount / 100) : amount));
       }
-      if (target === 'shipping' && Number(promo.minSubtotal || 0) > subtotal) return problem(res, 400, 'This promo code does not meet its minimum order amount.');
       appliedPromo = code;
     }
     const id = randomUUID();

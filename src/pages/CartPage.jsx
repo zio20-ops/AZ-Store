@@ -75,7 +75,7 @@ export default function CartPage() {
             {promo && !promoMsg && <p className="promo-msg promo-msg--ok" role="status">{promo.code} applied <button type="button" className="promo-remove" onClick={() => { removePromo(); setPromoMsg(null); }}>Remove</button></p>}
 
             <div className="drawer__foot">
-              {promo && <div className="drawer__subtotal drawer__promo-total"><span>Promo {promo.code}</span><b>{promo.appliesTo === 'shipping' ? 'Delivery discount at checkout' : `−${egp(discount)}`}</b></div>}
+              {promo && <div className="drawer__subtotal drawer__promo-total"><span>Promo {promo.code}</span><b>{promo.appliesTo === 'shipping' ? `At checkout · ${promo.shippingMethod === 'express' ? 'Express' : promo.shippingMethod === 'any' ? 'any delivery' : 'Standard'}` : `−${egp(discount)}`}</b></div>}
               <div className="drawer__subtotal"><span>{promo?.appliesTo === 'products' ? 'Total after promo' : 'Subtotal'}</span><b>{egp(subtotal - discount)}</b></div>
               <button className="btn btn--dark btn--block" onClick={() => navigate('/checkout')}>Go to checkout</button>
             </div>

@@ -14,7 +14,7 @@ const initialForm = {
 
 export default function Checkout() {
   useSeo('Checkout | AZ Store', 'Choose a payment method and complete your AZ Store order.');
-  const { cart, subtotal, discount, promo, freeThreshold, settings, placeOrder } = useStore();
+  const { cart, subtotal, discount, promo, removePromo, freeThreshold, settings, placeOrder } = useStore();
   const navigate = useNavigate();
 
   const [form, setForm] = useState(() => {
@@ -31,12 +31,16 @@ export default function Checkout() {
   const [placing, setPlacing] = useState(false);
 
   const method = DELIVERY_METHODS.find((m) => m.id === deliveryId);
+  const promoShippingMethod = promo?.shippingMethod || 'standard';
+  const promoShippingMethodMismatch = promo?.appliesTo === 'shipping' && promoShippingMethod !== 'any' && promoShippingMethod !== deliveryId;
+  const promoShippingMinimum = promo?.appliesTo === 'shipping' && subtotal < Number(promo.minSubtotal || 0);
+  const promoShippingReady = promo?.appliesTo === 'shipping' && !promoShippingMethodMismatch && !promoShippingMinimum;
   const deliveryFee = useMemo(() => {
     const base = deliveryId === 'standard' && subtotal >= freeThreshold ? 0 : method.price;
-    if (!promo || promo.appliesTo !== 'shipping') return base;
+    if (!promoShippingReady) return base;
     const reduction = promo.type === 'percent' ? Math.round(base * promo.value / 100) : Number(promo.value || 0);
     return Math.max(0, base - reduction);
-  }, [deliveryId, subtotal, freeThreshold, method, promo]);
+  }, [deliveryId, subtotal, freeThreshold, method, promo, promoShippingReady]);
 
   const total = subtotal - discount + deliveryFee;
   const payment = PAYMENT_METHODS.find((p) => p.id === paymentId);
@@ -200,6 +204,8 @@ export default function Checkout() {
               );
             })}
           </div>
+          {promoShippingMethodMismatch && <p className="field-error" role="status">This code applies to {promoShippingMethod === 'express' ? 'Express' : 'Standard'} delivery only. Choose that delivery option or <button type="button" className="promo-remove" onClick={removePromo}>remove the code</button>.</p>}
+          {promoShippingMinimum && <p className="field-error" role="status">This delivery discount needs at least {egp(promo.minSubtotal)} in products. Add eligible products or <button type="button" className="promo-remove" onClick={removePromo}>remove the code</button>.</p>}
 
           <h5>Payment</h5>
           {paymentOptions.length > 0 ? <div className="opts opts--3" role="radiogroup" aria-label="Payment method">
@@ -242,7 +248,7 @@ export default function Checkout() {
 
           {errors.submit && <p className="field-error" role="alert">{errors.submit}</p>}
 
-          <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || compressingProof || paymentOptions.length === 0}>
+          <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || compressingProof || paymentOptions.length === 0 || promoShippingMethodMismatch || promoShippingMinimum}>
             {compressingProof ? 'Preparing screenshot…' : placing ? 'Placing order…' : `Place order · ${egp(total)}`}
           </button>
         </form>

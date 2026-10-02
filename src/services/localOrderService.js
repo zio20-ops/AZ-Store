@@ -83,6 +83,8 @@ export const createOrder = async (order) => {
   const promo = savedPromos.find((entry) => entry.code === String(order.promoCode || '').trim().toUpperCase() && entry.active !== false);
   const target = promo?.appliesTo || (promo?.type === 'shipping' ? 'shipping' : 'products');
   const eligibleSubtotal = promo?.productIds?.length ? items.filter((item) => promo.productIds.includes(item.productId)).reduce((sum, item) => sum + item.price * item.qty, 0) : subtotal;
+  if (target === 'shipping' && (promo.shippingMethod || 'standard') !== 'any' && (promo.shippingMethod || 'standard') !== order.deliveryOption) throw new Error(`This code applies to ${(promo.shippingMethod || 'standard')} delivery only.`);
+  if (target === 'shipping' && Number(promo.minSubtotal || 0) > subtotal) throw new Error('This delivery promo does not meet its minimum products total.');
   const discount = target === 'products' && promo
     ? Math.min(eligibleSubtotal, promo.type === 'percent' ? Math.round(eligibleSubtotal * Number(promo.value) / 100) : Number(promo.value || 0))
     : 0;
