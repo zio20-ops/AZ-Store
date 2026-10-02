@@ -25,9 +25,6 @@ export default function Checkout() {
   const [deliveryId, setDeliveryId] = useState('standard');
   const [paymentId, setPaymentId] = useState('cod');
   const [paymentRef, setPaymentRef] = useState('');
-  const [paymentProof, setPaymentProof] = useState(null);
-  const [proofError, setProofError] = useState('');
-  const [compressingProof, setCompressingProof] = useState(false);
   const [placing, setPlacing] = useState(false);
 
   const method = DELIVERY_METHODS.find((m) => m.id === deliveryId);
@@ -69,7 +66,7 @@ export default function Checkout() {
     if (!form.governorate) er.governorate = 'Choose your governorate.';
     if (!form.city.trim()) er.city = 'Please enter your city.';
     if (form.address.trim().length < 8) er.address = 'Please enter your full street address.';
-    if (paymentId !== 'cod' && paymentRef.trim().length < 4 && !paymentProof) er.paymentRef = 'Add a transfer reference or upload a payment screenshot.';
+    if (paymentId !== 'cod' && paymentRef.trim().length < 4) er.paymentRef = 'Enter the transaction reference from your payment receipt.';
     setErrors(er);
     return Object.keys(er).length === 0;
   };
@@ -93,7 +90,6 @@ export default function Checkout() {
         payment: payment.label,
         paymentMethod: paymentId,
         paymentRef: paymentId === 'cod' ? '' : paymentRef.trim(),
-        paymentProof: paymentId === 'cod' ? null : paymentProof?.dataUrl || null,
         deliveryMethod: `${method.label}, ${method.eta.toLowerCase()}`,
         deliveryOption: deliveryId,
         promoCode: promo?.code || '',
@@ -106,39 +102,6 @@ export default function Checkout() {
     } catch (error) {
       setErrors((old) => ({ ...old, submit: `${error.message || 'Unable to save the order. Please try again.'}${error.code ? ` (Error code: ${error.code})` : ''}` }));
     } finally { setPlacing(false); }
-  };
-
-  const selectPaymentProof = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    setProofError('');
-    if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setProofError('Choose a JPG, PNG, or WebP image.');
-      return;
-    }
-    setCompressingProof(true);
-    try {
-      const image = await createImageBitmap(file);
-      const scale = Math.min(1, 1400 / Math.max(image.width, image.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(image.width * scale);
-      canvas.height = Math.round(image.height * scale);
-      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-      image.close();
-      let quality = 0.82;
-      let dataUrl = canvas.toDataURL('image/jpeg', quality);
-      while (dataUrl.length > 600_000 && quality > 0.48) {
-        quality -= 0.1;
-        dataUrl = canvas.toDataURL('image/jpeg', quality);
-      }
-      if (dataUrl.length > 600_000) throw new Error('The screenshot is too large. Please choose a smaller image.');
-      setPaymentProof({ dataUrl, name: file.name });
-      setErrors((previous) => ({ ...previous, paymentRef: undefined }));
-    } catch (error) {
-      setPaymentProof(null);
-      setProofError(error.message || 'Could not read this image. Please choose another one.');
-    } finally { setCompressingProof(false); }
   };
 
   if (cart.length === 0) {
@@ -238,11 +201,7 @@ export default function Checkout() {
             <small>After the transfer succeeds, copy the transaction ID or reference shown on the InstaPay receipt. It is not your order number or account number.</small>
             <label className="co__fields">Transaction ID / reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="From the successful transfer receipt" /></label>
             {errors.paymentRef && <p className="field-error">{errors.paymentRef}</p>}
-            <label className="co__fields">Payment screenshot (optional)<input className="field" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectPaymentProof} /></label>
-            {compressingProof && <small>Preparing screenshot…</small>}
-            {paymentProof && <div className="paynote__proof"><img src={paymentProof.dataUrl} alt="Selected InstaPay transfer receipt" /><span>{paymentProof.name}</span><button type="button" onClick={() => setPaymentProof(null)}>Remove image</button></div>}
-            {proofError && <p className="field-error">{proofError}</p>}
-            <small>Add the reference, screenshot, or both. At least one is required.</small>
+            <small>Enter the transaction reference from the successful transfer receipt. The store will use it to verify your payment.</small>
             <small>The store will confirm your transfer manually before preparing the order.</small>
           </div>}
 
@@ -252,18 +211,14 @@ export default function Checkout() {
             <small>After the transfer succeeds, copy the transaction ID or reference shown in the Vodafone Cash confirmation message or receipt. It is not your order number or phone number.</small>
             <label className="co__fields">Transaction ID / reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="From the successful transfer receipt" /></label>
             {errors.paymentRef && <p className="field-error">{errors.paymentRef}</p>}
-            <label className="co__fields">Payment screenshot (optional)<input className="field" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectPaymentProof} /></label>
-            {compressingProof && <small>Preparing screenshot…</small>}
-            {paymentProof && <div className="paynote__proof"><img src={paymentProof.dataUrl} alt="Selected Vodafone Cash transfer receipt" /><span>{paymentProof.name}</span><button type="button" onClick={() => setPaymentProof(null)}>Remove image</button></div>}
-            {proofError && <p className="field-error">{proofError}</p>}
-            <small>Add the reference, screenshot, or both. At least one is required.</small>
+            <small>Enter the transaction reference from the successful transfer receipt. The store will use it to verify your payment.</small>
             <small>The store will confirm your transfer manually before preparing the order.</small>
           </div>}
 
           {errors.submit && <p className="field-error" role="alert">{errors.submit}</p>}
 
-          {auth.getCurrentUser() ? <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || compressingProof || paymentOptions.length === 0 || promoShippingMethodMismatch || promoShippingMinimum}>
-            {compressingProof ? 'Preparing screenshot…' : placing ? 'Placing order…' : `Place order · ${egp(total)}`}
+          {auth.getCurrentUser() ? <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || paymentOptions.length === 0 || promoShippingMethodMismatch || promoShippingMinimum}>
+            {placing ? 'Placing order…' : `Place order · ${egp(total)}`}
           </button> : <div className="checkout-account-cta">
             <Link className="btn btn--primary btn--lg" to="/account/login" state={{ returnTo: '/checkout' }}>Sign in to place your order</Link>
             <Link to="/account/signup" state={{ returnTo: '/checkout' }}>Create account</Link>

@@ -24,15 +24,9 @@ The admin demo login shown when `VITE_BACKEND=local` (`admin@azstore.eg` / the d
 
 Customers and administrators can sign in with email and password without verifying the email first. Creating an account does not send a verification email. Password reset is sent only when the user asks for it from the account or admin login screens.
 
-## Transfer screenshot uploads
+## Manual transfer references
 
-The checkout's Vodafone Cash and InstaPay proof upload uses the Firebase Storage bucket `az-store-36cd0.firebasestorage.app`. To enable it in production:
-
-1. Ensure Cloud Storage for Firebase is set up and the project is on the Blaze pay-as-you-go plan. Storage access requires Blaze; actual charges depend on bucket location and usage. Configure a budget alert before enabling billing.
-2. In Google Cloud IAM, grant the service account used by `FIREBASE_SERVICE_ACCOUNT` the **Storage Object Creator** role on this bucket (or a narrower custom role with object create permission).
-3. In Vercel, optionally set `FIREBASE_STORAGE_BUCKET` to the exact bucket name if it differs from the default above, then redeploy.
-
-Uploaded screenshots are compressed in the browser and saved as payment-proof files in Storage. Orders save the screenshot link for the admin Orders page. Customers can submit a screenshot, a transfer reference, or both. If Storage is unavailable, checkout can still be completed with the reference alone.
+Vodafone Cash and InstaPay payments are confirmed manually. Customers enter the transaction reference from the successful transfer receipt at checkout; the store verifies it from the Admin Orders page. Checkout does not upload screenshots and does not require Firebase Storage.
 
 ## Per-customer shopping carts
 

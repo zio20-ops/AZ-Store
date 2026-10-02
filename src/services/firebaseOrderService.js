@@ -31,7 +31,6 @@ export const createOrder = async (order) => {
     promoCode: order.promoCode || '',
     paymentMethod: order.paymentMethod || 'cod',
     paymentRef: order.paymentRef || '',
-    paymentProof: order.paymentProof || '',
   }) });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
