@@ -26,14 +26,23 @@ import AdminOrders from './pages/admin/Orders.jsx';
 import AdminCategories from './pages/admin/Categories.jsx';
 import AdminInventory from './pages/admin/Inventory.jsx';
 import AdminCustomers from './pages/admin/Customers.jsx';
+import AdminUsers from './pages/admin/Users.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
+import AdminPromos from './pages/admin/Promos.jsx';
 import Account from './pages/Account.jsx';
 
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    if (!hash) {
+      window.scrollTo(0, 0);
+      return undefined;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname, hash]);
   return null;
 }
 
@@ -94,9 +103,11 @@ export default function App() {
         <Route path="/admin/products/new" element={<AdminProductForm />} />
         <Route path="/admin/products/edit/:id" element={<AdminProductForm />} />
         <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin/promos" element={<AdminPromos />} />
         <Route path="/admin/categories" element={<AdminCategories />} />
         <Route path="/admin/inventory" element={<AdminInventory />} />
         <Route path="/admin/customers" element={<AdminCustomers />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
       </Routes>
       <ToastHost />

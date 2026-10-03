@@ -17,14 +17,6 @@ const decode = (value) => {
   if ('mapValue' in value) return Object.fromEntries(Object.entries(value.mapValue.fields || {}).map(([key, item]) => [key, decode(item)]));
   return null;
 };
-const encode = (value) => {
-  if (value === null || value === undefined) return { nullValue: null };
-  if (typeof value === 'string') return { stringValue: value };
-  if (typeof value === 'boolean') return { booleanValue: value };
-  if (typeof value === 'number') return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
-  if (Array.isArray(value)) return { arrayValue: { values: value.map(encode) } };
-  return { mapValue: { fields: Object.fromEntries(Object.entries(value).map(([key, item]) => [key, encode(item)])) } };
-};
 const fields = (doc) => Object.fromEntries(Object.entries(doc.fields || {}).map(([key, value]) => [key, decode(value)]));
 
 async function accessToken() {
@@ -56,64 +48,12 @@ async function verifyAccount(idToken, serviceToken) {
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-  if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed.' });
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed.' });
   try {
     const serviceToken = await accessToken();
     const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     const account = await verifyAccount(idToken, serviceToken);
     if (!account) return res.status(401).json({ error: 'Sign in to view your orders.' });
-    if (req.method === 'POST') {
-      const origin = req.headers.origin;
-      if (!origin || new URL(origin).host !== req.headers.host) return res.status(403).json({ error: 'Origin not allowed.' });
-      const id = String(req.body?.id || '').trim();
-      if (!/^[a-zA-Z0-9-]{1,100}$/.test(id)) return res.status(400).json({ error: 'Invalid order number.' });
-      const orderResponse = await fetch(`${db}/orders/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${serviceToken}` } });
-      if (orderResponse.status === 404) return res.status(404).json({ error: 'Order not found.' });
-      const orderDoc = await orderResponse.json().catch(() => ({}));
-      if (!orderResponse.ok) throw new Error('Could not read the order from the store database.');
-      const order = fields(orderDoc);
-      if (order.customerUid !== account.localId) return res.status(404).json({ error: 'Order not found.' });
-      if (order.cancelled) return res.status(200).json({ order });
-      if (!Number.isInteger(Number(order.status)) || Number(order.status) >= 2) {
-        return res.status(409).json({ error: 'This order can no longer be cancelled online because preparation has started. Please contact the store.' });
-      }
-
-      const writes = [];
-      const quantities = new Map();
-      for (const item of order.items || []) {
-        if (!item.productId || !item.variationId || !Number.isInteger(Number(item.qty)) || Number(item.qty) < 1) continue;
-        const key = `${item.productId}::${item.variationId}`;
-        quantities.set(key, (quantities.get(key) || 0) + Number(item.qty));
-      }
-      const productIds = [...new Set((order.items || []).map((item) => item.productId).filter(Boolean))];
-      for (const productId of productIds) {
-        if (!/^[a-z0-9-]{1,80}$/.test(productId)) continue;
-        const productResponse = await fetch(`${db}/products/${encodeURIComponent(productId)}`, { headers: { Authorization: `Bearer ${serviceToken}` } });
-        if (productResponse.status === 404) continue;
-        const productDoc = await productResponse.json().catch(() => ({}));
-        if (!productResponse.ok) throw new Error('Could not restore product stock for this cancellation.');
-        const product = fields(productDoc);
-        product.variations = (product.variations || []).map((variation) => {
-          const quantity = quantities.get(`${productId}::${variation.id}`) || 0;
-          return quantity ? { ...variation, stock: Number(variation.stock || 0) + quantity } : variation;
-        });
-        product.stock = product.variations.reduce((total, variation) => total + Number(variation.stock || 0), 0);
-        writes.push({ update: { name: productDoc.name, fields: Object.fromEntries(Object.entries(product).map(([key, value]) => [key, encode(value)])) }, currentDocument: { updateTime: productDoc.updateTime } });
-      }
-
-      order.cancelled = true;
-      order.cancelledAt = new Date().toISOString();
-      writes.push({ update: { name: orderDoc.name, fields: Object.fromEntries(Object.entries(order).map(([key, value]) => [key, encode(value)])) }, currentDocument: { updateTime: orderDoc.updateTime } });
-      const commit = await fetch(`${db}:commit`, {
-        method: 'POST', headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ writes }),
-      });
-      if (!commit.ok) {
-        if (commit.status === 409 || commit.status === 400) return res.status(409).json({ error: 'The order changed while you were cancelling it. Refresh your orders and try again.' });
-        throw new Error('Could not save the order cancellation.');
-      }
-      return res.status(200).json({ order });
-    }
     const response = await fetch(`${db}:runQuery`, {
       method: 'POST', headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ structuredQuery: {

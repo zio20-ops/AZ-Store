@@ -1,7 +1,4 @@
-import { useLanguage } from '../../i18n/LanguageContext.jsx';
-
 export default function ConfirmDialog({ open, title, body, confirmLabel = 'Delete', onConfirm, onCancel }) {
-  const { t } = useLanguage();
   if (!open) return null;
   return (
     <div className="admodal" role="alertdialog" aria-modal="true" aria-label={title}>
@@ -9,7 +6,7 @@ export default function ConfirmDialog({ open, title, body, confirmLabel = 'Delet
         <h3>{title}</h3>
         {body}
         <div className="admodal__actions">
-          <button className="btn btn--ghost" onClick={onCancel}>{t('Cancel')}</button>
+          <button className="btn btn--ghost" onClick={onCancel}>Cancel</button>
           <button className="btn btn--danger" onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>

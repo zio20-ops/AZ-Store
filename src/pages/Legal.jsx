@@ -1,5 +1,4 @@
 import { useSeo } from '../hooks/useSeo.js';
-import { useLanguage } from '../i18n/LanguageContext.jsx';
 
 const COPY = {
   privacy: {
@@ -23,16 +22,15 @@ const COPY = {
 };
 
 export default function Legal({ kind }) {
-  const { t } = useLanguage();
   const c = COPY[kind] || COPY.privacy;
   useSeo(`${c.title} | AZ Store`, `${c.title} for AZ Store shoppers in Egypt.`);
   return (
     <div className="container">
       <div className="page-head">
-        <h1>{t(c.title)}</h1>
+        <h1>{c.title}</h1>
       </div>
       <div className="faq-wrap" style={{ paddingTop: 20 }}>
-        {c.body.map((p) => <p key={p.slice(0, 24)} style={{ opacity: 0.75, marginBottom: 16 }}>{t(p)}</p>)}
+        {c.body.map((p) => <p key={p.slice(0, 24)} style={{ opacity: 0.75, marginBottom: 16 }}>{p}</p>)}
       </div>
     </div>
   );

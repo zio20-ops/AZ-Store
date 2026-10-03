@@ -44,9 +44,6 @@ const readOrders = () => {
 
 export const listOrders = async () => readOrders();
 export const listMyOrders = async () => [];
-export const cancelMyOrder = async () => {
-  throw new Error('Customer order cancellation requires a signed-in account on the hosted store.');
-};
 
 export const findOrder = async (id, phone) =>
   readOrders().find(
@@ -68,7 +65,7 @@ export const createOrder = async (order) => {
   if (!methods[method]?.enabled) throw new Error('This payment method is not available. Refresh checkout and choose another method.');
   if (method === 'instapay' && !methods.instapay.account) throw new Error('InstaPay is not configured by the store.');
   if (method === 'vodafone' && !methods.vodafone.number) throw new Error('Vodafone Cash is not configured by the store.');
-  if (method !== 'cod' && String(order.paymentRef || '').trim().length < 4) throw new Error('Enter the transaction reference from your payment receipt.');
+  if (method !== 'cod' && String(order.paymentRef || '').trim().length < 4 && !order.paymentProof) throw new Error('Enter the transfer reference or upload a payment screenshot.');
 
   const products = readStorage('az.products', []);
   const items = [];
@@ -98,6 +95,7 @@ export const createOrder = async (order) => {
 
   const saved = {
     ...order,
+    paymentProof: undefined,
     items,
     subtotal,
     discount,
@@ -109,7 +107,7 @@ export const createOrder = async (order) => {
     status: 0,
     cancelled: false,
     paymentRef: method === 'cod' ? null : String(order.paymentRef || '').trim(),
-    paymentProofUrl: null,
+    paymentProofUrl: method === 'cod' ? null : (order.paymentProof || null),
     paymentStatus: order.paymentStatus || (method === 'cod' ? 'Pending' : 'Verification Required'),
   };
 

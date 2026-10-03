@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import { useLanguage } from '../../i18n/LanguageContext.jsx';
 
 // Product photos live inside Firestore documents in this Spark-plan setup.
 const MAX_SIDE = 640;
@@ -29,7 +28,6 @@ export const fileToDataUrl = (file) =>
   });
 
 export default function ImageManager({ images, onChange, onError, altBase = 'product' }) {
-  const { t } = useLanguage();
   const inputRef = useRef(null);
 
   const upload = async (files) => {
@@ -39,7 +37,7 @@ export default function ImageManager({ images, onChange, onError, altBase = 'pro
         const src = await fileToDataUrl(file);
         added.push({ src, alt: `${altBase} image` });
       } catch {
-      onError(t('Image upload failed. Please try again.'));
+        onError('Image upload failed. Please try again.');
         return;
       }
     }
@@ -62,7 +60,7 @@ export default function ImageManager({ images, onChange, onError, altBase = 'pro
 
   const remove = (index) => {
     if (images.length === 1) {
-      onError(t('A product needs at least one image.'));
+      onError('A product needs at least one image.');
       return;
     }
     onChange(images.filter((_, i) => i !== index));
@@ -75,13 +73,13 @@ export default function ImageManager({ images, onChange, onError, altBase = 'pro
           <div className="imgs__item" key={img.src.slice(-24) + i}>
             <div className={`imgs__thumb ${i === 0 ? 'imgs__thumb--primary' : ''}`}>
               <img src={img.src} alt={img.alt || `${altBase} image ${i + 1}`} />
-              {i === 0 && <span className="imgs__primary-tag">{t('Primary')}</span>}
+              {i === 0 && <span className="imgs__primary-tag">Primary</span>}
             </div>
             <div className="imgs__ctrl">
-              {i !== 0 && <button type="button" onClick={() => setPrimary(i)} title={t('Make primary')}>★</button>}
-              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} title={t('Move earlier')}>←</button>
-              <button type="button" onClick={() => move(i, 1)} disabled={i === images.length - 1} title={t('Move later')}>→</button>
-              <button type="button" className="danger" onClick={() => remove(i)} title={t('Delete image')}>✕</button>
+              {i !== 0 && <button type="button" onClick={() => setPrimary(i)} title="Make primary">★</button>}
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} title="Move earlier">←</button>
+              <button type="button" onClick={() => move(i, 1)} disabled={i === images.length - 1} title="Move later">→</button>
+              <button type="button" className="danger" onClick={() => remove(i)} title="Delete image">✕</button>
             </div>
           </div>
         ))}
@@ -92,7 +90,7 @@ export default function ImageManager({ images, onChange, onError, altBase = 'pro
             style={{ aspectRatio: '3/4', borderRadius: '12px 12px 6px 6px' }}
             onClick={() => inputRef.current?.click()}
           >
-            + {t('Add')}
+            + Add
           </button>
         </div>
       </div>
@@ -108,7 +106,7 @@ export default function ImageManager({ images, onChange, onError, altBase = 'pro
         }}
       />
       <p className="hint" style={{ marginTop: 8, fontSize: 12, color: 'rgba(244,234,217,0.45)' }}>
-        {t('The first image is the main image customers see. Images are resized to fit the store database limit.')}
+        The first image is the main image customers see. Images are resized to fit the store database limit.
       </p>
     </div>
   );

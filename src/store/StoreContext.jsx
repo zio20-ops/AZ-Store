@@ -1,11 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { getVariations, PROMOS, FREE_DELIVERY_THRESHOLD } from '../data/products.js';
+import { getVariations, productPrice, variationImageIndex, PROMOS, FREE_DELIVERY_THRESHOLD } from '../data/products.js';
 import { readStorage, writeStorage } from '../utils/format.js';
 import * as catalog from '../services/productService.js';
 import * as orderService from '../services/orderService.js';
 import * as auth from '../services/authService.js';
+import * as customerCart from '../services/customerCartService.js';
 
 const StoreContext = createContext(null);
+const cartStorageKey = (uid) => uid ? `az.cart.customer.${uid}` : 'az.cart.guest';
+const activeCustomerUid = () => {
+  const user = auth.getCurrentUser();
+  return user && !user.isAdmin ? user.uid : null;
+};
+const readCart = (uid) => readStorage(cartStorageKey(uid), []);
 
 export const defaultPaymentStatus = (order) => {
   if (order.paymentRef) return 'Verification Required';
@@ -14,18 +21,32 @@ export const defaultPaymentStatus = (order) => {
 };
 
 export function StoreProvider({ children }) {
-  const [cart, setCart] = useState(() => readStorage('az.cart', []));
+  const initialCartOwner = useRef(activeCustomerUid());
+  const [cart, setCart] = useState(() => readCart(initialCartOwner.current));
+  const [cartReady, setCartReady] = useState(() => !initialCartOwner.current);
+  const cartOwner = useRef(initialCartOwner.current);
+  const latestCart = useRef(cart);
+  const cartSyncTimer = useRef(null);
+  const cartSyncFailed = useRef(false);
   const [wishlist, setWishlist] = useState(() => readStorage('az.wishlist', []));
   const [orders, setOrders] = useState([]);
-  const [lastOrder, setLastOrder] = useState(null);
-  const [promo, setPromo] = useState(() => readStorage('az.promo', null));
+  const [lastOrder, setLastOrder] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('az.lastOrder') || 'null'); } catch { return null; }
+  });
+  const [promo, setPromo] = useState(() => {
+    const stored = readStorage('az.promo', null);
+    if (!stored) return null;
+    return { ...stored, appliesTo: stored.appliesTo || (stored.type === 'shipping' ? 'shipping' : 'products'), type: stored.type === 'shipping' ? 'percent' : stored.type, value: stored.type === 'shipping' ? 100 : stored.value };
+  });
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
   const toastId = useRef(0);
 
   const [allProducts, setAllProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [settings, setSettings] = useState({});
+  const [promoOffers, setPromoOffers] = useState(Object.values(PROMOS).map((item) => ({ ...item, type: item.type === 'shipping' ? 'percent' : item.type, value: item.type === 'shipping' ? 100 : item.value, active: true, appliesTo: item.appliesTo || (item.type === 'shipping' ? 'shipping' : 'products'), productIds: [] })));
   const [productsLoading, setProductsLoading] = useState(true);
 
   const toast = useCallback((message) => {
@@ -36,35 +57,111 @@ export function StoreProvider({ children }) {
 
   const loadCatalog = useCallback(() => {
     setProductsLoading(true);
-    Promise.all([catalog.listProducts(), catalog.getSettings()]).then(([products, nextSettings]) => {
-      setAllProducts(products);
+    return Promise.allSettled([catalog.listProducts(), catalog.getSettings(), catalog.listCategories()]).then(([productsResult, settingsResult, categoriesResult]) => {
+      const products = productsResult.status === 'fulfilled' ? productsResult.value : [];
+      const nextSettings = settingsResult.status === 'fulfilled' ? settingsResult.value : catalog.DEFAULT_SETTINGS;
+      const visibleProducts = products.length ? products : catalog.getSeedProducts();
+      setAllProducts(visibleProducts);
+      const loadedCategories = categoriesResult.status === 'fulfilled' ? categoriesResult.value : [];
+      setCategories(loadedCategories.length ? loadedCategories : [...new Set(visibleProducts.map((product) => product.category).filter(Boolean))].map((name) => ({ id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name, image: '' })));
       setSettings(nextSettings);
       setProductsLoading(false);
-    }).catch((error) => { setProductsLoading(false); toast(error.message || 'Unable to load the store.'); });
+      const error = productsResult.status === 'rejected' ? productsResult.reason : settingsResult.status === 'rejected' ? settingsResult.reason : null;
+      if (error) toast(error.message || 'Unable to connect to the store database. Showing built-in products.');
+    });
   }, [toast]);
 
+  const loadPromos = useCallback(() => {
+    catalog.listPromos().then((items) => { if (Array.isArray(items)) setPromoOffers(items); }).catch(() => {});
+  }, []);
+
   useEffect(() => {
+    try { localStorage.removeItem('az.cart'); } catch { /* Ignore blocked storage. */ }
     loadCatalog();
+    loadPromos();
     // Keep other tabs (customer session while admin edits) in sync.
     const onStorage = (e) => {
-      if (e.key === 'az.products' || e.key === 'az.settings') loadCatalog();
+      if (e.key === 'az.products' || e.key === 'az.settings' || e.key === 'az.categories') loadCatalog();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [loadCatalog]);
+  }, [loadCatalog, loadPromos]);
 
   const loadOrders = useCallback(async () => {
     if (!auth.me()) { setOrders([]); return; }
     try { setOrders(await orderService.listOrders()); } catch (error) { toast(error.message); }
   }, [toast]);
+  useEffect(() => { latestCart.current = cart; }, [cart]);
+
   useEffect(() => {
     loadOrders();
-    const refresh = () => { loadCatalog(); loadOrders(); };
+    const refreshOrders = () => {
+      if (document.visibilityState === 'visible' && auth.me()) void loadOrders();
+    };
+    const orderPoll = window.setInterval(refreshOrders, 15000);
+    window.addEventListener('focus', refreshOrders);
+    document.addEventListener('visibilitychange', refreshOrders);
+    let mounted = true;
+    const hydrateCart = async (uid) => {
+      if (!uid) return;
+      try {
+        const saved = await customerCart.load();
+        if (!mounted || cartOwner.current !== uid) return;
+        const next = saved?.exists ? (saved.items || []) : readCart(uid);
+        setCart(next);
+        writeStorage(cartStorageKey(uid), next);
+        setCartReady(true);
+      } catch {
+        if (mounted && cartOwner.current === uid) setCartReady(true);
+      }
+    };
+    const refresh = () => {
+      loadCatalog(); loadOrders();
+      const nextUid = activeCustomerUid();
+      if (nextUid === cartOwner.current) return;
+      writeStorage(cartStorageKey(cartOwner.current), latestCart.current);
+      cartOwner.current = nextUid;
+      clearTimeout(cartSyncTimer.current);
+      setPromo(null);
+      if (!nextUid) {
+        writeStorage(cartStorageKey(null), []);
+        setCart([]);
+        setCartReady(true);
+        return;
+      }
+      setCart(readCart(nextUid));
+      setCartReady(false);
+      void hydrateCart(nextUid);
+    };
     window.addEventListener('az-auth-changed', refresh);
-    return () => window.removeEventListener('az-auth-changed', refresh);
+    if (cartOwner.current) {
+      setCartReady(false);
+      void hydrateCart(cartOwner.current);
+    }
+    return () => {
+      mounted = false;
+      clearTimeout(cartSyncTimer.current);
+      window.clearInterval(orderPoll);
+      window.removeEventListener('focus', refreshOrders);
+      document.removeEventListener('visibilitychange', refreshOrders);
+      window.removeEventListener('az-auth-changed', refresh);
+    };
   }, [loadCatalog, loadOrders]);
 
-  useEffect(() => writeStorage('az.cart', cart), [cart]);
+  useEffect(() => {
+    if (!cartReady) return;
+    const uid = cartOwner.current;
+    writeStorage(cartStorageKey(uid), cart);
+    if (!uid || activeCustomerUid() !== uid) return;
+    clearTimeout(cartSyncTimer.current);
+    cartSyncTimer.current = setTimeout(() => {
+      if (activeCustomerUid() !== uid) return;
+      customerCart.save(cart).then(() => { cartSyncFailed.current = false; }).catch(() => {
+        if (!cartSyncFailed.current) toast('Your bag is saved on this device, but could not sync to your account. Please try again.');
+        cartSyncFailed.current = true;
+      });
+    }, 650);
+  }, [cart, cartReady, toast]);
   useEffect(() => writeStorage('az.wishlist', wishlist), [wishlist]);
   useEffect(() => writeStorage('az.promo', promo), [promo]);
 
@@ -72,27 +169,46 @@ export function StoreProvider({ children }) {
 
   const findProduct = useCallback((id) => allProducts.find((p) => p.id === id), [allProducts]);
 
-  const detailed = useMemo(
+  const baseDetailed = useMemo(
     () =>
       cart
         .map((line) => {
           const product = findProduct(line.productId);
           if (!product) return null;
           const variation = getVariations(product).find((v) => v.id === line.variationId) || getVariations(product)[0];
-          return { ...line, product, variation, price: variation.price, image: product.images[variation.image]?.src || product.images[0].src };
+      return { ...line, product, variation, price: productPrice(product, variation), image: product.images[variationImageIndex(product, variation)]?.src || product.images.find((image) => image?.src)?.src || '' };
         })
         .filter(Boolean),
     [cart, findProduct],
   );
 
   const count = useMemo(() => cart.reduce((n, l) => n + l.qty, 0), [cart]);
-  const subtotal = useMemo(() => detailed.reduce((n, l) => n + l.qty * l.price, 0), [detailed]);
+  const subtotal = useMemo(() => baseDetailed.reduce((n, l) => n + l.qty * l.price, 0), [baseDetailed]);
 
+  const eligibleLines = useMemo(() => baseDetailed.filter((line) => !promo?.productIds?.length || promo.productIds.includes(line.product.id)), [baseDetailed, promo]);
+  const eligibleSubtotal = useMemo(() => eligibleLines.reduce((sum, line) => sum + line.qty * line.price, 0), [eligibleLines]);
   const discount = useMemo(() => {
-    if (!promo) return 0;
-    if (promo.type === 'percent') return Math.round((subtotal * promo.value) / 100);
-    return 0;
-  }, [promo, subtotal]);
+    if (!promo || promo.appliesTo === 'shipping') return 0;
+    const amount = promo.type === 'percent' ? Math.round(eligibleSubtotal * promo.value / 100) : Number(promo.value || 0);
+    return Math.min(eligibleSubtotal, amount);
+  }, [promo, eligibleSubtotal]);
+  const detailed = useMemo(() => {
+    if (!promo || promo.appliesTo === 'shipping' || !discount || !eligibleSubtotal) return baseDetailed;
+    let remainingDiscount = discount;
+    const lastEligibleIndex = baseDetailed.reduce((last, line, index) => (!promo.productIds?.length || promo.productIds.includes(line.product.id) ? index : last), -1);
+    return baseDetailed.map((line, index) => {
+      if (promo.productIds?.length && !promo.productIds.includes(line.product.id)) return line;
+      const lineTotal = line.qty * line.price;
+      const lineDiscount = index === lastEligibleIndex
+        ? remainingDiscount
+        : Math.min(remainingDiscount, lineTotal, Math.round(discount * lineTotal / eligibleSubtotal));
+      remainingDiscount = Math.max(0, remainingDiscount - lineDiscount);
+      return { ...line, promoDiscount: lineDiscount, promoLineTotal: lineTotal - lineDiscount };
+    });
+  }, [baseDetailed, promo, discount, eligibleSubtotal]);
+  useEffect(() => {
+    if (promo?.appliesTo === 'products' && promo.productIds?.length && eligibleSubtotal === 0) setPromo(null);
+  }, [promo, eligibleSubtotal]);
 
   const addToCart = useCallback(
     (productId, variationId, qty = 1) => {
@@ -146,11 +262,16 @@ export function StoreProvider({ children }) {
   );
 
   const applyPromo = useCallback((code) => {
-    const found = PROMOS[code.trim().toUpperCase()];
-    if (!found) return { ok: false, message: 'That code isn’t valid.' };
+    const found = promoOffers.find((item) => item.code === code.trim().toUpperCase() && item.active !== false);
+    if (!found) return { ok: false, message: 'That code isn’t valid or is no longer active.' };
+    const eligibleTotal = detailed.filter((line) => !found.productIds?.length || found.productIds.includes(line.product.id)).reduce((sum, line) => sum + line.qty * line.price, 0);
+    if (found.productIds?.length && eligibleTotal === 0) return { ok: false, message: 'This code does not apply to products in your bag.' };
+    if (Number(found.minSubtotal) > eligibleTotal) return { ok: false, message: `Add ${Number(found.minSubtotal) - eligibleTotal} EGP more in eligible products to use this code.` };
     setPromo(found);
     return { ok: true, message: `${found.code} applied.` };
-  }, []);
+  }, [promoOffers, baseDetailed, subtotal]);
+
+  const removePromo = useCallback(() => setPromo(null), []);
 
   const placeOrder = useCallback(
     async (payload) => {
@@ -175,6 +296,7 @@ export function StoreProvider({ children }) {
       order.paymentStatus = order.paymentStatus || defaultPaymentStatus(order);
       const saved = await orderService.createOrder(order);
       setLastOrder(saved);
+      try { sessionStorage.setItem('az.lastOrder', JSON.stringify(saved)); } catch { /* storage full or blocked */ }
       setCart([]);
       setPromo(null);
       return saved;
@@ -188,13 +310,19 @@ export function StoreProvider({ children }) {
     return updated;
   }, []);
 
+  const deleteOrder = useCallback(async (id) => {
+    await orderService.deleteOrder(id);
+    setOrders((current) => current.filter((order) => order.id !== id));
+  }, []);
+
   const value = {
     products,
     allProducts,
+    categories,
     productsLoading,
     refreshCatalog: loadCatalog,
     settings,
-    announcement: settings.announcement ?? 'Free gift cards with every trio box',
+    announcement: typeof settings.announcement === 'string' ? settings.announcement.trim() : 'Free gift cards with every trio box',
     cart: detailed,
     count,
     subtotal,
@@ -212,11 +340,15 @@ export function StoreProvider({ children }) {
     wishlist,
     toggleWish,
     applyPromo,
+    removePromo,
+    promoOffers,
+    refreshPromos: loadPromos,
     toasts,
     toast,
     orders,
     placeOrder,
     updateOrder,
+    deleteOrder,
     lastOrder,
   };
 

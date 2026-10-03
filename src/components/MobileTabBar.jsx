@@ -1,30 +1,28 @@
 import { NavLink } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { HomeIcon, GridIcon, SearchIcon, BagIcon } from './icons.jsx';
-import { useLanguage } from '../i18n/LanguageContext.jsx';
 
 export default function MobileTabBar() {
   const { count, setCartOpen, setSearchOpen } = useStore();
-  const { t } = useLanguage();
 
   return (
-    <nav className="tabbar" aria-label={t('Quick navigation')}>
+    <nav className="tabbar" aria-label="Quick navigation">
       <NavLink to="/" end>
         <HomeIcon />
-        {t('Home')}
+        Home
       </NavLink>
       <NavLink to="/shop">
         <GridIcon />
-        {t('Shop')}
+        Shop
       </NavLink>
-      <button onClick={() => setSearchOpen(true)} aria-label={t('Search')}>
+      <button onClick={() => setSearchOpen(true)}>
         <SearchIcon />
-        {t('Search')}
+        Search
       </button>
-      <button onClick={() => setCartOpen(true)} aria-label={`${t('Open bag')}, ${count} ${t('items')}`}>
+      <button onClick={() => setCartOpen(true)} aria-label={`Open bag, ${count} items`}>
         <BagIcon />
         {count > 0 && <span className="bagpill">{count}</span>}
-        {t('Bag')}
+        Bag
       </button>
     </nav>
   );

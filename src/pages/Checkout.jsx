@@ -6,8 +6,6 @@ import { DELIVERY_METHODS, PAYMENT_METHODS } from '../data/products.js';
 import { GOVERNORATES } from '../data/content.js';
 import { egp, isValidEgyptPhone, isValidEmail } from '../utils/format.js';
 import * as auth from '../services/authService.js';
-import { useLanguage } from '../i18n/LanguageContext.jsx';
-import LanguageToggle from '../components/LanguageToggle.jsx';
 
 const initialForm = {
   name: '', phone: '', email: '', governorate: '', city: '',
@@ -15,9 +13,8 @@ const initialForm = {
 };
 
 export default function Checkout() {
-  const { t } = useLanguage();
   useSeo('Checkout | AZ Store', 'Choose a payment method and complete your AZ Store order.');
-  const { cart, subtotal, discount, promo, freeThreshold, settings, placeOrder } = useStore();
+  const { cart, subtotal, discount, promo, removePromo, freeThreshold, settings, placeOrder, setCartOpen } = useStore();
   const navigate = useNavigate();
 
   const [form, setForm] = useState(() => {
@@ -28,19 +25,32 @@ export default function Checkout() {
   const [deliveryId, setDeliveryId] = useState('standard');
   const [paymentId, setPaymentId] = useState('cod');
   const [paymentRef, setPaymentRef] = useState('');
+  const [paymentProof, setPaymentProof] = useState(null);
+  const [proofError, setProofError] = useState('');
+  const [compressingProof, setCompressingProof] = useState(false);
   const [placing, setPlacing] = useState(false);
 
   const method = DELIVERY_METHODS.find((m) => m.id === deliveryId);
+  const promoShippingMethod = promo?.shippingMethod || 'standard';
+  const promoShippingMethodMismatch = promo?.appliesTo === 'shipping' && promoShippingMethod !== 'any' && promoShippingMethod !== deliveryId;
+  const promoShippingMinimum = promo?.appliesTo === 'shipping' && subtotal < Number(promo.minSubtotal || 0);
+  const promoShippingReady = promo?.appliesTo === 'shipping' && !promoShippingMethodMismatch && !promoShippingMinimum;
   const deliveryFee = useMemo(() => {
-    if (promo?.type === 'shipping') return 0;
-    if (deliveryId === 'standard' && subtotal >= freeThreshold) return 0;
-    return method.price;
-  }, [deliveryId, subtotal, freeThreshold, method, promo]);
+    const base = deliveryId === 'standard' && subtotal >= freeThreshold ? 0 : method.price;
+    if (!promoShippingReady) return base;
+    const reduction = promo.type === 'percent' ? Math.round(base * promo.value / 100) : Number(promo.value || 0);
+    return Math.max(0, base - reduction);
+  }, [deliveryId, subtotal, freeThreshold, method, promo, promoShippingReady]);
 
   const total = subtotal - discount + deliveryFee;
   const payment = PAYMENT_METHODS.find((p) => p.id === paymentId);
   const paymentOptions = PAYMENT_METHODS.filter((p) => settings.paymentMethods?.[p.id]?.enabled ?? p.id === 'cod');
   const paymentConfig = settings.paymentMethods?.[paymentId] || {};
+
+  const returnToBag = () => {
+    setCartOpen(true);
+    navigate('/');
+  };
 
   useEffect(() => {
     if (paymentOptions.length && !paymentOptions.some((p) => p.id === paymentId)) setPaymentId(paymentOptions[0].id);
@@ -59,7 +69,7 @@ export default function Checkout() {
     if (!form.governorate) er.governorate = 'Choose your governorate.';
     if (!form.city.trim()) er.city = 'Please enter your city.';
     if (form.address.trim().length < 8) er.address = 'Please enter your full street address.';
-    if (paymentId !== 'cod' && paymentRef.trim().length < 4) er.paymentRef = 'Enter the transfer reference shown in your payment app.';
+    if (paymentId !== 'cod' && paymentRef.trim().length < 4 && !paymentProof) er.paymentRef = 'Add a transfer reference or upload a payment screenshot.';
     setErrors(er);
     return Object.keys(er).length === 0;
   };
@@ -79,26 +89,61 @@ export default function Checkout() {
         payment: payment.label,
         paymentMethod: paymentId,
         paymentRef: paymentId === 'cod' ? '' : paymentRef.trim(),
+        paymentProof: paymentId === 'cod' ? null : paymentProof?.dataUrl || null,
         deliveryMethod: `${method.label}, ${method.eta.toLowerCase()}`,
         deliveryOption: deliveryId,
         promoCode: promo?.code || '',
+        discount,
         delivery: deliveryFee,
         address: [form.address.trim(), form.apartment.trim(), form.city.trim(), form.governorate].filter(Boolean).join(', '),
         notes: form.notes.trim(),
       });
       navigate('/order-confirmation', { state: { id: order.id, order } });
     } catch (error) {
-      setErrors((old) => ({ ...old, submit: error.message || 'Unable to save the order. Please try again.' }));
+      setErrors((old) => ({ ...old, submit: `${error.message || 'Unable to save the order. Please try again.'}${error.code ? ` (Error code: ${error.code})` : ''}` }));
     } finally { setPlacing(false); }
+  };
+
+  const selectPaymentProof = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    setProofError('');
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setProofError('Choose a JPG, PNG, or WebP image.');
+      return;
+    }
+    setCompressingProof(true);
+    try {
+      const image = await createImageBitmap(file);
+      const scale = Math.min(1, 1400 / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      image.close();
+      let quality = 0.82;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      while (dataUrl.length > 600_000 && quality > 0.48) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+      if (dataUrl.length > 600_000) throw new Error('The screenshot is too large. Please choose a smaller image.');
+      setPaymentProof({ dataUrl, name: file.name });
+      setErrors((previous) => ({ ...previous, paymentRef: undefined }));
+    } catch (error) {
+      setPaymentProof(null);
+      setProofError(error.message || 'Could not read this image. Please choose another one.');
+    } finally { setCompressingProof(false); }
   };
 
   if (cart.length === 0) {
     return (
       <div className="confirm">
-        <h1>{t('Your bag is empty.')}</h1>
-        <p>{t('Add a scent or two before checking out.')}</p>
+        <h1>Your bag is empty.</h1>
+        <p>Add a scent or two before checking out.</p>
         <div className="confirm__actions">
-          <Link className="btn btn--dark" to="/shop">{t('Shop all')}</Link>
+          <Link className="btn btn--dark" to="/shop">Shop all</Link>
         </div>
       </div>
     );
@@ -109,114 +154,128 @@ export default function Checkout() {
   return (
     <>
       <div className="cohead">
-        <Link to="/" className="logo" aria-label={t('AZ Store home')}>AZ</Link>
-        <span>{t('Checkout')}</span>
-        <LanguageToggle />
-        <Link to="/cart">{t('Back to bag')}</Link>
+        <Link to="/" className="logo" aria-label="AZ Store home">AZ</Link>
+          <span>Checkout</span>
+        <Link to="/" onClick={returnToBag}>Back to bag</Link>
       </div>
 
       <div className="container co">
         <form onSubmit={submit} noValidate>
-          <h2>{t('Delivery')}</h2>
+          <h2>Delivery</h2>
+          {!auth.getCurrentUser() && <p className="checkout-account-note">Want this order saved to your account? <Link to="/account/login">Sign in</Link> before checkout. You can still place an order as a guest and track it with your order number and phone.</p>}
           <div className="co__fields">
             <div>
-            <input className={fieldClass('name')} placeholder={t('Full name')} value={form.name} onChange={set('name')} aria-label={t('Full name')} autoComplete="name" />
-              {errors.name && <p className="field-error" role="alert">{t(errors.name)}</p>}
+              <input className={fieldClass('name')} placeholder="Full name" value={form.name} onChange={set('name')} aria-label="Full name" autoComplete="name" />
+              {errors.name && <p className="field-error" role="alert">{errors.name}</p>}
             </div>
             <div>
-            <input className={fieldClass('phone')} placeholder={t('Phone number')} value={form.phone} onChange={set('phone')} aria-label={t('Phone number')} inputMode="numeric" autoComplete="tel" />
-              {errors.phone && <p className="field-error" role="alert">{t(errors.phone)}</p>}
+              <input className={fieldClass('phone')} placeholder="Phone number" value={form.phone} onChange={set('phone')} aria-label="Phone number" inputMode="numeric" autoComplete="tel" />
+              {errors.phone && <p className="field-error" role="alert">{errors.phone}</p>}
             </div>
             <div>
-            <input className={fieldClass('email')} placeholder={t('Email address')} value={form.email} onChange={set('email')} aria-label={t('Email address')} type="email" autoComplete="email" />
-              {errors.email && <p className="field-error" role="alert">{t(errors.email)}</p>}
+              <input className={fieldClass('email')} placeholder="Email address" value={form.email} onChange={set('email')} aria-label="Email address" type="email" autoComplete="email" />
+              {errors.email && <p className="field-error" role="alert">{errors.email}</p>}
             </div>
             <div className="co__grid2">
               <div>
-                <select className={fieldClass('governorate')} value={form.governorate} onChange={set('governorate')} aria-label={t('Governorate')}>
-                  <option value="">{t('Governorate')}</option>
-                  {GOVERNORATES.map((g) => <option key={g} value={g}>{t(g)}</option>)}
+                <select className={fieldClass('governorate')} value={form.governorate} onChange={set('governorate')} aria-label="Governorate">
+                  <option value="">Governorate</option>
+                  {GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
-                {errors.governorate && <p className="field-error" role="alert">{t(errors.governorate)}</p>}
+                {errors.governorate && <p className="field-error" role="alert">{errors.governorate}</p>}
               </div>
               <div>
-                <input className={fieldClass('city')} placeholder={t('City')} value={form.city} onChange={set('city')} aria-label={t('City')} />
-                {errors.city && <p className="field-error" role="alert">{t(errors.city)}</p>}
+                <input className={fieldClass('city')} placeholder="City" value={form.city} onChange={set('city')} aria-label="City" />
+                {errors.city && <p className="field-error" role="alert">{errors.city}</p>}
               </div>
             </div>
             <div>
-              <input className={fieldClass('address')} placeholder={t('Full address')} value={form.address} onChange={set('address')} aria-label={t('Full address')} autoComplete="street-address" />
-              {errors.address && <p className="field-error" role="alert">{t(errors.address)}</p>}
+              <input className={fieldClass('address')} placeholder="Full address" value={form.address} onChange={set('address')} aria-label="Full address" autoComplete="street-address" />
+              {errors.address && <p className="field-error" role="alert">{errors.address}</p>}
             </div>
-            <input className="field" placeholder={t('Apartment / Building')} value={form.apartment} onChange={set('apartment')} aria-label={t('Apartment or building')} />
-            <textarea className="field" placeholder={t('Additional notes')} value={form.notes} onChange={set('notes')} aria-label={t('Additional notes')} rows={2} />
+            <input className="field" placeholder="Apartment / Building" value={form.apartment} onChange={set('apartment')} aria-label="Apartment or building" />
+            <textarea className="field" placeholder="Additional notes" value={form.notes} onChange={set('notes')} aria-label="Additional notes" rows={2} />
           </div>
 
-          <h5>{t('Delivery method')}</h5>
-          <div className="opts opts--3" role="radiogroup" aria-label={t('Delivery method')}>
+          <h5>Delivery method</h5>
+          <div className="opts opts--3" role="radiogroup" aria-label="Delivery method">
             {DELIVERY_METHODS.map((m) => {
               const free = m.id === 'standard' && subtotal >= freeThreshold;
               return (
                 <button type="button" key={m.id} className={`opt ${deliveryId === m.id ? 'opt--on' : ''}`}
                   role="radio" aria-checked={deliveryId === m.id} onClick={() => setDeliveryId(m.id)}>
-                  {t(m.label)}, {t(m.eta.toLowerCase())}
-                  <b>{free ? t('Free') : egp(m.price)}</b>
+                  {m.label}, {m.eta.toLowerCase()}
+                  <b>{free ? 'Free' : egp(m.price)}</b>
                 </button>
               );
             })}
           </div>
+          {promoShippingMethodMismatch && <p className="field-error" role="status">This code applies to {promoShippingMethod === 'express' ? 'Express' : 'Standard'} delivery only. Choose that delivery option or <button type="button" className="promo-remove" onClick={removePromo}>remove the code</button>.</p>}
+          {promoShippingMinimum && <p className="field-error" role="status">This delivery discount needs at least {egp(promo.minSubtotal)} in products. Add eligible products or <button type="button" className="promo-remove" onClick={removePromo}>remove the code</button>.</p>}
 
-          <h5>{t('Payment')}</h5>
-          {paymentOptions.length > 0 ? <div className="opts opts--3" role="radiogroup" aria-label={t('Payment method')}>
+          <h5>Payment</h5>
+          {paymentOptions.length > 0 ? <div className="opts opts--3" role="radiogroup" aria-label="Payment method">
             {paymentOptions.map((p) => (
               <button type="button" key={p.id} className={`opt ${paymentId === p.id ? 'opt--on' : ''}`}
                 role="radio" aria-checked={paymentId === p.id} onClick={() => setPaymentId(p.id)}>
-                {t(p.label)}
-                <small>{t(p.note)}</small>
+                {p.label}
+                <small>{p.note}</small>
               </button>
             ))}
-          </div> : <p className="field-error">{t('The store has no payment method enabled. Contact the store owner.')}</p>}
+          </div> : <p className="field-error">The store has no payment method enabled. Contact the store owner.</p>}
 
           {paymentId === 'instapay' && <div className="paynote">
-            <p>{t('Transfer')} <b>{egp(total)}</b> {t('to this InstaPay account:')}</p>
+            <p>Transfer <b>{egp(total)}</b> to this InstaPay account:</p>
             <p><code>{paymentConfig.account}</code>{paymentConfig.accountName ? ` · ${paymentConfig.accountName}` : ''}</p>
-            <label className="co__fields">{t('Transfer reference')}<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder={t('Reference from your transfer')} /></label>
-            {errors.paymentRef && <p className="field-error">{t(errors.paymentRef)}</p>}
-            <small>{t('The store will confirm your transfer manually before preparing the order.')}</small>
+            <small>After the transfer succeeds, copy the transaction ID or reference shown on the InstaPay receipt. It is not your order number or account number.</small>
+            <label className="co__fields">Transaction ID / reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="From the successful transfer receipt" /></label>
+            {errors.paymentRef && <p className="field-error">{errors.paymentRef}</p>}
+            <label className="co__fields">Payment screenshot (optional)<input className="field" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectPaymentProof} /></label>
+            {compressingProof && <small>Preparing screenshot…</small>}
+            {paymentProof && <div className="paynote__proof"><img src={paymentProof.dataUrl} alt="Selected InstaPay transfer receipt" /><span>{paymentProof.name}</span><button type="button" onClick={() => setPaymentProof(null)}>Remove image</button></div>}
+            {proofError && <p className="field-error">{proofError}</p>}
+            <small>Add the reference, screenshot, or both. At least one is required.</small>
+            <small>The store will confirm your transfer manually before preparing the order.</small>
           </div>}
 
           {paymentId === 'vodafone' && <div className="paynote">
-            <p>{t('Transfer')} <b>{egp(total)}</b> {t('to this Vodafone Cash number:')}</p>
+            <p>Transfer <b>{egp(total)}</b> to this Vodafone Cash number:</p>
             <p><code>{paymentConfig.number}</code></p>
-            <label className="co__fields">{t('Transfer reference')}<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder={t('Reference from your transfer')} /></label>
-            {errors.paymentRef && <p className="field-error">{t(errors.paymentRef)}</p>}
-            <small>{t('The store will confirm your transfer manually before preparing the order.')}</small>
+            <small>After the transfer succeeds, copy the transaction ID or reference shown in the Vodafone Cash confirmation message or receipt. It is not your order number or phone number.</small>
+            <label className="co__fields">Transaction ID / reference<input className="field" value={paymentRef} onChange={(e) => { setPaymentRef(e.target.value); setErrors({ ...errors, paymentRef: undefined }); }} placeholder="From the successful transfer receipt" /></label>
+            {errors.paymentRef && <p className="field-error">{errors.paymentRef}</p>}
+            <label className="co__fields">Payment screenshot (optional)<input className="field" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectPaymentProof} /></label>
+            {compressingProof && <small>Preparing screenshot…</small>}
+            {paymentProof && <div className="paynote__proof"><img src={paymentProof.dataUrl} alt="Selected Vodafone Cash transfer receipt" /><span>{paymentProof.name}</span><button type="button" onClick={() => setPaymentProof(null)}>Remove image</button></div>}
+            {proofError && <p className="field-error">{proofError}</p>}
+            <small>Add the reference, screenshot, or both. At least one is required.</small>
+            <small>The store will confirm your transfer manually before preparing the order.</small>
           </div>}
 
-          {errors.submit && <p className="field-error" role="alert">{t(errors.submit)}</p>}
+          {errors.submit && <p className="field-error" role="alert">{errors.submit}</p>}
 
-          <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || paymentOptions.length === 0}>
-            {placing ? t('Placing order…') : `${t('Place order')} · ${egp(total)}`}
+          <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || compressingProof || paymentOptions.length === 0 || promoShippingMethodMismatch || promoShippingMinimum}>
+            {compressingProof ? 'Preparing screenshot…' : placing ? 'Placing order…' : `Place order · ${egp(total)}`}
           </button>
         </form>
 
-        <aside className="sum" aria-label={t('Order summary')}>
-          <h2>{t('Order summary')}</h2>
+        <aside className="sum" aria-label="Order summary">
+          <h2>Order summary</h2>
           {cart.map((l) => (
             <div className="sum__row" key={l.key}>
               <span>{l.product.name} × {l.qty}</span>
               <span>{egp(l.price * l.qty)}</span>
             </div>
           ))}
-          <div className="sum__row"><span>{t('Delivery')}</span><span>{deliveryFee === 0 ? t('Free') : egp(deliveryFee)}</span></div>
+          <div className="sum__row"><span>Delivery</span><span>{deliveryFee === 0 ? 'Free' : egp(deliveryFee)}</span></div>
           {promo && (
             <div className="sum__row">
-              <span>{t('Promo')} {promo.code}</span>
-              <span className="sum__discount">−{egp(discount)}</span>
+              <span>Promo {promo.code}{promo.appliesTo === 'shipping' ? ' · delivery' : ''}</span>
+              <span className="sum__discount">−{egp(promo.appliesTo === 'shipping' ? Math.max(0, (deliveryId === 'standard' && subtotal >= freeThreshold ? 0 : method.price) - deliveryFee) : discount)}</span>
             </div>
           )}
-          <div className="sum__total"><span>{t('Total')}</span><span>{egp(total)}</span></div>
-          <p className="sum__note">{t('Prices in Egyptian pounds.')} {paymentId === 'cod' ? t('Pay the courier when your order arrives.') : t('Your transfer will be manually verified by the store.')}</p>
+          <div className="sum__total"><span>Total</span><span>{egp(total)}</span></div>
+          <p className="sum__note">Prices in Egyptian pounds. {paymentId === 'cod' ? 'Pay the courier when your order arrives.' : 'Your transfer will be manually verified by the store.'}</p>
         </aside>
       </div>
     </>

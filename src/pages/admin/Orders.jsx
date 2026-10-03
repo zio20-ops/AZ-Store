@@ -3,7 +3,6 @@ import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { useStore } from '../../store/StoreContext.jsx';
 import { ORDER_STEPS } from '../../data/content.js';
 import { egp } from '../../utils/format.js';
-import { useLanguage } from '../../i18n/LanguageContext.jsx';
 
 const PAYMENT_STATUSES = ['Pending', 'Paid', 'Verification Required', 'Failed', 'Refunded'];
 const PAY_BADGE = {
@@ -11,14 +10,15 @@ const PAY_BADGE = {
 };
 
 export default function Orders() {
-  const { t } = useLanguage();
-  const { orders, updateOrder, toast } = useStore();
+  const { orders, updateOrder, deleteOrder, toast } = useStore();
   const [filter, setFilter] = useState('all');
 
   const rows = orders.filter((o) => {
     if (filter === 'all') return true;
     if (filter === 'cancelled') return !!o.cancelled;
     if (filter === 'pending') return !o.cancelled && o.status < 4;
+    if (filter === 'paid') return !o.cancelled && o.paymentStatus === 'Paid';
+    if (filter === 'verification') return !o.cancelled && o.paymentStatus === 'Verification Required';
     return !o.cancelled && o.status === Number(filter);
   });
 
@@ -37,72 +37,98 @@ export default function Orders() {
     catch (error) { toast(error.message || 'Could not update payment status.'); }
   };
 
+  const removeOrder = async (order) => {
+    if (!window.confirm(`Delete order ${order.id}? This cannot be undone.`)) return;
+    try { await deleteOrder(order.id); toast(`Order ${order.id} deleted.`); }
+    catch (error) { toast(error.message || 'Could not delete this order.'); }
+  };
+
   return (
     <AdminLayout title="Orders">
       <div className="adbar">
         <div className="adfield" style={{ margin: 0, width: 190 }}>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label={t('Filter orders')}>
-            <option value="all">{t('All orders')}</option>
-            <option value="pending">{t('Pending fulfilment')}</option>
-            {ORDER_STEPS.map((s, i) => <option key={s} value={i}>{t(s)}</option>)}
-            <option value="cancelled">{t('Cancelled')}</option>
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filter orders">
+            <option value="all">All orders</option>
+            <option value="pending">Pending fulfilment</option>
+            <option value="paid">Paid orders</option>
+            <option value="verification">Awaiting payment review</option>
+            {ORDER_STEPS.map((s, i) => <option key={s} value={i}>{s}</option>)}
+            <option value="cancelled">Cancelled</option>
           </select>
         </div>
       </div>
 
       <section className="adsec" style={{ marginTop: 0 }}>
-        <div className="adsec__head"><h2>{rows.length} {t(rows.length === 1 ? 'order' : 'orders')}</h2></div>
+        <div className="adsec__head"><h2>{rows.length} {rows.length === 1 ? 'order' : 'orders'}</h2></div>
+        <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.55)', marginBottom: 14 }}>Set delivery progress and payment confirmation manually here. “Paid” means you verified the transfer outside the store.</p>
         <div className="adtable-wrap">
           <table className="adtable responsive">
             <thead>
-              <tr><th>{t('Order ID')}</th><th>{t('Customer')}</th><th>{t('Date')}</th><th>{t('Items')}</th><th className="num">{t('Total')}</th><th>{t('Payment')}</th><th>{t('Status')}</th><th>{t('Payment status')}</th></tr>
+              <tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Items</th><th className="num">Total</th><th>Payment</th><th>Status</th><th>Payment status</th><th>Details</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {rows.map((o) => (
                 <tr key={o.id}>
-                  <td data-label={t('Order ID')}><span className="prod-name">{o.id}</span></td>
-                  <td data-label={t('Customer')}>
+                  <td data-label="Order ID"><span className="prod-name">{o.id}</span></td>
+                  <td data-label="Customer">
                     {o.name}
                     <span className="prod-sku">{o.phone}</span>
                   </td>
-                  <td data-label={t('Date')}>{new Date(o.placedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                  <td data-label={t('Items')}>{o.items.reduce((n, i) => n + i.qty, 0)} {t('items')}</td>
-                  <td data-label={t('Total')} className="num">{egp(o.total)}</td>
-                  <td data-label={t('Payment')}>
-                    {t(o.payment)}
-                    {o.paymentRef && <span className="prod-sku">{t('Ref')}: {o.paymentRef}</span>}
+                  <td data-label="Date">{new Date(o.placedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                  <td data-label="Items">{o.items.reduce((n, i) => n + i.qty, 0)} items</td>
+                  <td data-label="Total" className="num">{egp(o.total)}</td>
+                  <td data-label="Payment">
+                    {o.payment}
+                    {o.paymentRef && <span className="prod-sku">Ref: {o.paymentRef}</span>}
+                    {o.paymentProofUrl && <a className="order-proof" href={o.paymentProofUrl} target="_blank" rel="noreferrer noopener">View transfer screenshot</a>}
                   </td>
-                  <td data-label={t('Status')}>
+                  <td data-label="Status">
                     <select
                       className="badge"
                       style={{ background: 'rgba(244,234,217,0.06)', border: '1px solid var(--line-3)', color: 'var(--pearl)', borderRadius: 99, padding: '4px 8px', font: '600 12px var(--body)' }}
                       value={o.cancelled ? 'cancelled' : String(o.status)}
                       onChange={(e) => setStatus(o, e.target.value)}
-                      aria-label={`${t('Status of order')} ${o.id}`}
+                      aria-label={`Status of order ${o.id}`}
                     >
-                      {ORDER_STEPS.map((s, i) => <option key={s} value={i}>{t(s)}</option>)}
-                      <option value="cancelled">{t('Cancelled')}</option>
+                      {ORDER_STEPS.map((s, i) => <option key={s} value={i}>{s}</option>)}
+                      <option value="cancelled">Cancelled</option>
                     </select>
                   </td>
-                  <td data-label={t('Payment status')}>
-                    <span className={`badge ${PAY_BADGE[o.paymentStatus] || 'badge--mute'}`}>{t(o.paymentStatus || 'Pending')}</span>
+                  <td data-label="Payment status">
+                    <span className={`badge ${PAY_BADGE[o.paymentStatus] || 'badge--mute'}`}>{o.paymentStatus || 'Pending'}</span>
                     <div className="ad__actions" style={{ marginTop: 6 }}>
                       <select
                         value={o.paymentStatus || 'Pending'}
                         onChange={(e) => setPayment(o, e.target.value)}
-                        aria-label={`${t('Payment status of order')} ${o.id}`}
+                        aria-label={`Payment status of order ${o.id}`}
                         style={{ background: 'none', border: '1px solid var(--line-3)', color: 'rgba(244,234,217,0.8)', borderRadius: 99, padding: '4px 8px', font: '600 11.5px var(--body)' }}
                       >
-                        {PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{t(s)}</option>)}
+                        {PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      {o.paymentRef && o.paymentStatus === 'Verification Required' && (
-                        <button onClick={() => setPayment(o, 'Paid')}>{t('Verify payment')}</button>
+                      {(o.paymentRef || o.paymentProofUrl) && o.paymentStatus === 'Verification Required' && (
+                        <button onClick={() => setPayment(o, 'Paid')}>Verify payment</button>
                       )}
                     </div>
                   </td>
+                  <td data-label="Order details" className="admin-order-detail-cell">
+                    <details className="admin-order-details">
+                      <summary>Full details</summary>
+                      <div className="admin-order-details__content">
+                        <p><b>Email:</b> {o.email || 'Not provided'}</p>
+                        <p><b>Delivery address:</b> {o.address || 'Not provided'}</p>
+                        <p><b>Delivery method:</b> {o.deliveryMethod || 'Not provided'}</p>
+                        {o.notes && <p><b>Customer notes:</b> {o.notes}</p>}
+                        <ul>{(o.items || []).map((item, index) => <li key={`${item.productId}-${item.variationId}-${index}`}>
+                          {item.name} — {item.meta || item.variationId} · Qty {item.qty} · {egp(item.price * item.qty)}
+                        </li>)}</ul>
+                        <p><b>Subtotal:</b> {egp(o.subtotal || 0)} · <b>Discount:</b> {egp(o.discount || 0)} · <b>Delivery:</b> {egp(o.delivery || 0)}</p>
+                      </div>
+                    </details>
+                  </td>
+                  <td data-label="Actions"><div className="ad__actions"><button type="button" className="danger" onClick={() => removeOrder(o)}>Delete order</button></div></td>
                 </tr>
               ))}
-              {rows.length === 0 && <tr><td colSpan={8}><div className="adempty">{t('No orders in this view.')}</div></td></tr>}
+              {rows.length === 0 && <tr><td colSpan={10}><div className="adempty">No orders in this view.</div></td></tr>}
             </tbody>
           </table>
         </div>
