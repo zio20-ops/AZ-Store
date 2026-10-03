@@ -2,7 +2,7 @@ export const ANNOUNCEMENT = 'Free gift cards with every trio box';
 
 export const NAV_LINKS = [
   { label: 'Shop all', to: '/shop' },
-  { label: 'Scents', to: '/shop?filter=mists' },
+  { label: 'Products', to: '/shop?filter=mists' },
   { label: 'Gift sets', to: '/shop?filter=gift-sets' },
   { label: 'Our story', to: '/about' },
 ];
@@ -74,7 +74,7 @@ export const FOOTER_COLUMNS = [
     title: 'Shop',
     links: [
       { label: 'Shop all', to: '/shop' },
-      { label: 'Scents', to: '/shop?filter=mists' },
+      { label: 'Products', to: '/shop?filter=mists' },
       { label: 'Gift sets', to: '/shop?filter=gift-sets' },
       { label: 'Best sellers', to: '/shop?sort=best-selling#shop-results' },
       { label: 'New arrivals', to: '/shop?sort=newest#shop-results' },
