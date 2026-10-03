@@ -77,6 +77,19 @@
 .account-order__actions span { color: rgba(244,234,217,.5); font-size: 11px; line-height: 1.5; }
 .account-order__actions button { flex: 0 0 auto; border: 1px solid rgba(255,122,122,.42); border-radius: 99px; padding: 8px 14px; color: #ffc0c0; font-size: 12px; }
 .account-order__actions button:disabled { opacity: .55; }
+.cancel-dialog-backdrop { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 20px; background: rgba(7,4,3,.76); backdrop-filter: blur(8px); }
+.cancel-dialog { position: relative; width: min(100%, 480px); padding: 32px; border: 1px solid rgba(226,173,85,.34); border-radius: 20px; background: radial-gradient(ellipse at 100% 0%, rgba(226,173,85,.12), transparent 45%), #160d09; color: var(--pearl); box-shadow: 0 28px 90px rgba(0,0,0,.55); }
+.cancel-dialog__close { position: absolute; inset-block-start: 14px; inset-inline-end: 16px; width: 36px; height: 36px; border: 1px solid var(--line-2); border-radius: 50%; color: var(--pearl); font-size: 22px; line-height: 1; }
+.cancel-dialog__eyebrow { display: block; padding-inline-end: 42px; color: var(--gold); font-size: 10px; font-weight: 700; letter-spacing: .16em; }
+.cancel-dialog h2 { margin: 14px 0 10px; color: var(--pearl); font: 400 clamp(27px, 6vw, 35px)/1.12 var(--disp); }
+.cancel-dialog > p { color: rgba(244,234,217,.76); font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.cancel-dialog code { display: inline-block; direction: ltr; unicode-bidi: isolate; padding: 2px 6px; border: 1px solid var(--line-2); border-radius: 5px; color: var(--gold); font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.cancel-dialog .cancel-dialog__warning { margin-top: 14px; padding: 12px 14px; border-inline-start: 3px solid var(--gold); border-radius: 8px; background: rgba(226,173,85,.08); color: rgba(244,234,217,.78); font-size: 12px; }
+.cancel-dialog__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.cancel-dialog__actions button { min-height: 44px; padding: 10px 16px; border-radius: 999px; font-size: 13px; }
+.cancel-dialog__keep { border: 1px solid var(--line-3); color: var(--pearl); }
+.cancel-dialog__confirm { border: 1px solid rgba(255,122,122,.5); background: rgba(255,122,122,.12); color: #ffc0c0; }
+.cancel-dialog__actions button:disabled,.cancel-dialog__close:disabled { opacity: .55; cursor: wait; }
 @media (max-width: 520px) {
   .auth { padding: 34px 14px 48px; }
   .auth__card { border-radius: 18px; }
@@ -86,4 +99,7 @@
   .account-order__identity b { font-size: 13px; }
   .account-order__total strong { font-size: 17px; }
   .account-order__actions { align-items: flex-start; flex-direction: column; }
+  .cancel-dialog { padding: 26px 21px 21px; }
+  .cancel-dialog__actions { flex-direction: column-reverse; }
+  .cancel-dialog__actions button { width: 100%; }
 }
