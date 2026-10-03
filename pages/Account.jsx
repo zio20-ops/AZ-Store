@@ -38,6 +38,7 @@ export default function Account() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState('');
   const [cancellingOrderId, setCancellingOrderId] = useState('');
+  const [orderToCancel, setOrderToCancel] = useState(null);
   const user = auth.getCurrentUser();
   const returnTo = typeof location.state?.returnTo === 'string'
     && location.state.returnTo.startsWith('/')
@@ -67,17 +68,28 @@ export default function Account() {
     };
   }, [loadCustomerOrders]);
 
-  const cancelOrder = async (order) => {
-    const manualPayment = order.payment && order.payment !== 'Cash on delivery';
-    if (!window.confirm(`Cancel order ${order.id}?${manualPayment ? ' If you already transferred money, contact the store about your refund; refunds are not automatic.' : ''}`)) return;
+  useEffect(() => {
+    if (!orderToCancel) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape' && !cancellingOrderId) setOrderToCancel(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [orderToCancel, cancellingOrderId]);
+
+  const confirmCancelOrder = async () => {
+    if (!orderToCancel || cancellingOrderId) return;
+    const order = orderToCancel;
     setCancellingOrderId(order.id);
     setOrdersError('');
     try {
       const cancelled = await orderService.cancelMyOrder(order.id);
       setCustomerOrders((current) => current.map((item) => item.id === order.id ? { ...item, ...cancelled } : item));
-      toast('Your order has been cancelled.');
+      toast(t('Your order has been cancelled.'));
+      setOrderToCancel(null);
     } catch (cancelError) {
       setOrdersError(cancelError.message || 'Could not cancel this order. Please try again.');
+      setOrderToCancel(null);
     } finally {
       setCancellingOrderId('');
     }
@@ -129,7 +141,7 @@ export default function Account() {
               {order.address && <p className="account-order__address"><b>{t("Delivery address")}</b><span>{order.address}</span></p>}
               {!order.cancelled && getOrderStage(order.status) < 2 && <div className="account-order__actions">
                 <span>{t("You can cancel this order before preparation begins.")}</span>
-                <button type="button" onClick={() => cancelOrder(order)} disabled={cancellingOrderId === order.id}>
+                <button type="button" onClick={() => setOrderToCancel(order)} disabled={Boolean(cancellingOrderId)}>
                   {cancellingOrderId === order.id ? t("Cancelling…") : t("Cancel order")}
                 </button>
               </div>}
@@ -137,6 +149,59 @@ export default function Account() {
           </div>
         </section>}
       </section>
+      {orderToCancel && (
+        <div
+          className="cancel-dialog-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !cancellingOrderId) setOrderToCancel(null);
+          }}
+        >
+          <section
+            className="cancel-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-dialog-title"
+            aria-describedby="cancel-dialog-description"
+          >
+            <button
+              className="cancel-dialog__close"
+              type="button"
+              aria-label={t('Close')}
+              onClick={() => setOrderToCancel(null)}
+              disabled={Boolean(cancellingOrderId)}
+            >×</button>
+            <span className="cancel-dialog__eyebrow">{t('YOUR AZ STORE HISTORY')}</span>
+            <h2 id="cancel-dialog-title">{t('Cancel this order?')}</h2>
+            <p id="cancel-dialog-description">
+              {t('You are about to cancel order')} <code>{orderToCancel.id}</code>
+            </p>
+            {orderToCancel.payment && orderToCancel.payment !== 'Cash on delivery' && (
+              <p className="cancel-dialog__warning">
+                {t('If you have already transferred money, contact the store about your refund; refunds are not automatic.')}
+              </p>
+            )}
+            <div className="cancel-dialog__actions">
+              <button
+                className="cancel-dialog__keep"
+                type="button"
+                autoFocus
+                onClick={() => setOrderToCancel(null)}
+                disabled={Boolean(cancellingOrderId)}
+              >
+                {t('Keep my order')}
+              </button>
+              <button
+                className="cancel-dialog__confirm"
+                type="button"
+                onClick={confirmCancelOrder}
+                disabled={Boolean(cancellingOrderId)}
+              >
+                {cancellingOrderId ? t('Cancelling…') : t('Confirm cancellation')}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 
