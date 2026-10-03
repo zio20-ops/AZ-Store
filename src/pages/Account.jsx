@@ -1,3 +1,4 @@
+import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
@@ -11,6 +12,7 @@ import { useSeo } from '../hooks/useSeo.js';
 import '../styles/account.css';
 
 export default function Account() {
+  const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useStore();
@@ -85,42 +87,42 @@ export default function Account() {
     <div className="auth">
       <section className="auth__card auth__card--profile">
         <Link to="/" className="auth__brand">AZ</Link>
-        <span className="auth__eyebrow">YOUR AZ STORE ACCOUNT</span>
-        <h1>Welcome back.</h1>
-        <p>Signed in as <b>{user.name}</b></p>
+        <span className="auth__eyebrow">{t("YOUR AZ STORE ACCOUNT")}</span>
+        <h1>{t("Welcome back.")}</h1>
+        <p>{t("Signed in as")} <b>{user.name}</b></p>
         <p className="auth__muted">{user.email}</p>
         <div className="auth__profile-links">
           <Link className="btn btn--ghost auth__home-link" to="/">
             <HomeIcon />
-            <span>Go to home</span>
+            <span>{t("Go to home")}</span>
           </Link>
-          <Link className="btn" to="/wishlist">Your wishlist</Link>
-          <button className="btn btn--text" onClick={async () => { await auth.logoutCustomer(); toast('You have been signed out.'); navigate('/'); }}>Sign out</button>
+          <Link className="btn" to="/wishlist">{t("Your wishlist")}</Link>
+          <button className="btn btn--text" onClick={async () => { await auth.logoutCustomer(); toast('You have been signed out.'); navigate('/'); }}>{t("Sign out")}</button>
         </div>
         {!user.isAdmin && <section className="account-orders" aria-labelledby="account-orders-title">
           <div className="account-orders__heading">
-            <div><span className="auth__eyebrow">YOUR AZ STORE HISTORY</span><h2 id="account-orders-title">Your orders</h2></div>
-            <button type="button" onClick={loadCustomerOrders} disabled={ordersLoading}>{ordersLoading ? 'Refreshing…' : 'Refresh'}</button>
+            <div><span className="auth__eyebrow">{t("YOUR AZ STORE HISTORY")}</span><h2 id="account-orders-title">{t("Your orders")}</h2></div>
+            <button type="button" onClick={loadCustomerOrders} disabled={ordersLoading}>{ordersLoading ? t("Refreshing…") : t("Refresh")}</button>
           </div>
-          {ordersLoading && customerOrders.length === 0 && <p className="account-orders__empty">Loading your orders…</p>}
+          {ordersLoading && customerOrders.length === 0 && <p className="account-orders__empty">{t("Loading your orders…")}</p>}
           {ordersError && <p className="account-orders__error" role="alert">{ordersError}</p>}
-          {!ordersLoading && !ordersError && customerOrders.length === 0 && <p className="account-orders__empty">You haven’t placed an order yet. Orders placed while you’re signed in will appear here.</p>}
+          {!ordersLoading && !ordersError && customerOrders.length === 0 && <p className="account-orders__empty">{t("You haven’t placed an order yet. Orders placed while you’re signed in will appear here.")}</p>}
           <div className="account-orders__list">
             {customerOrders.map((order) => <article className="account-order" key={order.id}>
               <div className="account-order__top">
-                <div className="account-order__identity"><span>ORDER</span><b>{order.id}</b><small>{new Date(order.placedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</small></div>
-                <div className="account-order__total"><span>ORDER TOTAL</span><strong>{egp(order.total)}</strong></div>
+                <div className="account-order__identity"><span>{t("ORDER")}</span><b>{order.id}</b><small>{new Date(order.placedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</small></div>
+                <div className="account-order__total"><span>{t("ORDER TOTAL")}</span><strong>{egp(order.total)}</strong></div>
               </div>
-              <div className="account-order__items-wrap"><span className="account-order__label">ITEMS</span><ul className="account-order__items">{(order.items || []).map((item, index) => <li key={`${item.productId || item.name}-${item.variationId || index}`}><b>{item.name} × {item.qty}</b>{item.meta && <small>{item.meta}</small>}</li>)}</ul></div>
+              <div className="account-order__items-wrap"><span className="account-order__label">{t("ITEMS")}</span><ul className="account-order__items">{(order.items || []).map((item, index) => <li key={`${item.productId || item.name}-${item.variationId || index}`}><b>{t(item.name)} × {item.qty}</b>{item.meta && <small>{t(item.meta)}</small>}</li>)}</ul></div>
               <div className="account-order__bottom">
-                <div><span className="account-order__label">ORDER STATUS</span><strong className={`account-order__status${order.cancelled ? ' is-cancelled' : ''}`}>{order.cancelled ? 'Cancelled' : ORDER_STEPS[Number(order.status)] || 'Order Received'}</strong></div>
-                <div><span className="account-order__label">PAYMENT</span><strong className="account-order__payment">{order.payment || 'Payment'} · {order.paymentStatus || 'Pending'}</strong></div>
+                <div><span className="account-order__label">{t("ORDER STATUS")}</span><strong className={`account-order__status${order.cancelled ? ' is-cancelled' : ''}`}>{order.cancelled ? t("Cancelled") : t(ORDER_STEPS[Number(order.status)] || 'Order Received')}</strong></div>
+                <div><span className="account-order__label">{t("PAYMENT")}</span><strong className="account-order__payment">{t(order.payment || 'Payment')} · {t(order.paymentStatus || 'Pending')}</strong></div>
               </div>
-              {order.address && <p className="account-order__address"><b>Delivery address</b><span>{order.address}</span></p>}
+              {order.address && <p className="account-order__address"><b>{t("Delivery address")}</b><span>{order.address}</span></p>}
               {!order.cancelled && Number(order.status) < 2 && <div className="account-order__actions">
-                <span>You can cancel this order before preparation begins.</span>
+                <span>{t("You can cancel this order before preparation begins.")}</span>
                 <button type="button" onClick={() => cancelOrder(order)} disabled={cancellingOrderId === order.id}>
-                  {cancellingOrderId === order.id ? 'Cancelling…' : 'Cancel order'}
+                  {cancellingOrderId === order.id ? t("Cancelling…") : t("Cancel order")}
                 </button>
               </div>}
             </article>)}
@@ -157,35 +159,35 @@ export default function Account() {
     <div className="auth">
       <section className="auth__card">
         <Link to="/" className="auth__brand">AZ</Link>
-        <span className="auth__eyebrow">AZ STORE · YOUR PERSONAL SPACE</span>
-        <h1>{mode === 'signup' ? 'Create your account.' : mode === 'reset' ? 'Reset your password.' : 'Welcome back.'}</h1>
-        <p className="auth__intro">{mode === 'signup' ? 'Save your favourites and enjoy a more personal AZ Store experience.' : 'Sign in to continue your AZ Store experience.'}</p>
+        <span className="auth__eyebrow">{t("AZ STORE · YOUR PERSONAL SPACE")}</span>
+        <h1>{mode === 'signup' ? t("Create your account.") : mode === 'reset' ? t("Reset your password.") : t("Welcome back.")}</h1>
+        <p className="auth__intro">{mode === 'signup' ? t("Save your favourites and enjoy a more personal AZ Store experience.") : t("Sign in to continue your AZ Store experience.")}</p>
 
         {error && <div className="auth__message auth__message--error" role="alert">{error}</div>}
         {notice && <div className="auth__message" role="status">{notice}</div>}
 
         {mode !== 'reset' && <>
           <GoogleSignInButton onCredential={onGoogleCredential} disabled={busy} />
-          <div className="auth__divider"><span>or continue with email</span></div>
+          <div className="auth__divider"><span>{t("or continue with email")}</span></div>
         </>}
 
         <form className="auth__form" onSubmit={submit} noValidate>
-          {mode === 'signup' && <label>Full name<input autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" /></label>}
-          <label>Email address<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /></label>
+          {mode === 'signup' && <label>{t("Full name")}<input autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("Your name")} /></label>}
+          <label>{t("Email address")}<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("you@example.com")} /></label>
           {mode !== 'reset' && <>
-            <label>Password<div className="auth__password"><input type={showPassword ? 'text' : 'password'} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'At least 8 characters' : 'Your password'} /><button type="button" onClick={() => setShowPassword((s) => !s)}>{showPassword ? 'Hide' : 'Show'}</button></div></label>
-            {mode === 'signup' && <label>Confirm password<input type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter your password" /></label>}
+            <label>{t("Password")}<div className="auth__password"><input type={showPassword ? 'text' : 'password'} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'At least 8 characters' : 'Your password'} /><button type="button" onClick={() => setShowPassword((s) => !s)}>{showPassword ? t("Hide") : t("Show")}</button></div></label>
+            {mode === 'signup' && <label>{t("Confirm password")}<input type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t("Re-enter your password")} /></label>}
           </>}
-          {mode === 'signup' && <label className="auth__consent"><input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} /><span>I agree to the <Link to="/terms">Terms &amp; Conditions</Link> and <Link to="/privacy">Privacy Policy</Link>.</span></label>}
-          <button className="btn btn--primary btn--block auth__submit" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'reset' ? 'Send reset link' : 'Sign in'}</button>
+          {mode === 'signup' && <label className="auth__consent"><input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} /><span>{t("I agree to the")} <Link to="/terms">{t("Terms & Conditions")}</Link> {t("and")} <Link to="/privacy">{t("Privacy Policy")}</Link>.</span></label>}
+          <button className="btn btn--primary btn--block auth__submit" type="submit" disabled={busy}>{busy ? t("Please wait…") : mode === 'signup' ? t("Create account") : mode === 'reset' ? t("Send reset link") : t("Sign in")}</button>
         </form>
 
         <div className="auth__links">
-          {mode === 'login' && <button onClick={() => { setMode('reset'); setError(''); setNotice(''); }}>Forgot password?</button>}
-          {mode === 'reset' && <button onClick={() => { setMode('login'); setError(''); setNotice(''); }}>Back to sign in</button>}
-          {mode !== 'reset' && <p>{mode === 'signup' ? 'Already have an account?' : 'New to AZ Store?'} <button onClick={() => { setMode(mode === 'signup' ? 'login' : 'signup'); setError(''); setNotice(''); }}>{mode === 'signup' ? 'Sign in' : 'Create account'}</button></p>}
+          {mode === 'login' && <button onClick={() => { setMode('reset'); setError(''); setNotice(''); }}>{t("Forgot password?")}</button>}
+          {mode === 'reset' && <button onClick={() => { setMode('login'); setError(''); setNotice(''); }}>{t("Back to sign in")}</button>}
+          {mode !== 'reset' && <p>{mode === 'signup' ? t("Already have an account?") : t("New to AZ Store?")} <button onClick={() => { setMode(mode === 'signup' ? 'login' : 'signup'); setError(''); setNotice(''); }}>{mode === 'signup' ? t("Sign in") : t("Create account")}</button></p>}
         </div>
-        <Link className="auth__back" to="/">Continue shopping</Link>
+        <Link className="auth__back" to="/">{t("Continue shopping")}</Link>
       </section>
     </div>
   );

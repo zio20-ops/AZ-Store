@@ -162,6 +162,14 @@ textarea.field { resize: vertical; min-height: 90px; }
 .header__icon-btn svg { width: 20px; height: 20px; }
 .header__icons .bag-icon-btn { background: linear-gradient(145deg, #f6d68f, #d7a64d); color: #27170a; border-color: rgba(255,230,174,.75); }
 .header__icons .bag-icon-btn:hover { color: #150c08; background: var(--pearl); border-color: var(--pearl); }
+.language-toggle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 38px; padding: 7px 11px; border: 1px solid var(--line-2); border-radius: 999px;
+  color: var(--pearl); background: transparent; font: 600 13px/1 var(--body); white-space: nowrap;
+  cursor: pointer; flex: 0 0 auto;
+}
+.language-toggle svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.language-toggle:hover { border-color: rgba(226,173,85,.7); color: var(--gold); }
 .bag-count { position: absolute; top: -4px; inset-inline-end: -4px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; color: var(--pearl); background: var(--plum); border: 1px solid var(--bg); border-radius: 99px; font: 700 10px/1 var(--body); }
 .account__panel { box-shadow: 0 16px 45px rgba(0,0,0,.42); }
 .bagpill {
@@ -373,6 +381,9 @@ textarea.field { resize: vertical; min-height: 90px; }
   transform: translateX(103%); transition: transform 0.4s var(--ease);
 }
 .drawer--open { transform: none; }
+.store-layout[dir="rtl"] .mmenu:not(.mmenu--open),
+.store-layout[dir="rtl"] .drawer:not(.drawer--open),
+.store-paper[dir="rtl"] .drawer:not(.drawer--open) { transform: translateX(-103%); }
 .drawer__head { display: flex; justify-content: space-between; align-items: baseline; }
 .drawer__title { font: 400 36px/1 var(--disp); letter-spacing: -.02em; }
 .drawer__close { font-size: 13px; opacity: 0.7; }
@@ -449,6 +460,8 @@ textarea.field { resize: vertical; min-height: 90px; }
 .paper :focus-visible { outline-color: var(--ink); }
 .cohead { display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; border-bottom: 1px solid var(--paper-line-soft); font-size: 13px; gap: 16px; }
 .cohead .logo { color: var(--ink); }
+.cohead .language-toggle { color: var(--ink); border-color: var(--paper-line); }
+.cohead .language-toggle:hover { color: #7f5118; border-color: #b98b47; }
 .cohead a:hover, .cohead button:hover { text-decoration: underline; }
 
 .co { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 60px; padding-block: 50px 70px; align-items: start; }

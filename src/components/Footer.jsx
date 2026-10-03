@@ -1,3 +1,4 @@
+import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { Link } from 'react-router-dom';
 import { FOOTER_COLUMNS, CONTACT_INFO } from '../data/content.js';
 
@@ -9,33 +10,34 @@ const socialIcons = {
 };
 
 export default function Footer() {
+  const { t } = useLanguage();
   return (
     <footer className="footer">
       <div className="container">
         <div className="footer__grid">
           <div className="footer__brand">
             <span className="logo">AZ</span>
-            <p>Fine fragrance mists and gift boxes, made in Egypt for every mood you wear.</p>
-            <div className="footer__social" aria-label="Follow AZ Store">
+            <p>{t("Fine fragrance mists and gift boxes, made in Egypt for every mood you wear.")}</p>
+            <div className="footer__social" aria-label={t("Follow AZ Store")}>
               {CONTACT_INFO.filter((c) => socialIcons[c.label]).map((social) => {
                 const icon = <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{socialIcons[social.label]}</svg>;
                 return social.href
-                  ? <a key={social.label} href={social.href} target="_blank" rel="noreferrer noopener" aria-label={social.label} title={social.label}>{icon}</a>
-                  : <span key={social.label} className="footer__social-unset" aria-label={`${social.label} link not set`} title={`${social.label} link not set`}>{icon}</span>;
+                  ? <a key={social.label} href={social.href} target="_blank" rel="noreferrer noopener" aria-label={t(social.label)} title={t(social.label)}>{icon}</a>
+                  : <span key={social.label} className="footer__social-unset" aria-label={`${t(social.label)} link not set`} title={`${t(social.label)} link not set`}>{icon}</span>;
               })}
             </div>
           </div>
 
           {FOOTER_COLUMNS.map((col) => (
             <div key={col.title}>
-              <h4>{col.title}</h4>
+              <h4>{t(col.title)}</h4>
               <ul>
                 {col.links.map((l) => (
                   <li key={l.label}>
                     {l.to.startsWith('http') ? (
-                      <a href={l.to} target="_blank" rel="noreferrer noopener">{l.label}</a>
+                      <a href={l.to} target="_blank" rel="noreferrer noopener">{t(l.label)}</a>
                     ) : (
-                      <Link to={l.to}>{l.label}</Link>
+                      <Link to={l.to}>{t(l.label)}</Link>
                     )}
                   </li>
                 ))}
@@ -45,8 +47,8 @@ export default function Footer() {
         </div>
 
         <div className="footer__base">
-          <span>© 2026 AZ Store — Bodysplash &amp; Serum. All rights reserved.</span>
-          <span>Three moods. One you.</span>
+          <span>{t("© 2026 AZ Store — Bodysplash & Serum. All rights reserved.")}</span>
+          <span>{t("Three moods. One you.")}</span>
         </div>
       </div>
     </footer>

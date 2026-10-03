@@ -30,6 +30,7 @@ import AdminUsers from './pages/admin/Users.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
 import AdminPromos from './pages/admin/Promos.jsx';
 import Account from './pages/Account.jsx';
+import { useLanguage } from './i18n/LanguageContext.jsx';
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -47,8 +48,9 @@ function ScrollToTop() {
 }
 
 function StoreLayout() {
+  const { language } = useLanguage();
   return (
-    <>
+    <div className="store-layout" lang={language === 'ar' ? 'ar' : 'en'} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <Header />
       <main>
         <Outlet />
@@ -57,13 +59,14 @@ function StoreLayout() {
       <MobileTabBar />
       <CartDrawer />
       <SearchOverlay />
-    </>
+    </div>
   );
 }
 
 function PaperLayout() {
+  const { language } = useLanguage();
   return (
-    <div className="paper">
+    <div className="paper store-paper" lang={language === 'ar' ? 'ar' : 'en'} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <main style={{ animation: 'none' }}>
         <Outlet />
       </main>

@@ -1,11 +1,14 @@
+import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { NAV_LINKS } from '../data/content.js';
 import * as auth from '../services/authService.js';
 import { AccountIcon, BagIcon, SearchIcon } from './icons.jsx';
+import LanguageToggle from './LanguageToggle.jsx';
 
 export default function Header() {
+  const { t } = useLanguage();
   const { count, setCartOpen, setSearchOpen, announcement } = useStore();
   const [accountOpen, setAccountOpen] = useState(false);
   const [user, setUser] = useState(() => auth.getCurrentUser());
@@ -45,58 +48,59 @@ export default function Header() {
 
   return (
     <>
-      {announcement && <p className="ann">{announcement}</p>}
+      {announcement && <p className="ann">{t(announcement)}</p>}
       <header className="header">
         <div className="header__in">
-          <Link to="/" className="logo logo--header" aria-label="AZ Store home">AZ</Link>
+          <Link to="/" className="logo logo--header" aria-label={t("AZ Store home")}>AZ</Link>
 
-          <nav className="header__nav" aria-label="Primary">
+          <nav className="header__nav" aria-label={t("Primary")}>
             {NAV_LINKS.map((l) => (
               <NavLink key={l.label} to={l.to} className={({ isActive }) => (isActive && !l.to.includes('?') ? 'active' : '')}>
-                {l.label}
+                {t(l.label)}
               </NavLink>
             ))}
           </nav>
 
           <div className="header__icons">
-            <button className="header__icon-btn desktop-only" onClick={() => setSearchOpen(true)} aria-label="Search products" title="Search">
+            <LanguageToggle />
+            <button className="header__icon-btn desktop-only" onClick={() => setSearchOpen(true)} aria-label={t("Search products")} title={t("Search")}>
               <SearchIcon />
             </button>
             <div className="account desktop-only" ref={accountRef}>
-              <button className="header__icon-btn" aria-label="Account menu" title="Account" aria-haspopup="true" aria-expanded={accountOpen} onClick={() => setAccountOpen((v) => !v)}>
+              <button className="header__icon-btn" aria-label={t("Account menu")} title={t("Account")} aria-haspopup="true" aria-expanded={accountOpen} onClick={() => setAccountOpen((v) => !v)}>
                 <AccountIcon />
               </button>
               {accountOpen && (
                 <div className="account__panel" role="menu">
-                  <Link to="/account" role="menuitem">{user ? 'My account' : 'Sign in / Create account'}</Link>
-                  <Link to="/wishlist" role="menuitem">Wishlist</Link>
-                  <Link to="/contact" role="menuitem">Contact us</Link>
+                  <Link to="/account" role="menuitem">{user ? t("My account") : t("Sign in / Create account")}</Link>
+                  <Link to="/wishlist" role="menuitem">{t("Wishlist")}</Link>
+                  <Link to="/contact" role="menuitem">{t("Contact us")}</Link>
                 </div>
               )}
             </div>
-            <button className="header__icon-btn bag-icon-btn" onClick={() => setCartOpen(true)} aria-label={`Open shopping bag, ${count} items`} title="Shopping bag">
+            <button className="header__icon-btn bag-icon-btn" onClick={() => setCartOpen(true)} aria-label={`Open shopping bag, ${count} items`} title={t("Shopping bag")}>
               <BagIcon />
               <span className="bag-count" aria-hidden="true">{count}</span>
             </button>
-            <button className="header__menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open menu">Menu</button>
+            <button className="header__menu-btn" onClick={() => setMenuOpen(true)} aria-label={t("Open menu")}>{t("Menu")}</button>
           </div>
         </div>
       </header>
 
       <div className={`mmenu-scrim ${menuOpen ? 'mmenu-scrim--on' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
-      <nav className={`mmenu ${menuOpen ? 'mmenu--open' : ''}`} aria-label="Mobile">
-        <button className="mmenu__close" onClick={() => setMenuOpen(false)}>Close</button>
+      <nav className={`mmenu ${menuOpen ? 'mmenu--open' : ''}`} aria-label={t("Mobile")}>
+        <button className="mmenu__close" onClick={() => setMenuOpen(false)}>{t("Close")}</button>
         {NAV_LINKS.map((l) => (
-          <Link key={l.label} to={l.to}>{l.label}</Link>
+          <Link key={l.label} to={l.to}>{t(l.label)}</Link>
         ))}
-        <Link to={user ? '/account' : '/account/login'}>{user ? 'My account' : 'Sign in / Create account'}</Link>
-        <Link to="/wishlist">Wishlist</Link>
-        <Link to="/contact">Contact</Link>
+        <Link to={user ? '/account' : '/account/login'}>{user ? t("My account") : t("Sign in / Create account")}</Link>
+        <Link to="/wishlist">{t("Wishlist")}</Link>
+        <Link to="/contact">{t("Contact")}</Link>
         <div className="mmenu__foot">
           <button className="btn--text" style={{ textAlign: 'start' }} onClick={() => { setMenuOpen(false); setSearchOpen(true); }}>
-            Search the collection
+            {t("Search the collection")}
           </button>
-          <span>AZ Store — Cairo, Egypt</span>
+          <span>{t("AZ Store — Cairo, Egypt")}</span>
         </div>
       </nav>
     </>

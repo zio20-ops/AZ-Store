@@ -1,7 +1,9 @@
+import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { googleClientId } from '../services/firebaseConfig.js';
 
 export default function GoogleSignInButton({ onCredential, disabled }) {
+  const { t } = useLanguage();
   const mountRef = useRef(null);
   const callbackRef = useRef(onCredential);
   callbackRef.current = onCredential;
@@ -37,10 +39,10 @@ export default function GoogleSignInButton({ onCredential, disabled }) {
     return () => { live = false; };
   }, []);
 
-  if (!googleClientId) return <p className="auth__setup-note">Google sign-in needs a Google OAuth client ID in Vercel before it can be enabled.</p>;
+  if (!googleClientId) return <p className="auth__setup-note">{t("Google sign-in needs a Google OAuth client ID in Vercel before it can be enabled.")}</p>;
   return <div className={`auth__google ${disabled ? 'auth__google--disabled' : ''}`}>
     <div ref={mountRef} />
-    {!ready && !failed && <span>Loading Google sign-in…</span>}
-    {failed && <span>Google sign-in could not load. Check your connection.</span>}
+    {!ready && !failed && <span>{t("Loading Google sign-in…")}</span>}
+    {failed && <span>{t("Google sign-in could not load. Check your connection.")}</span>}
   </div>;
 }
