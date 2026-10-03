@@ -73,6 +73,10 @@
 .account-order__status.is-cancelled { border-color: rgba(255,122,122,.35); color: #ffb0b0; background: rgba(255,122,122,.08); }
 .account-order__address { display: grid; gap: 5px; margin: 17px 0 0; padding-top: 13px; border-top: 1px solid var(--line-1); color: rgba(244,234,217,.78); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
 .account-order__address b { color: rgba(244,234,217,.48); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+.account-order__actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-1); }
+.account-order__actions span { color: rgba(244,234,217,.5); font-size: 11px; line-height: 1.5; }
+.account-order__actions button { flex: 0 0 auto; border: 1px solid rgba(255,122,122,.42); border-radius: 99px; padding: 8px 14px; color: #ffc0c0; font-size: 12px; }
+.account-order__actions button:disabled { opacity: .55; }
 @media (max-width: 520px) {
   .auth { padding: 34px 14px 48px; }
   .auth__card { border-radius: 18px; }
@@ -81,4 +85,5 @@
   .account-order__top { gap: 10px; }
   .account-order__identity b { font-size: 13px; }
   .account-order__total strong { font-size: 17px; }
+  .account-order__actions { align-items: flex-start; flex-direction: column; }
 }

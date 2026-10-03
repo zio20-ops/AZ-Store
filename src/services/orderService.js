@@ -8,6 +8,7 @@ const impl = isFirebase ? fb : local;
 
 export const listOrders = () => impl.listOrders();
 export const listMyOrders = () => impl.listMyOrders();
+export const cancelMyOrder = (id) => impl.cancelMyOrder(id);
 export const createOrder = (order) => impl.createOrder(order);
 export const updateOrder = (id, patch) => impl.updateOrder(id, patch);
 export const deleteOrder = (id) => impl.deleteOrder(id);
