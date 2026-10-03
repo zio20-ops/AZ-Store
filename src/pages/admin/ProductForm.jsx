@@ -4,12 +4,12 @@ import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import ImageManager from '../../components/admin/ImageManager.jsx';
 import { useStore } from '../../store/StoreContext.jsx';
 import * as catalog from '../../services/productService.js';
-import { egp } from '../../utils/format.js';
+import { useLanguage } from '../../i18n/LanguageContext.jsx';
 
 const blank = (categories) => ({
   name: '', sku: '', category: categories[0]?.name || '', brand: 'AZ',
   tagline: '', description: '',
-  price: 450,
+  price: 450, compareAtPrice: '', discount: 0,
   stock: 10, lowStockThreshold: 6, available: true,
   volume: '220 ml', weight: '265 g', scent: '', scentFamily: categories[0]?.name || '',
   ingredients: '', howToUse: '', benefits: '',
@@ -22,29 +22,23 @@ const blank = (categories) => ({
 const fromProduct = (p) => ({
   name: p.name, sku: p.sku, category: p.category, brand: p.brand || 'AZ',
   tagline: p.tagline || '', description: p.description || '',
-  price: p.price,
+  price: p.price, compareAtPrice: p.compareAtPrice || '', discount: p.discount || 0,
   stock: p.stock, lowStockThreshold: p.lowStockThreshold ?? 6, available: p.stock > 0,
   volume: p.volume || '', weight: p.weight || '', scent: (p.scentNotes || []).join(', '), scentFamily: p.scentFamily || p.category,
   ingredients: (p.ingredients || []).join('\n'), howToUse: p.howToUse || '', benefits: (p.benefits || []).join('\n'),
   type: p.type || 'mist', badge: p.badge || '', accentHex: p.accentHex || '#e2ad55',
   status: p.status,
   images: p.images.map((i) => ({ ...i })),
-  variations: p.variations.map((v, i) => {
-    const legacyCompareAt = i === 0 && Number(p.compareAtPrice ?? p.compareAt ?? 0) > Number(v.price) ? Number(p.compareAtPrice ?? p.compareAt) : '';
-    return {
-      ...v,
-      compareAtPrice: v.compareAtPrice || legacyCompareAt || '',
-      discount: v.discount ?? (legacyCompareAt ? 0 : Number(p.discount || 0)),
-    };
-  }),
+  variations: p.variations.map((v) => ({ ...v })),
 });
 
 export default function ProductForm() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { allProducts, categories: savedCategories, productsLoading, refreshCatalog, toast } = useStore();
+  const { allProducts, productsLoading, refreshCatalog, toast } = useStore();
   const editing = allProducts.find((p) => p.id === id);
-  const categories = useMemo(() => [...new Set([...savedCategories.map((category) => category.name), ...allProducts.map((p) => p.category)].filter(Boolean))], [savedCategories, allProducts]);
+  const categories = useMemo(() => [...new Set(allProducts.map((p) => p.category))], [allProducts]);
 
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
@@ -60,8 +54,8 @@ export default function ProductForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, productsLoading, !!editing]);
 
-  if (productsLoading || !form) return <AdminLayout title="Product"><div className="adempty">Loading…</div></AdminLayout>;
-  if (id && !editing) return <AdminLayout title="Product"><div className="adempty">Product not found. <Link to="/admin/products">Back to products</Link></div></AdminLayout>;
+  if (productsLoading || !form) return <AdminLayout title="Product"><div className="adempty">{t('Loading…')}</div></AdminLayout>;
+  if (id && !editing) return <AdminLayout title="Product"><div className="adempty">{t('Product not found.')} <Link to="/admin/products">{t('Back to products')}</Link></div></AdminLayout>;
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
   const setPrimary = (key, value) => {
@@ -98,8 +92,8 @@ export default function ProductForm() {
       tagline: form.tagline.trim(),
       description: form.description.trim(),
       price: Number(form.price),
-      compareAtPrice: null,
-      discount: 0,
+      compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : null,
+      discount: Number(form.discount || 0),
       stock: Number(form.stock),
       lowStockThreshold: Number(form.lowStockThreshold),
       scentNotes: form.scent ? form.scent.split(',').map((s) => s.trim()).filter(Boolean) : [],
@@ -109,136 +103,125 @@ export default function ProductForm() {
       howToUse: form.howToUse.trim(),
       notes: form.scent ? form.scent.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 3) : [],
       badge: form.badge.trim() || null,
-      variations: form.variations.map((v, i) => ({ ...v,
-        sku: (i === 0 ? form.sku || v.sku : v.sku || '').trim(),
-        price: Number(v.price),
-        compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : null,
-        discount: Number(v.discount || 0),
-      })),
+      variations: form.variations.map((v, i) => (i === 0 ? { ...v, sku: (form.sku || v.sku || '').trim() } : v)),
     };
     const found = catalog.validateProduct(draft, allProducts);
     setErrors(found);
     if (Object.keys(found).length) {
-      toast('Unable to save product. Please check the required fields.');
+      toast(t('Unable to save product. Please check the required fields.'));
       return;
     }
     setSaving(true);
-    try {
-      const result = editing
-        ? await catalog.updateProduct(editing.id, draft)
-        : await catalog.createProduct(draft);
-      if (!result.ok) {
-        toast(result.message || 'Unable to save product.');
-        return;
-      }
-      await refreshCatalog();
-      toast(editing ? 'Product updated successfully.' : 'Product created successfully.');
-      navigate('/admin/products');
-    } catch (error) {
-      toast(error?.message || 'Unable to save product. Please try again.');
-    } finally {
-      setSaving(false);
+    const result = editing
+      ? await catalog.updateProduct(editing.id, draft)
+      : await catalog.createProduct(draft);
+    setSaving(false);
+    if (!result.ok) {
+      toast(t(result.message || 'Unable to save product.'));
+      return;
     }
+    await refreshCatalog();
+    toast(t(editing ? 'Product updated successfully.' : 'Product created successfully.'));
+    navigate('/admin/products');
   };
 
-  const fieldError = (key) => (errors[key] ? <span className="err">{errors[key]}</span> : null);
+  const fieldError = (key) => (errors[key] ? <span className="err">{t(errors[key])}</span> : null);
 
   return (
-    <AdminLayout title={editing ? `Edit — ${editing.name}` : 'Add Product'}>
+    <AdminLayout title={editing ? `${t('Edit product')} — ${editing.name}` : 'Add Product'}>
       <form onSubmit={submit} noValidate>
         <section className="adsec" style={{ marginTop: 0 }}>
-          <h2>Basic information</h2>
+          <h2>{t('Basic information')}</h2>
           <div className="adgrid">
             <div className={`adfield ${errors.name ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-name">Product name *</label>
-              <input id="pf-name" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Black Kiss Intense" />
+              <label htmlFor="pf-name">{t('Product name')} *</label>
+              <input id="pf-name" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={t('Black Kiss Intense')} />
               {fieldError('name')}
             </div>
             <div className={`adfield ${errors.sku ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-sku">Primary SKU *</label>
+              <label htmlFor="pf-sku">{t('Primary SKU')} *</label>
               <input id="pf-sku" value={form.sku} onChange={(e) => setPrimary('sku', e.target.value)} placeholder="AZ-BLK-220" />
               {fieldError('sku')}
             </div>
             <div className={`adfield ${errors.category ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-cat">Category *</label>
-              <select id="pf-cat" value={form.category} onChange={(e) => set('category', e.target.value)}>
-                <option value="" disabled>Select a category</option>
-                {categories.map((category) => <option key={category} value={category}>{category}</option>)}
-              </select>
+              <label htmlFor="pf-cat">{t('Category')} *</label>
+              <input id="pf-cat" list="az-categories" value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="Bold" />
+              <datalist id="az-categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
               {fieldError('category')}
-              <span className="hint">This changes the category for this product. Add new categories in Admin → Categories.</span>
             </div>
             <div className="adfield">
-              <label htmlFor="pf-type">Product type *</label>
-              <select id="pf-type" value={form.type} onChange={(e) => set('type', e.target.value)}>
-                <option value="mist">Mist</option><option value="serum">Serum</option><option value="gift">Gift set</option>
-              </select>
-            </div>
-            <div className="adfield">
-              <label htmlFor="pf-brand">Brand</label>
+              <label htmlFor="pf-brand">{t('Brand')}</label>
               <input id="pf-brand" value={form.brand} onChange={(e) => set('brand', e.target.value)} />
             </div>
           </div>
           <div className="adfield">
-            <label htmlFor="pf-tag">Short description</label>
-            <input id="pf-tag" value={form.tagline} onChange={(e) => set('tagline', e.target.value)} placeholder="Bold and enchanting, with a trace you won’t forget." />
+            <label htmlFor="pf-tag">{t('Short description')}</label>
+            <input id="pf-tag" value={form.tagline} onChange={(e) => set('tagline', e.target.value)} placeholder={t('Bold and enchanting, with a trace you won’t forget.')} />
           </div>
           <div className="adfield">
-            <label htmlFor="pf-desc">Full description</label>
+            <label htmlFor="pf-desc">{t('Full description')}</label>
             <textarea id="pf-desc" value={form.description} onChange={(e) => set('description', e.target.value)} rows={3} />
           </div>
         </section>
 
         <section className="adsec">
-          <h2>Pricing</h2>
-          <div className="adgrid">
+          <h2>{t('Pricing')}</h2>
+          <div className="adgrid--3 adgrid">
             <div className={`adfield ${errors.price ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-price">Regular price (EGP) *</label>
+              <label htmlFor="pf-price">{t('Price (EGP)')} *</label>
               <input id="pf-price" type="number" min="1" value={form.price} onChange={(e) => setPrimary('price', Number(e.target.value))} />
               {fieldError('price')}
             </div>
+            <div className="adfield">
+              <label htmlFor="pf-compare">{t('Compare-at price')}</label>
+              <input id="pf-compare" type="number" min="0" value={form.compareAtPrice} onChange={(e) => set('compareAtPrice', e.target.value)} placeholder="500" />
+            </div>
+            <div className={`adfield ${errors.discount ? 'adfield--err' : ''}`}>
+              <label htmlFor="pf-discount">{t('Discount %')}</label>
+              <input id="pf-discount" type="number" min="0" max="90" value={form.discount} onChange={(e) => set('discount', e.target.value)} />
+              {fieldError('discount')}
+            </div>
           </div>
-          <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.5)' }}>Regular price is set separately for each size. Add a sale price or discount to the specific sizes below; leave both empty for no discount.</p>
         </section>
 
         <section className="adsec">
-          <h2>Inventory</h2>
+          <h2>{t('Inventory')}</h2>
           <div className="adgrid">
             <div className={`adfield ${errors.stock ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-stock">Stock quantity (primary size) *</label>
+              <label htmlFor="pf-stock">{t('Stock quantity (primary size)')} *</label>
               <input id="pf-stock" type="number" min="0" value={form.stock} onChange={(e) => setPrimary('stock', Number(e.target.value))} />
               {fieldError('stock')}
             </div>
             <div className={`adfield ${errors.lowStockThreshold ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-threshold">Low stock threshold</label>
+              <label htmlFor="pf-threshold">{t('Low stock threshold')}</label>
               <input id="pf-threshold" type="number" min="0" value={form.lowStockThreshold} onChange={(e) => set('lowStockThreshold', Number(e.target.value))} />
               {fieldError('lowStockThreshold')}
             </div>
           </div>
           <label className="adcheck">
             <input type="checkbox" checked={form.available} onChange={(e) => setAvailable(e.target.checked)} />
-            Available for sale (primary size in stock)
+            {t('Available for sale (primary size in stock)')}
           </label>
         </section>
 
         <section className="adsec">
-          <h2>Sizes &amp; stock (variations)</h2>
+          <h2>{t('Sizes & stock (variations)')}</h2>
           <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.5)', marginBottom: 12 }}>
-            The first size is the primary one shown on cards and used by the pricing fields above.
+            {t('The first size is the primary one shown on cards and used by the pricing fields above.')}
           </p>
           {form.variations.map((v, i) => (
             <div className="advar" key={v.id || i}>
-            <div className="advar__row">
+              <div className="advar__row">
                 <div className={`adfield ${errors[`variation-${i}`] ? 'adfield--err' : ''}`}>
-                  <label>Size label</label>
+                  <label>{t('Size label')}</label>
                   <input value={v.label} onChange={(e) => setVariation(i, 'label', e.target.value)} placeholder="220 ml / 7.4 fl oz" />
                 </div>
                 <div className="adfield">
-                  <label>Price</label>
+                  <label>{t('Price')}</label>
                   <input type="number" min="1" value={v.price} onChange={(e) => setVariation(i, 'price', Number(e.target.value))} />
                 </div>
                 <div className="adfield">
-                  <label>Stock</label>
+                  <label>{t('Stock')}</label>
                   <input type="number" min="0" value={v.stock} onChange={(e) => setVariation(i, 'stock', Number(e.target.value))} />
                 </div>
                 <div className="adfield">
@@ -246,47 +229,40 @@ export default function ProductForm() {
                   <input value={v.sku} onChange={(e) => setVariation(i, 'sku', e.target.value)} placeholder="AZ-BLK-220" />
                 </div>
                 <button type="button" className="btn btn--text danger" style={{ color: '#ff9a9a' }} onClick={() => removeVariation(i)} disabled={form.variations.length === 1}>
-                  Remove
+                  {t('Remove')}
                 </button>
-              </div>
-              <div className="advar__sale">
-                <div className="adfield">
-                  <label>Compare-at price (EGP)</label>
-                  <input type="number" min="0" value={v.compareAtPrice || ''} onChange={(e) => { setVariation(i, 'compareAtPrice', e.target.value); if (e.target.value) setVariation(i, 'discount', 0); }} placeholder="Leave empty for none" />
-                </div>
-                <div className="adfield">
-                  <label>Discount % (if compare-at is empty)</label>
-                  <input type="number" min="0" max="90" value={v.discount ?? 0} onChange={(e) => setVariation(i, 'discount', e.target.value)} disabled={Boolean(v.compareAtPrice)} />
-                </div>
-                <p className="hint">Sale price: {egp(Number(v.compareAtPrice) > Number(v.price) ? v.price : Number(v.price || 0) * (100 - Number(v.discount || 0)) / 100)}</p>
-                {errors[`variation-sale-${i}`] && <span className="err" style={{ color: '#ff9a9a', fontSize: 12 }}>{errors[`variation-sale-${i}`]}</span>}
               </div>
               {errors[`variation-${i}`] && <span className="err" style={{ color: '#ff9a9a', fontSize: 12 }}>{errors[`variation-${i}`]}</span>}
             </div>
           ))}
-          <button type="button" className="btn btn--ghost" onClick={addVariation}>+ Add size</button>
+          <button type="button" className="btn btn--ghost" onClick={addVariation}>+ {t('Add size')}</button>
         </section>
 
         <section className="adsec">
-          <h2>Product details</h2>
+          <h2>{t('Product details')}</h2>
           <div className="adgrid">
-            <div className="adfield"><label htmlFor="pf-volume">Volume</label><input id="pf-volume" value={form.volume} onChange={(e) => set('volume', e.target.value)} /></div>
-            <div className="adfield"><label htmlFor="pf-weight">Weight</label><input id="pf-weight" value={form.weight} onChange={(e) => set('weight', e.target.value)} /></div>
-            <div className="adfield"><label htmlFor="pf-scent">Scent notes (comma separated)</label><input id="pf-scent" value={form.scent} onChange={(e) => set('scent', e.target.value)} placeholder="Warm vanilla, Seductive musk" /></div>
-            <div className="adfield"><label htmlFor="pf-family">Scent family</label><input id="pf-family" value={form.scentFamily} onChange={(e) => set('scentFamily', e.target.value)} /></div>
+            <div className="adfield"><label htmlFor="pf-volume">{t('Volume')}</label><input id="pf-volume" value={form.volume} onChange={(e) => set('volume', e.target.value)} /></div>
+            <div className="adfield"><label htmlFor="pf-weight">{t('Weight')}</label><input id="pf-weight" value={form.weight} onChange={(e) => set('weight', e.target.value)} /></div>
+            <div className="adfield"><label htmlFor="pf-scent">{t('Scent notes (comma separated)')}</label><input id="pf-scent" value={form.scent} onChange={(e) => set('scent', e.target.value)} placeholder={t('Warm vanilla, Seductive musk')} /></div>
+            <div className="adfield"><label htmlFor="pf-family">{t('Scent family')}</label><input id="pf-family" value={form.scentFamily} onChange={(e) => set('scentFamily', e.target.value)} /></div>
           </div>
-          <div className="adfield"><label htmlFor="pf-ing">Ingredients (one per line)</label><textarea id="pf-ing" value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} rows={3} /></div>
-          <div className="adfield"><label htmlFor="pf-use">How to use</label><textarea id="pf-use" value={form.howToUse} onChange={(e) => set('howToUse', e.target.value)} rows={2} /></div>
-          <div className="adfield"><label htmlFor="pf-ben">Benefits (one per line)</label><textarea id="pf-ben" value={form.benefits} onChange={(e) => set('benefits', e.target.value)} rows={2} /></div>
-          <div className="adgrid">
-            <div className="adfield"><label htmlFor="pf-badge">Badge (e.g. Best seller)</label><input id="pf-badge" value={form.badge} onChange={(e) => set('badge', e.target.value)} /></div>
-            <div className="adfield"><label htmlFor="pf-accent">Accent colour</label><div className="accent-editor"><input id="pf-accent" type="color" value={/^#[0-9a-f]{6}$/i.test(form.accentHex) ? form.accentHex : '#e2ad55'} onChange={(e) => set('accentHex', e.target.value)} aria-label="Choose accent colour" /><input type="text" value={form.accentHex} onChange={(e) => set('accentHex', e.target.value)} aria-label="Accent colour hex value" placeholder="#e2ad55" maxLength={7} /></div>{fieldError('accentHex')}</div>
+          <div className="adfield"><label htmlFor="pf-ing">{t('Ingredients (one per line)')}</label><textarea id="pf-ing" value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} rows={3} /></div>
+          <div className="adfield"><label htmlFor="pf-use">{t('How to use')}</label><textarea id="pf-use" value={form.howToUse} onChange={(e) => set('howToUse', e.target.value)} rows={2} /></div>
+          <div className="adfield"><label htmlFor="pf-ben">{t('Benefits (one per line)')}</label><textarea id="pf-ben" value={form.benefits} onChange={(e) => set('benefits', e.target.value)} rows={2} /></div>
+          <div className="adgrid--3 adgrid">
+            <div className="adfield">
+              <label htmlFor="pf-type">{t('Product type')}</label>
+              <select id="pf-type" value={form.type} onChange={(e) => set('type', e.target.value)}>
+                <option value="mist">{t('Mist')}</option><option value="serum">{t('Serum')}</option><option value="gift">{t('Gift set')}</option>
+              </select>
+            </div>
+            <div className="adfield"><label htmlFor="pf-badge">{t('Badge (e.g. Best seller)')}</label><input id="pf-badge" value={form.badge} onChange={(e) => set('badge', e.target.value)} /></div>
+            <div className="adfield"><label htmlFor="pf-accent">{t('Accent colour')}</label><input id="pf-accent" type="color" value={form.accentHex} onChange={(e) => set('accentHex', e.target.value)} /></div>
           </div>
-          <div className="accent-preview" style={{ '--product-accent': /^#[0-9a-f]{6}$/i.test(form.accentHex) ? form.accentHex : '#e2ad55' }}><span className="accent-preview__swatch" /><div><b>{form.name || 'Product name'}</b><small>Live accent preview · title, price, sale badge and product detail</small></div><strong>{egp(Number(form.variations[0]?.price || form.price || 0) * (form.variations[0]?.compareAtPrice ? 1 : (100 - Number(form.variations[0]?.discount || 0)) / 100))}</strong></div>
         </section>
 
         <section className="adsec">
-          <h2>Images</h2>
+          <h2>{t('Images')}</h2>
           {errors.images && <span className="err" style={{ color: '#ff9a9a', fontSize: 12.5, display: 'block', marginBottom: 10 }}>{errors.images}</span>}
           <ImageManager
             images={form.images}
@@ -297,25 +273,25 @@ export default function ProductForm() {
         </section>
 
         <section className="adsec">
-          <h2>Product status</h2>
-          <div className="adradio" role="radiogroup" aria-label="Product status">
+          <h2>{t('Product status')}</h2>
+          <div className="adradio" role="radiogroup" aria-label={t('Product status')}>
             {['active', 'draft', 'archived'].map((s) => (
               <label key={s}>
                 <input type="radio" name="status" checked={form.status === s} onChange={() => set('status', s)} />
-                {s[0].toUpperCase() + s.slice(1)}
+                {t(s[0].toUpperCase() + s.slice(1))}
               </label>
             ))}
           </div>
           <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.5)', marginTop: 10 }}>
-            Only active products appear in the customer store. Drafts and archived products stay here in the admin.
+            {t('Only active products appear in the customer store. Drafts and archived products stay here in the admin.')}
           </p>
         </section>
 
         <div className="adbar" style={{ marginTop: 18 }}>
           <button className="btn btn--primary" type="submit" disabled={saving}>
-            {saving ? 'Saving…' : editing ? 'Save changes' : 'Create product'}
+            {t(saving ? 'Saving…' : editing ? 'Save changes' : 'Create product')}
           </button>
-          <Link className="btn btn--ghost" to="/admin/products">Cancel</Link>
+          <Link className="btn btn--ghost" to="/admin/products">{t('Cancel')}</Link>
         </div>
       </form>
     </AdminLayout>

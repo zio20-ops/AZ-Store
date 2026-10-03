@@ -1,16 +1,23 @@
-// Orders service facade — see services/backend.js for transport selection.
+import { listDocuments, getDocument, putDocument } from './firebaseRest.js';
 
-import { isFirebase } from './backend.js';
-import * as fb from './firebaseOrderService.js';
-import * as local from './localOrderService.js';
-
-const impl = isFirebase ? fb : local;
-
-export const listOrders = () => impl.listOrders();
-export const listMyOrders = () => impl.listMyOrders();
-export const cancelMyOrder = (id) => impl.cancelMyOrder(id);
-export const createOrder = (order) => impl.createOrder(order);
-export const updateOrder = (id, patch) => impl.updateOrder(id, patch);
-export const deleteOrder = (id) => impl.deleteOrder(id);
-export const trackOrder = (id, phone) => impl.trackOrder(id, phone);
-export const findOrder = (id, phone) => impl.findOrder(id, phone);
+export const listOrders = () => listDocuments('orders', true);
+export const createOrder = async (order) => {
+  const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    customer: { name: order.name, phone: order.phone, email: order.email, address: order.address, notes: order.notes },
+    items: order.items.map((item) => ({ productId: item.productId, variationId: item.variationId, qty: item.qty })),
+    deliveryMethod: order.deliveryOption,
+    promoCode: order.promoCode || '',
+    paymentMethod: order.paymentMethod || 'cod',
+    paymentRef: order.paymentRef || '',
+  }) });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Could not place the order. Please retry.');
+  return result.order;
+};
+export const updateOrder = async (id, patch) => {
+  const current = await getDocument('orders', id, true);
+  if (!current) throw new Error('Order not found.');
+  const next = { ...current, ...patch };
+  await putDocument('orders', id, next, true);
+  return next;
+};

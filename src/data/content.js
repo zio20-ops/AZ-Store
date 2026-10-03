@@ -17,7 +17,11 @@ export const TRUST_ITEMS = [
 export const FILTER_CHIPS = [
   { id: 'all', label: 'All' },
   { id: 'mists', label: 'Mists' },
+  { id: 'serums', label: 'Serums' },
   { id: 'gift-sets', label: 'Gift sets' },
+  { id: 'calm-and-deep', label: 'Calm and deep' },
+  { id: 'bold', label: 'Bold' },
+  { id: 'soft', label: 'Soft' },
 ];
 
 export const SORT_OPTIONS = [
@@ -25,6 +29,7 @@ export const SORT_OPTIONS = [
   { id: 'newest', label: 'Newest' },
   { id: 'price-asc', label: 'Price: Low to High' },
   { id: 'price-desc', label: 'Price: High to Low' },
+  { id: 'best-rated', label: 'Best Rated' },
   { id: 'best-selling', label: 'Best Selling' },
 ];
 
@@ -63,9 +68,9 @@ export const FAQS = [
 export const CONTACT_INFO = [
   { label: 'Phone', value: '+20 155 293 5950', href: 'tel:+201552935950' },
   { label: 'Email', value: 'azstore700@gmail.com', href: 'mailto:azstore700@gmail.com' },
-  { label: 'Instagram', value: 'Profile link not set', href: null },
-  { label: 'Facebook', value: 'Profile link not set', href: null },
-  { label: 'TikTok', value: 'Profile link not set', href: null },
+  { label: 'Instagram', value: '@az.store', href: 'https://instagram.com' },
+  { label: 'Facebook', value: 'AZ Store', href: 'https://facebook.com' },
+  { label: 'TikTok', value: '@az.store', href: 'https://tiktok.com' },
   { label: 'WhatsApp', value: '+20 155 293 5950', href: 'https://wa.me/201552935950' },
 ];
 
@@ -76,17 +81,17 @@ export const FOOTER_COLUMNS = [
       { label: 'Shop all', to: '/shop' },
       { label: 'Scents', to: '/shop?filter=mists' },
       { label: 'Gift sets', to: '/shop?filter=gift-sets' },
-      { label: 'Best sellers', to: '/shop?sort=best-selling#shop-results' },
-      { label: 'New arrivals', to: '/shop?sort=newest#shop-results' },
+      { label: 'Best sellers', to: '/shop?sort=best-selling' },
+      { label: 'New arrivals', to: '/shop?sort=newest' },
     ],
   },
   {
     title: 'Customer Service',
     links: [
       { label: 'Contact', to: '/contact' },
-      { label: 'Shipping & Delivery', to: '/faq#shipping' },
-      { label: 'Returns & Refunds', to: '/faq#returns' },
-      { label: 'FAQ', to: '/faq#faq' },
+      { label: 'Shipping & Delivery', to: '/faq' },
+      { label: 'Returns & Refunds', to: '/faq' },
+      { label: 'FAQ', to: '/faq' },
     ],
   },
   {

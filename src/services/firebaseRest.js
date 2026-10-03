@@ -1,44 +1,24 @@
 import { firebaseConfig } from './firebaseConfig.js';
 
-const CUSTOMER_AUTH_KEY = 'az.firebase.customer.auth';
-const ADMIN_AUTH_KEY = 'az.firebase.admin.auth';
-const LEGACY_AUTH_KEY = 'az.firebase.auth';
+const AUTH_KEY = 'az.firebase.auth';
 const db = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents`;
-// Do not guess whether the old shared session belonged to a customer or an
-// administrator. Both must sign in again after this migration.
-try {
-  localStorage.removeItem(LEGACY_AUTH_KEY);
-  sessionStorage.removeItem(LEGACY_AUTH_KEY);
-} catch { /* Storage can be unavailable in privacy-restricted browsers. */ }
-const requireApiKey = () => {
-  if (!firebaseConfig.apiKey) throw new Error('Firebase is not configured. Set VITE_FIREBASE_API_KEY and rebuild the site.');
-  return encodeURIComponent(firebaseConfig.apiKey);
-};
-export const identityToolkitUrl = (path) => `https://identitytoolkit.googleapis.com/v1/${path}?key=${requireApiKey()}`;
-const secureTokenUrl = () => `https://securetoken.googleapis.com/v1/token?key=${requireApiKey()}`;
 
-const readSession = (key) => {
-  try { return JSON.parse(sessionStorage.getItem(key) || localStorage.getItem(key) || 'null'); }
+export const readAuth = () => {
+  try { return JSON.parse(sessionStorage.getItem(AUTH_KEY) || localStorage.getItem(AUTH_KEY) || 'null'); }
   catch { return null; }
 };
 
-const saveSession = (key, value, remember = true) => {
+export const saveAuth = (value, remember = true) => {
   try {
-    sessionStorage.removeItem(key); localStorage.removeItem(key);
-    (remember ? localStorage : sessionStorage).setItem(key, JSON.stringify(value));
+    sessionStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_KEY);
+    (remember ? localStorage : sessionStorage).setItem(AUTH_KEY, JSON.stringify(value));
   } catch { throw new Error('Could not save your session on this device.'); }
 };
 
-const clearSession = (key) => { localStorage.removeItem(key); sessionStorage.removeItem(key); };
-export const readCustomerAuth = () => readSession(CUSTOMER_AUTH_KEY);
-export const readAdminAuth = () => readSession(ADMIN_AUTH_KEY);
-export const saveCustomerAuth = (value, remember = true) => saveSession(CUSTOMER_AUTH_KEY, value, remember);
-export const saveAdminAuth = (value, remember = true) => saveSession(ADMIN_AUTH_KEY, value, remember);
-export const clearCustomerAuth = () => clearSession(CUSTOMER_AUTH_KEY);
-export const clearAdminAuth = () => clearSession(ADMIN_AUTH_KEY);
+export const clearAuth = () => { localStorage.removeItem(AUTH_KEY); sessionStorage.removeItem(AUTH_KEY); };
 
 export async function signIn(email, password) {
-  const response = await fetch(identityToolkitUrl('accounts:signInWithPassword'), {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseConfig.apiKey}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, returnSecureToken: true }),
   });
@@ -48,24 +28,25 @@ export async function signIn(email, password) {
 }
 
 export async function createAccount(email, password, displayName = '') {
-  const response = await fetch(identityToolkitUrl('accounts:signUp'), {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, returnSecureToken: true }),
   });
   const body = await response.json();
   if (!response.ok) throw new Error(authMessage(body.error?.message));
   if (displayName.trim()) {
-    const updateResponse = await fetch(identityToolkitUrl('accounts:update'), {
+    await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${firebaseConfig.apiKey}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: body.idToken, displayName: displayName.trim(), returnSecureToken: true }),
     });
-    const updated = await updateResponse.json().catch(() => ({}));
-    if (!updateResponse.ok) throw new Error(authMessage(updated.error?.message));
-    return { ...body, ...updated, displayName: displayName.trim() };
   }
-  return body;
+  const verification = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseConfig.apiKey}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: body.idToken }),
+  });
+  if (!verification.ok) throw new Error('Account created, but Firebase could not send its verification email.');
+  return true;
 }
 
 export async function signInWithGoogleCredential(credential) {
-  const response = await fetch(identityToolkitUrl('accounts:signInWithIdp'), {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${firebaseConfig.apiKey}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ postBody: new URLSearchParams({ id_token: credential, providerId: 'google.com' }).toString(), requestUri: window.location.origin, returnIdpCredential: true, returnSecureToken: true }),
   });
@@ -75,16 +56,20 @@ export async function signInWithGoogleCredential(credential) {
 }
 
 export async function createAdminAccount(email, password) {
-  const response = await fetch(identityToolkitUrl('accounts:signUp'), {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, returnSecureToken: true }),
   });
   const body = await response.json();
   if (!response.ok) throw new Error(authMessage(body.error?.message));
+  const verify = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseConfig.apiKey}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: body.idToken }),
+  });
+  if (!verify.ok) throw new Error('تم إنشاء الحساب لكن تعذر إرسال رسالة التأكيد. راجع إعدادات Firebase Authentication.');
   return true;
 }
 
 export async function sendPasswordReset(email) {
-  const response = await fetch(identityToolkitUrl('accounts:sendOobCode'), {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseConfig.apiKey}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
   });
   const body = await response.json();
@@ -92,65 +77,37 @@ export async function sendPasswordReset(email) {
 }
 
 function authMessage(code) {
-  const messages = {
-    EMAIL_NOT_FOUND: 'That email was not found.',
-    INVALID_PASSWORD: 'That password is not correct.',
-    INVALID_LOGIN_CREDENTIALS: 'The email or password is not correct.',
-    USER_DISABLED: 'This account is disabled. Contact the store owner.',
-    TOO_MANY_ATTEMPTS_TRY_LATER: 'Too many attempts. Try again later.',
-    EMAIL_EXISTS: 'That email is already registered.',
-    OPERATION_NOT_ALLOWED: 'This sign-in method is not enabled in Firebase.',
-    API_KEY_INVALID: 'Firebase rejected the API key. Check the Vercel Production environment variable.',
-    INVALID_API_KEY: 'Firebase rejected the API key. Check the Vercel Production environment variable.',
-    UNAUTHORIZED_DOMAIN: 'Firebase does not authorize this website domain for Google sign-in.',
-    INVALID_IDP_RESPONSE: 'Firebase rejected the Google sign-in credential. Check the Google provider and OAuth client configuration.',
-    INVALID_IDP_CREDENTIAL: 'Firebase rejected the Google sign-in credential. Check the Google provider and OAuth client configuration.',
-    FEDERATED_USER_ID_ALREADY_LINKED: 'This Google account is already linked to another AZ Store account.',
-    ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL: 'This email already has an AZ Store account using another sign-in method.',
-    MISSING_OR_INVALID_NONCE: 'Google sign-in could not verify the login request. Refresh the page and try again.',
-  };
-  if (!code) return 'Firebase returned no error code. Check the browser network connection and Firebase API key.';
-  return `${messages[code] || 'Firebase sign-in failed'} (Firebase error: ${code}).`;
+  if (code === 'EMAIL_NOT_FOUND' || code === 'INVALID_PASSWORD' || code === 'INVALID_LOGIN_CREDENTIALS') return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+  if (code === 'USER_DISABLED') return 'تم تعطيل هذا الحساب. تواصل مع مسؤول المتجر.';
+  if (code === 'TOO_MANY_ATTEMPTS_TRY_LATER') return 'محاولات كثيرة. حاول مرة أخرى لاحقًا.';
+  if (code === 'EMAIL_EXISTS') return 'هذا البريد مسجل بالفعل.';
+  if (code === 'OPERATION_NOT_ALLOWED') return 'طريقة تسجيل الدخول دي مش مفعلة في Firebase لسه.';
+  return 'تعذر تسجيل الدخول. تحقق من الاتصال وإعدادات Firebase.';
 }
 
-export async function currentCustomerIdToken() { return token(CUSTOMER_AUTH_KEY, 'customer'); }
-export async function currentAdminIdToken() { return token(ADMIN_AUTH_KEY, 'admin'); }
-
-async function token(key, accountType) {
-  const auth = readSession(key);
-  if (!auth?.refreshToken) throw new Error(accountType === 'admin' ? 'Sign in to the admin panel first.' : 'Sign in to your customer account first.');
-  if (accountType === 'admin' && (auth.isAdmin !== true || !['owner', 'admin'].includes(auth.role))) throw new Error('Sign in to an authorized admin account first.');
-  if (accountType === 'customer' && (auth.isAdmin !== false || auth.role !== 'customer')) throw new Error('Sign in to your customer account first.');
+async function token() {
+  const auth = readAuth();
+  if (!auth?.refreshToken) throw new Error('سجّل الدخول إلى لوحة الإدارة أولًا.');
   if (Date.now() < auth.expiresAt - 60_000) return auth.idToken;
-  const response = await fetch(secureTokenUrl(), {
+  const response = await fetch(`https://securetoken.googleapis.com/v1/token?key=${firebaseConfig.apiKey}`, {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: auth.refreshToken }),
   });
   const body = await response.json();
-  if (!response.ok) { clearSession(key); throw new Error('Your session expired. Sign in again.'); }
-  saveSession(key, { ...auth, idToken: body.id_token, refreshToken: body.refresh_token, expiresAt: Date.now() + Number(body.expires_in) * 1000 }, auth.remember);
+  if (!response.ok) { clearAuth(); throw new Error('انتهت الجلسة. سجّل الدخول مرة أخرى.'); }
+  saveAuth({ ...auth, idToken: body.id_token, refreshToken: body.refresh_token, expiresAt: Date.now() + Number(body.expires_in) * 1000 }, auth.remember);
   return body.id_token;
 }
 
 export async function request(path, { method = 'GET', data, admin = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
-  if (admin) headers.Authorization = `Bearer ${await currentAdminIdToken()}`;
-  let response;
-  try {
-    const options = { method, headers, ...(method === 'GET' ? { cache: 'no-store' } : {}), ...(data === undefined ? {} : { body: JSON.stringify({ fields: encodeFields(data) }) }) };
-    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') options.signal = AbortSignal.timeout(20000);
-    response = await fetch(`${db}/${path}`, options);
-  } catch (error) {
-    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') throw new Error('Firebase took too long to respond. Check your connection and try saving again.');
-    throw new Error('Could not connect to Firebase. Check your internet connection and try again.');
-  }
+  if (admin) headers.Authorization = `Bearer ${await token()}`;
+  const response = await fetch(`${db}/${path}`, { method, headers, ...(data === undefined ? {} : { body: JSON.stringify({ fields: encode(data) }) }) });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const code = body.error?.status;
-    if (code === 'PERMISSION_DENIED' || response.status === 401) throw new Error('Firebase rejected the operation. Check the admin account and Firestore rules.');
-    const error = new Error(body.error?.message || 'Could not reach the store database.');
-    error.code = code || response.status;
-    throw error;
+    if (code === 'PERMISSION_DENIED' || response.status === 401) throw new Error('Firebase رفض العملية. تحقق من حساب الأدمن وقواعد Firestore.');
+    throw new Error(body.error?.message || 'تعذر الاتصال بقاعدة البيانات.');
   }
   return body;
 }
@@ -162,14 +119,6 @@ function encode(value) {
   if (typeof value === 'number') return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
   if (Array.isArray(value)) return { arrayValue: { values: value.map(encode) } };
   return { mapValue: { fields: Object.fromEntries(Object.entries(value).map(([k, v]) => [k, encode(v)])) } };
-}
-
-// Firestore Document.fields is a map of field names to Value objects.
-// encode() returns a Value, so wrapping the whole map with encode() adds an
-// invalid mapValue/value layer and Firestore rejects writes with "unknown name
-// fields". Encode only each top-level field value here.
-function encodeFields(value) {
-  return Object.fromEntries(Object.entries(value).map(([key, fieldValue]) => [key, encode(fieldValue)]));
 }
 
 function decode(value) {
@@ -190,7 +139,7 @@ export const listDocuments = async (collection, admin = false) => {
 };
 export const getDocument = async (collection, id, admin = false) => {
   try { return decodeDocument(await request(`${collection}/${encodeURIComponent(id)}`, { admin })); }
-  catch (error) { if (error.code === 404 || error.code === 'NOT_FOUND') return null; throw error; }
+  catch (error) { if (error.message.includes('NOT_FOUND')) return null; throw error; }
 };
 export const putDocument = async (collection, id, data, admin = false) => decodeDocument(await request(`${collection}/${encodeURIComponent(id)}`, { method: 'PATCH', data, admin }));
 export const createDocument = async (collection, id, data, admin = false) => decodeDocument(await request(`${collection}?documentId=${encodeURIComponent(id)}`, { method: 'POST', data, admin }));
