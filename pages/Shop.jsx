@@ -1,3 +1,4 @@
+import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
@@ -23,6 +24,7 @@ const chipTest = (id) => (p) => {
 };
 
 export default function Shop() {
+  const { t } = useLanguage();
   useSeo('Shop all | AZ Store', 'Browse the AZ collection: fine fragrance mists and gift sets. Filter by mood and price.');
   const { products, categories } = useStore();
   const [params, setParams] = useSearchParams();
@@ -35,13 +37,20 @@ export default function Shop() {
 
   const [refineOpen, setRefineOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [price, setPrice] = useState('any');
   const [inStock, setInStock] = useState(false);
   const [onSale, setOnSale] = useState(false);
   const [brandAZ, setBrandAZ] = useState(true);
 
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && setSortOpen(false);
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      setSortOpen(false);
+      setTypeMenuOpen(false);
+      setCategoryMenuOpen(false);
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
@@ -70,6 +79,8 @@ export default function Shop() {
     return names.map((name) => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), id: categories.find((category) => category.name === name)?.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [categories, products]);
+  const selectedTypeLabel = t(FILTER_CHIPS.find((chip) => chip.id === typeFilter)?.label || 'All');
+  const selectedCategoryLabel = t(categoryOptions.find((category) => category.id === categoryFilter || category.slug === categoryFilter)?.name || 'All categories');
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -121,38 +132,44 @@ export default function Shop() {
 
   return (
     <div className="container">
-      <nav className="crumb" aria-label="Breadcrumb">
-        <Link to="/">Home</Link> / <span>Shop all</span>
+      <nav className="crumb" aria-label={t("Breadcrumb")}>
+        <Link to="/">{t("Home")}</Link> / <span>{t("Shop all")}</span>
       </nav>
 
       <div className="shopbar">
         <div className="shop-filters">
-          <div className="shop-filter-group" role="group" aria-label="Filter by product type">
-            <span className="shop-filter-group__label">Product type</span>
+          <div className={`shop-filter-group shop-filter-group--dropdown${typeMenuOpen ? ' is-open' : ''}`} role="group" aria-label={t("Filter by product type")}>
+            <span className="shop-filter-group__label">{t("Product type")}</span>
+            <button type="button" className="shop-filter-group__toggle" aria-expanded={typeMenuOpen} onClick={() => { setTypeMenuOpen((open) => !open); setCategoryMenuOpen(false); }}>
+              <span>{t("Product type")}</span><b>{selectedTypeLabel}</b><i aria-hidden="true">⌄</i>
+            </button>
             <div className="shop-filter-group__chips">
-              {FILTER_CHIPS.map((c) => <button key={c.id} className={`chip ${typeFilter === c.id ? 'chip--on' : ''}`} aria-pressed={typeFilter === c.id} onClick={() => setTypeFilter(c.id)}>{c.label}</button>)}
+              {FILTER_CHIPS.map((c) => <button key={c.id} className={`chip ${typeFilter === c.id ? 'chip--on' : ''}`} aria-pressed={typeFilter === c.id} onClick={() => { setTypeFilter(c.id); setTypeMenuOpen(false); }}>{t(c.label)}</button>)}
             </div>
           </div>
-          <div className="shop-filter-group" role="group" aria-label="Filter by category">
-            <span className="shop-filter-group__label">Category</span>
+          <div className={`shop-filter-group shop-filter-group--dropdown${categoryMenuOpen ? ' is-open' : ''}`} role="group" aria-label={t("Filter by category")}>
+            <span className="shop-filter-group__label">{t("Category")}</span>
+            <button type="button" className="shop-filter-group__toggle" aria-expanded={categoryMenuOpen} onClick={() => { setCategoryMenuOpen((open) => !open); setTypeMenuOpen(false); }}>
+              <span>{t("Category")}</span><b>{selectedCategoryLabel}</b><i aria-hidden="true">⌄</i>
+            </button>
             <div className="shop-filter-group__chips">
-              <button className={`chip ${!categoryFilter ? 'chip--on' : ''}`} aria-pressed={!categoryFilter} onClick={() => setCategoryFilter('')}>All categories</button>
+              <button className={`chip ${!categoryFilter ? 'chip--on' : ''}`} aria-pressed={!categoryFilter} onClick={() => { setCategoryFilter(''); setCategoryMenuOpen(false); }}>{t("All categories")}</button>
               {categoryOptions.map((category) => {
-                return <button key={category.id} className={`chip ${categoryFilter === category.id || categoryFilter === category.slug ? 'chip--on' : ''}`} aria-pressed={categoryFilter === category.id || categoryFilter === category.slug} onClick={() => setCategoryFilter(category.id)}>{category.name}</button>;
+                return <button key={category.id} className={`chip ${categoryFilter === category.id || categoryFilter === category.slug ? 'chip--on' : ''}`} aria-pressed={categoryFilter === category.id || categoryFilter === category.slug} onClick={() => { setCategoryFilter(category.id); setCategoryMenuOpen(false); }}>{t(category.name)}</button>;
               })}
             </div>
           </div>
         </div>
         <div className="shopbar__right">
           <button className="btn btn--text" onClick={() => setRefineOpen((v) => !v)} aria-expanded={refineOpen}>
-            Refine{activeRefinements ? ` (${activeRefinements})` : ''}
+            {t("Refine")}{activeRefinements ? ` (${activeRefinements})` : ''}
           </button>
           <div className="sort">
             <button className="chip" aria-haspopup="true" aria-expanded={sortOpen} onClick={() => setSortOpen((v) => !v)}>
-              Sort: {sortLabel} ▾
+              {t("Sort:")} {t(sortLabel)} ▾
             </button>
             {sortOpen && (
-              <div className="sort__menu" role="listbox" aria-label="Sort products">
+              <div className="sort__menu" role="listbox" aria-label={t("Sort products")}>
                 {SORT_OPTIONS.map((s) => (
                   <button
                     key={s.id}
@@ -160,7 +177,7 @@ export default function Shop() {
                     aria-checked={sort === s.id}
                     onClick={() => { setParam('sort', s.id, 'best-selling'); setSortOpen(false); }}
                   >
-                    {s.label}
+                    {t(s.label)}
                   </button>
                 ))}
               </div>
@@ -172,31 +189,31 @@ export default function Shop() {
       {refineOpen && (
         <div className="refine">
           <div>
-            <h4>Price</h4>
+            <h4>{t("Price")}</h4>
             {PRICE_BANDS.map((b) => (
               <label key={b.id}>
                 <input type="radio" name="price" checked={price === b.id} onChange={() => setPrice(b.id)} />
-                {b.label}
+                {t(b.label)}
               </label>
             ))}
           </div>
           <div>
-            <h4>More</h4>
-            <label><input type="checkbox" checked={inStock} onChange={() => setInStock(inStock === false)} /> In stock only</label>
-            <label><input type="checkbox" checked={onSale} onChange={() => setOnSale(onSale === false)} /> On sale</label>
-            <label><input type="checkbox" checked={brandAZ} onChange={() => setBrandAZ(brandAZ === false)} /> AZ Original Products</label>
+            <h4>{t("More")}</h4>
+            <label><input type="checkbox" checked={inStock} onChange={() => setInStock(inStock === false)} /> {t("In stock only")}</label>
+            <label><input type="checkbox" checked={onSale} onChange={() => setOnSale(onSale === false)} /> {t("On sale")}</label>
+            <label><input type="checkbox" checked={brandAZ} onChange={() => setBrandAZ(brandAZ === false)} /> {t("AZ Original Products")}</label>
           </div>
         </div>
       )}
 
-      {q && <p className="count-line">Search results for “{q}” — <button className="btn btn--text" style={{ padding: 0 }} onClick={() => setParam('q', '', '')}>clear</button></p>}
-      <p className="count-line">{results.length} {results.length === 1 ? 'product' : 'products'}</p>
+      {q && <p className="count-line">{t("Search results for “")}{q}” — <button className="btn btn--text" style={{ padding: 0 }} onClick={() => setParam('q', '', '')}>{t("clear")}</button></p>}
+      <p className="count-line">{results.length} {results.length === 1 ? t("product") : t("products")}</p>
 
       {results.length === 0 ? (
         <div className="empty">
-          <h3>No scents found.</h3>
-          <p>Try another mood, or clear the filters and start again.</p>
-          <button className="btn btn--primary" onClick={clearAll}>Clear filters</button>
+          <h3>{t("No scents found.")}</h3>
+          <p>{t("Try another mood, or clear the filters and start again.")}</p>
+          <button className="btn btn--primary" onClick={clearAll}>{t("Clear filters")}</button>
         </div>
       ) : (
         <div className="grid" id="shop-results">

@@ -1,5 +1,5 @@
+import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Link, useParams } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
@@ -12,6 +12,7 @@ import NotFound from './NotFound.jsx';
 import { HeartIcon } from '../components/icons.jsx';
 
 export default function ProductDetails() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const { addToCart, wishlist, toggleWish, products, productsLoading } = useStore();
   const product = products.find((p) => p.id === id);
@@ -80,12 +81,12 @@ export default function ProductDetails() {
 
   return (
     <div className="container">
-      <nav className="crumb" aria-label="Breadcrumb">
-        <Link to="/">Home</Link> / <Link to="/shop">Shop all</Link> / <span>{product.name}</span>
+      <nav className="crumb" aria-label={t("Breadcrumb")}>
+        <Link to="/">{t("Home")}</Link> / <Link to="/shop">{t("Shop all")}</Link> / <span>{t(product.name)}</span>
       </nav>
 
       <div className="pdp" style={{ '--product-accent': product.accentHex || '#e2ad55' }}>
-        <div className="thumbs" role="group" aria-label="Product images">
+        <div className="thumbs" role="group" aria-label={t("Product images")}>
           {product.images.map((g, i) => g?.src ? (
             <button
               key={g.src + i}
@@ -94,32 +95,32 @@ export default function ProductDetails() {
               aria-label={`Show image ${i + 1}`}
               aria-pressed={imageIndex === i}
             >
-              <img src={g.src} alt="" loading="lazy" />
+              <img src={g.src} alt={t(g.alt || '')} loading="lazy" />
             </button>
           ) : null)}
         </div>
 
         <div className="pdp__main">
-          <img src={(product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.src} alt={(product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.alt || product.name} />
+          <img src={(product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.src} alt={t((product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.alt || product.name)} />
         </div>
 
         <div className="pdp__info">
-          <span className="chip">{product.category}</span>
-          <h1 className="pdp__title" style={{ color: 'var(--product-accent)' }}>{product.name}</h1>
-          <p className="pdp__lead">{product.tagline}</p>
+          <span className="chip">{t(product.category)}</span>
+          <h1 className="pdp__title" style={{ color: 'var(--product-accent)' }}>{t(product.name)}</h1>
+          <p className="pdp__lead">{t(product.tagline)}</p>
           <div className="pdp__notes">
-            {(product.scentNotes || product.notes || []).map((n) => <span className="chip" key={n}>{n}</span>)}
+            {(product.scentNotes || product.notes || []).map((n) => <span className="chip" key={n}>{t(n)}</span>)}
           </div>
 
           <div className="pdp__price">
             <span>{egp(currentPrice)}</span>
             {comparePrice && <s>{egp(comparePrice)}</s>}
-            {discountPercent > 0 && <b className="pdp__sale">Save {discountPercent}%</b>}
-            <small>{variation.label}</small>
+            {discountPercent > 0 && <b className="pdp__sale">{t("Save")} {discountPercent}%</b>}
+            <small>{t(variation.label)}</small>
           </div>
 
           {variations.length > 1 && (
-            <div className="variations" role="group" aria-label="Choose size">
+            <div className="variations" role="group" aria-label={t("Choose size")}>
               {variations.map((v) => (
                 <button
                   key={v.id}
@@ -127,7 +128,7 @@ export default function ProductDetails() {
                   aria-pressed={v.id === variation.id}
                   onClick={() => { setVariationId(v.id); setImageIndex(variationImageIndex(product, v)); setQty(1); }}
                 >
-                  {v.label}
+                  {t(v.label)}
                 </button>
               ))}
             </div>
@@ -137,34 +138,34 @@ export default function ProductDetails() {
             <QuantitySelector value={qty} onChange={setQty} max={Math.max(1, variation.stock)} />
             <button
               className={`btn btn--primary pdp__buy-primary ${soldOut ? 'btn--disabled' : ''}`}
-              style={{ flex: 1, minWidth: 180 }}
+              style={{ flex: 1 }}
               onClick={() => addToCart(product.id, variation.id, qty)}
               disabled={soldOut}
             >
-              {soldOut ? 'Sold out' : 'Add to bag'}
+              {soldOut ? t("Sold out") : t("Add to bag")}
             </button>
             <button
               className={`pdp__wish ${wished ? 'pdp__wish--on' : ''}`}
               type="button"
               onClick={() => toggleWish(product.id)}
-              aria-label={wished ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+              aria-label={wished ? `${t('Remove')} ${t(product.name)} ${t('from wishlist')}` : `${t('Save')} ${t(product.name)} ${t('to wishlist')}`}
               aria-pressed={wished}
-              title={wished ? 'Remove from wishlist' : 'Save to wishlist'}
+              title={wished ? t('Remove from wishlist') : t('Save to wishlist')}
             >
               <HeartIcon filled={wished} />
             </button>
           </div>
           <p className={`pdp__stock ${soldOut ? 'pdp__stock--out' : ''}`} role="status">
             {soldOut
-              ? 'This size is sold out — try another size.'
+              ? t("This size is sold out — try another size.")
               : variation.stock <= (product.lowStockThreshold ?? 6)
-                ? `Only ${variation.stock} left in stock · SKU ${variation.sku}`
-                : `In stock · SKU ${variation.sku}`}
+              ? <>{t('Only')} {variation.stock} {t('left in stock · SKU')} {variation.sku}</>
+              : <>{t('In stock · SKU')} {variation.sku}</>}
           </p>
 
           {product.id !== 'trio-gift-box' && (
             <div className="pdp__buy" style={{ marginTop: 12 }}>
-              <Link className="btn btn--ghost btn--block" to="/product/trio-gift-box">Buy the trio box and save</Link>
+              <Link className="btn btn--ghost btn--block" to="/product/trio-gift-box">{t("Buy the trio box and save")}</Link>
             </div>
           )}
 
@@ -174,24 +175,10 @@ export default function ProductDetails() {
         </div>
       </div>
 
-      {createPortal(
-        <div className="pdp__sticky">
-          <button
-            className={`btn btn--primary btn--block ${soldOut ? 'btn--disabled' : ''}`}
-            style={{ '--product-accent': product.accentHex || '#e2ad55' }}
-            onClick={() => addToCart(product.id, variation.id, qty)}
-            disabled={soldOut}
-          >
-            {soldOut ? 'Sold out' : `Add to bag · ${egp(currentPrice * qty)}`}
-          </button>
-        </div>,
-        document.body,
-      )}
-
       <section className="container sec" style={{ paddingInline: 0 }}>
         <div className="sec__head">
-          <h2 className="sec__title">Complete the wardrobe</h2>
-          <Link className="btn btn--text" to="/shop">View all</Link>
+          <h2 className="sec__title">{t("Complete the wardrobe")}</h2>
+          <Link className="btn btn--text" to="/shop">{t("View all")}</Link>
         </div>
         <div className="grid">
           {related.map((p) => <ProductCard key={p.id} product={p} />)}

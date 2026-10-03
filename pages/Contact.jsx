@@ -1,9 +1,11 @@
+import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { useState } from 'react';
 import { useSeo } from '../hooks/useSeo.js';
 import { CONTACT_INFO } from '../data/content.js';
 import { isValidEmail } from '../utils/format.js';
 
 export default function Contact() {
+  const { t } = useLanguage();
   useSeo('Contact | AZ Store', 'Questions about an order, a scent or a gift? Talk to the AZ care team.');
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [errors, setErrors] = useState({});
@@ -40,28 +42,28 @@ export default function Contact() {
   return (
     <div className="container">
       <div className="page-head">
-        <h1>We’re listening.</h1>
-        <p>Order questions, scent advice, gift help — the AZ care team answers every message, usually within a day.</p>
+        <h1>{t("We’re listening.")}</h1>
+        <p>{t("Order questions, scent advice, gift help — the AZ care team answers every message, usually within a day.")}</p>
       </div>
 
       <div className="two-col">
         <form onSubmit={submit} method="post" noValidate>
           <div className="co__fields">
             <div>
-              <input className={cls('name')} name="name" placeholder="Name" value={form.name} onChange={set('name')} aria-label="Name" required minLength={2} aria-invalid={Boolean(errors.name)} />
+              <input className={cls('name')} name="name" placeholder={t("Name")} value={form.name} onChange={set('name')} aria-label={t("Name")} required minLength={2} aria-invalid={Boolean(errors.name)} />
               {errors.name && <p className="field-error" role="alert">{errors.name}</p>}
             </div>
             <div>
-              <input className={cls('email')} name="email" placeholder="Email" type="email" value={form.email} onChange={set('email')} aria-label="Email" required aria-invalid={Boolean(errors.email)} />
+              <input className={cls('email')} name="email" placeholder={t("Email")} type="email" value={form.email} onChange={set('email')} aria-label={t("Email")} required aria-invalid={Boolean(errors.email)} />
               {errors.email && <p className="field-error" role="alert">{errors.email}</p>}
             </div>
-            <input className="field" name="phone" placeholder="Phone (optional)" value={form.phone} onChange={set('phone')} aria-label="Phone" inputMode="tel" />
+            <input className="field" name="phone" placeholder={t("Phone (optional)")} value={form.phone} onChange={set('phone')} aria-label={t("Phone")} inputMode="tel" />
             <div>
-              <textarea className={cls('message')} name="message" placeholder="Message" rows={4} value={form.message} onChange={set('message')} aria-label="Message" required minLength={10} aria-invalid={Boolean(errors.message)} />
+              <textarea className={cls('message')} name="message" placeholder={t("Message")} rows={4} value={form.message} onChange={set('message')} aria-label={t("Message")} required minLength={10} aria-invalid={Boolean(errors.message)} />
               {errors.message && <p className="field-error" role="alert">{errors.message}</p>}
             </div>
           </div>
-          <button className="btn btn--primary" type="submit" style={{ marginTop: 24 }}>Send message</button>
+          <button className="btn btn--primary" type="submit" style={{ marginTop: 24 }}>{t("Send message")}</button>
           {status && <p role="status" className="field-hint">{status}</p>}
         </form>
 
@@ -72,7 +74,7 @@ export default function Contact() {
               <span>{c.value}</span>
             </a>
           ) : <div key={c.label}><span>{c.label}</span><span>{c.value}</span></div>)}
-          <div><span>Hours</span><span>Sat to Thu, 10:00 – 20:00</span></div>
+          <div><span>{t("Hours")}</span><span>{t("Sat to Thu, 10:00 – 20:00")}</span></div>
         </div>
       </div>
     </div>
