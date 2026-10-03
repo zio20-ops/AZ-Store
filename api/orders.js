@@ -52,32 +52,6 @@ async function verifyCustomer(idToken, serviceToken) {
   return response.ok ? data.users?.[0] || null : false;
 }
 
-async function uploadPaymentProof(dataUrl, id) {
-  const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
-  if (!match) throw new Error('The payment screenshot is invalid. Please upload a JPG, PNG, or WebP image.');
-  const bytes = Buffer.from(match[2], 'base64');
-  if (!bytes.length || bytes.length > 450 * 1024) throw new Error('The payment screenshot is too large. Choose a smaller image and try again.');
-  const bucket = process.env.FIREBASE_STORAGE_BUCKET || 'az-store-36cd0.firebasestorage.app';
-  const name = `payment-proofs/${id}/${randomUUID()}.${match[1].split('/')[1]}`;
-  const downloadToken = randomUUID();
-  const boundary = `azStore${randomUUID().replace(/-/g, '')}`;
-  const metadata = { name, contentType: match[1], metadata: { firebaseStorageDownloadTokens: downloadToken } };
-  const body = Buffer.concat([
-    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${match[1]}\r\n\r\n`),
-    bytes,
-    Buffer.from(`\r\n--${boundary}--`),
-  ]);
-  const token = await accessToken('https://www.googleapis.com/auth/devstorage.read_write');
-  const response = await fetch(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=multipart`, {
-    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}`, 'Content-Length': String(body.length) }, body,
-  });
-  if (!response.ok) {
-    console.error('Payment proof upload failed:', response.status, await response.text());
-    throw new Error('Could not save the payment screenshot. Please retry or submit the transfer reference instead.');
-  }
-  return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(name)}?alt=media&token=${downloadToken}`;
-}
-
 async function firestore(path, token) {
   const response = await fetch(`${db}/${path}`, { headers: { Authorization: `Bearer ${token}` } });
   const doc = await response.json();
@@ -97,20 +71,21 @@ export default async function handler(req, res) {
   if (!origin || new URL(origin).host !== host) return problem(res, 403, 'Origin not allowed.');
   try {
     const body = req.body || {};
-    const { customer = {}, items = [], deliveryMethod, promoCode = '', paymentMethod = 'cod', paymentRef = '', paymentProof = '' } = body;
+    const { customer = {}, items = [], deliveryMethod, promoCode = '', paymentMethod = 'cod', paymentRef = '' } = body;
     if (typeof customer.name !== 'string' || customer.name.trim().length < 3 || customer.name.length > 120 || !/^01[0125]\d{8}$/.test(String(customer.phone || '').replace(/[\s-]/g, '')) || typeof customer.address !== 'string' || customer.address.trim().length < 8 || customer.address.length > 500 || (customer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) || !Array.isArray(items) || items.length < 1 || items.length > 30) return problem(res, 400, 'Check the customer and item details.');
     if (!['standard', 'express'].includes(deliveryMethod)) return problem(res, 400, 'Invalid delivery method.');
     const token = await accessToken();
     const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     const verifiedCustomer = await verifyCustomer(idToken, token);
     if (verifiedCustomer === false) return problem(res, 401, 'Your sign-in expired. Sign in again and place the order.');
+    if (!verifiedCustomer) return problem(res, 401, 'Sign in or create an account before placing an order.');
     const settings = await firestore('settings/store', token).catch(() => ({ fields: {} }));
     const storeSettings = fields(settings);
     const paymentConfig = storeSettings.paymentMethods || { cod: { enabled: true }, instapay: { enabled: false }, vodafone: { enabled: false } };
     if (!['cod', 'instapay', 'vodafone'].includes(paymentMethod) || !paymentConfig[paymentMethod]?.enabled) return problem(res, 400, 'This payment method is not available. Refresh checkout and choose another method.');
     if (paymentMethod === 'instapay' && !paymentConfig.instapay.account) return problem(res, 400, 'InstaPay is not configured by the store.');
     if (paymentMethod === 'vodafone' && !paymentConfig.vodafone.number) return problem(res, 400, 'Vodafone Cash is not configured by the store.');
-    if (paymentMethod !== 'cod' && String(paymentRef).trim().length < 4 && !paymentProof) return problem(res, 400, 'Enter the transfer reference or upload a payment screenshot.');
+    if (paymentMethod !== 'cod' && String(paymentRef).trim().length < 4) return problem(res, 400, 'Enter the transaction reference from your payment receipt.');
     const products = new Map();
     const normalizedItems = [];
     let subtotal = 0;
@@ -173,7 +148,6 @@ export default async function handler(req, res) {
       appliedPromo = code;
     }
     const id = randomUUID();
-    const paymentProofUrl = paymentMethod === 'cod' || !paymentProof ? null : await uploadPaymentProof(paymentProof, id);
     const phone = String(customer.phone).replace(/[\s-]/g, '');
     const order = {
       id, placedAt: new Date().toISOString(), status: 0, cancelled: false,
@@ -182,7 +156,7 @@ export default async function handler(req, res) {
       address: customer.address.trim(), notes: String(customer.notes || '').slice(0, 500),
       payment: paymentMethod === 'cod' ? 'Cash on delivery' : paymentMethod === 'instapay' ? 'InstaPay' : 'Vodafone Cash',
       paymentRef: paymentMethod === 'cod' ? null : String(paymentRef).trim().slice(0, 100),
-      paymentProofUrl,
+      paymentProofUrl: null,
       paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Verification Required',
       deliveryMethod: deliveryMethod === 'express' ? 'Express, next day' : 'Standard, 2 to 4 days',
       items: normalizedItems, subtotal, discount, shippingDiscount, promoCode: appliedPromo, delivery: deliveryFee, total: subtotal - discount + deliveryFee,
@@ -216,6 +190,6 @@ export default async function handler(req, res) {
     return res.status(201).json({ order });
   } catch (error) {
     console.error('Order API error:', error.message);
-    return problem(res, 503, error.message?.startsWith('Could not save the payment screenshot') ? error.message : 'Order service is not configured yet. Please try again later.');
+    return problem(res, 503, 'Order service is not configured yet. Please try again later.');
   }
 }
