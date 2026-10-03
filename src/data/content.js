@@ -2,7 +2,7 @@ export const ANNOUNCEMENT = 'Free gift cards with every trio box';
 
 export const NAV_LINKS = [
   { label: 'Shop all', to: '/shop' },
-  { label: 'Products', to: '/shop?filter=mists' },
+  { label: 'Body Splash', to: '/shop?filter=mists' },
   { label: 'Gift sets', to: '/shop?filter=gift-sets' },
   { label: 'Our story', to: '/about' },
 ];
@@ -16,7 +16,7 @@ export const TRUST_ITEMS = [
 
 export const FILTER_CHIPS = [
   { id: 'all', label: 'All' },
-  { id: 'mists', label: 'Mists' },
+  { id: 'mists', label: 'Body Splash' },
   { id: 'gift-sets', label: 'Gift sets' },
 ];
 
@@ -74,7 +74,7 @@ export const FOOTER_COLUMNS = [
     title: 'Shop',
     links: [
       { label: 'Shop all', to: '/shop' },
-      { label: 'Products', to: '/shop?filter=mists' },
+      { label: 'Body Splash', to: '/shop?filter=mists' },
       { label: 'Gift sets', to: '/shop?filter=gift-sets' },
       { label: 'Best sellers', to: '/shop?sort=best-selling#shop-results' },
       { label: 'New arrivals', to: '/shop?sort=newest#shop-results' },
