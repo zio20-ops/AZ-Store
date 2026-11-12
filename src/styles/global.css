@@ -255,6 +255,18 @@ textarea.field { resize: vertical; min-height: 90px; }
 .crumb { padding-top: 26px; font-size: 13px; opacity: 0.6; }
 .crumb a:hover { color: var(--gold); }
 .shopbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-block: 20px; flex-wrap: wrap; }
+.shop-filters { display: flex; align-items: center; gap: 12px; }
+.shop-filter-group { position: relative; min-width: 220px; }
+.shop-filter-group__label { display: block; margin: 0 0 6px 2px; color: rgba(244, 234, 217, 0.56); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
+.shop-filter-group__toggle { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 42px; padding: 9px 14px; border: 1px solid var(--line-2); border-radius: 999px; background: rgba(255, 255, 255, 0.025); color: var(--pearl); text-align: start; transition: border-color 0.25s, background 0.25s; }
+.shop-filter-group__toggle:hover, .shop-filter-group.is-open .shop-filter-group__toggle { border-color: var(--line-4); background: rgba(255, 255, 255, 0.045); }
+.shop-filter-group__toggle b { overflow: hidden; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.shop-filter-group__toggle i { margin-inline-start: auto; color: var(--gold); font-size: 17px; font-style: normal; line-height: 1; transition: transform 0.2s; }
+.shop-filter-group.is-open .shop-filter-group__toggle i { transform: rotate(180deg); }
+.shop-filter-group__chips { position: absolute; top: calc(100% + 8px); inset-inline: 0; z-index: 35; display: none; max-height: min(320px, 60vh); overflow-y: auto; flex-direction: column; gap: 3px; padding: 7px; border: 1px solid var(--line-2); border-radius: 14px; background: #160d09; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38); }
+.shop-filter-group.is-open .shop-filter-group__chips { display: flex; }
+.shop-filter-group__chips .chip { width: 100%; min-height: 38px; justify-content: flex-start; padding: 9px 11px; border-color: transparent; border-radius: 9px; text-align: start; white-space: normal; }
+.shop-filter-group__chips .chip:not(.chip--on):hover { border-color: transparent; background: rgba(255, 255, 255, 0.07); }
 .chips { display: flex; gap: 10px; flex-wrap: wrap; }
 .shopbar__right { display: flex; gap: 10px; align-items: center; }
 
