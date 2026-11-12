@@ -23,8 +23,8 @@ export default function Home() {
             <a className="btn btn--text" href="#sections">{t("Explore sections")}</a>
           </div>
         </div>
-        <div className="hero__media">
-          <img src="/images/trio-satin.jpg" alt={t("The AZ collection styled on bronze satin under golden light")} fetchpriority="high" />
+        <div className="hero__media hero__media--watch">
+          <img src="/images/az-watch-hero.png" alt={t("A luxury AZ watch photographed on dark stone")} fetchpriority="high" />
         </div>
       </section>
 
@@ -53,7 +53,7 @@ export default function Home() {
       </section>}
 
       <section className="container gift">
-        <Reveal className="gift__media"><img src="/images/gift-box.jpg" alt={t("AZ collection presented as a thoughtful gift")} loading="lazy" /></Reveal>
+        <Reveal className="gift__media"><img src="/images/az-watch-gift.png" alt={t("A luxury watch presented in its gift box")} loading="lazy" /></Reveal>
         <Reveal><h2>{t("Made to be")}<br />{t("remembered.")}</h2><p>{t("Explore the collection and find a thoughtful gift or a new everyday favorite.")}</p><Link className="btn btn--primary" to="/shop">{t("Discover the collection")}</Link></Reveal>
       </section>
 
