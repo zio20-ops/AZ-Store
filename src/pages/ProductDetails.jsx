@@ -72,6 +72,7 @@ export default function ProductDetails() {
   const currentPrice = productPrice(product, variation);
   const comparePrice = productComparePrice(product, variation);
   const discountPercent = productDiscountPercent(product, variation);
+  const selectedImage = product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src);
 
   const accordionItems = [
     ...(localize(product, 'description') ? [{ q: localize({ name: 'About this product', nameAr: 'عن المنتج' }), a: localize(product, 'description') }] : []),
@@ -101,7 +102,7 @@ export default function ProductDetails() {
         </div>
 
         <div className="pdp__main">
-          <img src={(product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.src} alt={localize(product)} />
+          {selectedImage && <img src={selectedImage.src} alt={localize(product)} style={{ objectFit: selectedImage.fit === 'contain' ? 'contain' : 'cover', transform: `scale(${Math.min(1.5, Math.max(1, Number(selectedImage.zoom ?? 100) / 100))})` }} />}
         </div>
 
         <div className="pdp__info">
