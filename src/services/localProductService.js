@@ -102,6 +102,7 @@ const ensureSeed = () => {
       announcement: 'Thoughtful finds from AZ Store',
       freeDeliveryThreshold: 1800,
       defaultLowStockThreshold: 6,
+      homepageImages: { hero: '', gift: '' },
       paymentMethods: {
         cod: { enabled: true },
         instapay: { enabled: false, account: '', accountName: '' },
