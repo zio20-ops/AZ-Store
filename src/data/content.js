@@ -1,16 +1,14 @@
-export const ANNOUNCEMENT = 'Free gift cards with every trio box';
+export const ANNOUNCEMENT = 'Thoughtful finds from AZ Store';
 
 export const NAV_LINKS = [
   { label: 'Shop all', to: '/shop' },
-  { label: 'Body Splash', to: '/shop?filter=mists' },
-  { label: 'Gift sets', to: '/shop?filter=gift-sets' },
   { label: 'Our story', to: '/about' },
 ];
 
 export const TRUST_ITEMS = [
-  'Long-lasting, morning to night',
-  'Skin-safe formula',
-  'Gift-ready packaging',
+  'Thoughtful details',
+  'Quality you can trust',
+  'Gift-ready options',
   'Delivery across Egypt',
 ];
 
@@ -51,8 +49,8 @@ export const FAQS = [
     a: 'Unopened products can be returned within 14 days of delivery for a full refund. If your order arrived damaged or incorrect, contact us within 48 hours and we will replace it right away.',
   },
   {
-    q: 'Are your products authentic?',
-    a: 'Yes. Every AZ mist is formulated and filled under our own supervision in small, dated batches. Each bottle carries a batch code you can verify with our customer care team.',
+    q: 'How do you choose your products?',
+    a: 'We carefully select and review every product in the AZ collection. Contact our customer care team for more information about an item.',
   },
   {
     q: 'Do you deliver across Egypt?',
@@ -74,8 +72,6 @@ export const FOOTER_COLUMNS = [
     title: 'Shop',
     links: [
       { label: 'Shop all', to: '/shop' },
-      { label: 'Body Splash', to: '/shop?filter=mists' },
-      { label: 'Gift sets', to: '/shop?filter=gift-sets' },
       { label: 'Best sellers', to: '/shop?sort=best-selling#shop-results' },
       { label: 'New arrivals', to: '/shop?sort=newest#shop-results' },
     ],
