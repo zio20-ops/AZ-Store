@@ -5,7 +5,7 @@ import { useStore } from '../store/StoreContext.jsx';
 import { egp } from '../utils/format.js';
 
 export default function CartDrawer() {
-  const { t, localize } = useLanguage();
+  const { t, localize, language } = useLanguage();
   const { cart, cartOpen, setCartOpen, subtotal, discount, setQty, removeLine, freeThreshold, applyPromo, removePromo, promo } = useStore();
   const [code, setCode] = useState('');
   const [promoMsg, setPromoMsg] = useState(null);
@@ -21,6 +21,10 @@ export default function CartDrawer() {
     document.body.style.overflow = cartOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [cartOpen]);
+
+  useEffect(() => {
+    setCartOpen(false);
+  }, [language, setCartOpen]);
 
   const remaining = Math.max(0, freeThreshold - subtotal);
   const progress = Math.min(100, (subtotal / freeThreshold) * 100);
