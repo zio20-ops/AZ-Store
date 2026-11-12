@@ -31,6 +31,7 @@ const fromProduct = (p) => ({
     const legacyCompareAt = i === 0 && Number(p.compareAtPrice ?? p.compareAt ?? 0) > Number(v.price) ? Number(p.compareAtPrice ?? p.compareAt) : '';
     return {
       ...v,
+      image: Number.isInteger(Number(v.image)) ? Number(v.image) : 0,
       compareAtPrice: v.compareAtPrice || legacyCompareAt || '',
       discount: v.discount ?? (legacyCompareAt ? 0 : Number(p.discount || 0)),
     };
@@ -219,6 +220,15 @@ export default function ProductForm() {
                 <div className={`adfield ${errors[`variation-${i}`] ? 'adfield--err' : ''}`}>
                   <label>Option label</label>
                   <input value={v.label} onChange={(e) => setVariation(i, 'label', e.target.value)} placeholder="Color, size or model" />
+                </div>
+                <div className="adfield">
+                  <label>Image shown for this option</label>
+                  <select value={Number.isInteger(Number(v.image)) ? Number(v.image) : 0} onChange={(e) => setVariation(i, 'image', Number(e.target.value))} disabled={!form.images.length}>
+                    {form.images.length
+                      ? form.images.map((image, imageIndex) => <option key={`${image.src || 'image'}-${imageIndex}`} value={imageIndex}>Image {imageIndex + 1}{image.alt ? ` — ${image.alt}` : ''}</option>)
+                      : <option value={0}>Upload product images first</option>}
+                  </select>
+                  {form.images[Number(v.image) || 0]?.src && <img src={form.images[Number(v.image) || 0].src} alt="" loading="lazy" style={{ display: 'block', width: 52, height: 52, objectFit: 'cover', borderRadius: 6, marginTop: 6 }} />}
                 </div>
                 <div className="adfield">
                   <label>Price</label>
