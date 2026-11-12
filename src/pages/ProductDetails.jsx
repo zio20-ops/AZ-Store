@@ -24,8 +24,9 @@ export default function ProductDetails() {
 
   useEffect(() => {
     if (product) {
-      setVariationId(getVariations(product)[0].id);
-      setImageIndex(0);
+      const firstVariation = getVariations(product)[0];
+      setVariationId(firstVariation.id);
+      setImageIndex(variationImageIndex(product, firstVariation));
       setQty(1);
     }
   }, [product]);
@@ -178,3 +179,4 @@ export default function ProductDetails() {
     </div>
   );
 }
+
