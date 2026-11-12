@@ -3,15 +3,12 @@ import { Link } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
 import { Reveal } from '../hooks/Reveal.jsx';
-import ProductCard from '../components/ProductCard.jsx';
 import { TRUST_ITEMS } from '../data/content.js';
 
 export default function Home() {
   const { t, localize } = useLanguage();
   useSeo('AZ Store | Shop the collection', 'Discover the AZ Store collection and explore new sections, with delivery across Egypt.');
   const { products, categories } = useStore();
-  const featured = products.filter((product) => product.homeFeatured);
-  const homeProducts = featured.length ? featured : products;
   const homeCategories = [...categories].filter((category) => category.showOnHome && products.some((product) => product.category === category.name))
     .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
@@ -54,14 +51,6 @@ export default function Home() {
           })}
         </div>
       </section>}
-
-      <section className="container sec">
-        <Reveal className="sec__head">
-          <div><h2 className="sec__title">{t("The collection")}</h2><p className="sec__sub">{t("Selected products from across the AZ collection.")}</p></div>
-          <Link className="btn btn--text" to="/shop">{t("View all")}</Link>
-        </Reveal>
-        <div className="grid">{homeProducts.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 2} />)}</div>
-      </section>
 
       <section className="container gift">
         <Reveal className="gift__media"><img src="/images/gift-box.jpg" alt={t("AZ collection presented as a thoughtful gift")} loading="lazy" /></Reveal>
