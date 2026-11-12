@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
 import ProductCard from '../components/ProductCard.jsx';
-import { FILTER_CHIPS, SORT_OPTIONS } from '../data/content.js';
+import { SORT_OPTIONS } from '../data/content.js';
 import { getVariations, productDiscountPercent, productPrice } from '../data/products.js';
 
 const PRICE_BANDS = [
@@ -15,29 +15,19 @@ const PRICE_BANDS = [
   { id: 'o1000', label: 'Over EGP 1,000', test: (p) => productPrice(p) > 1000 },
 ];
 
-const chipTest = (id) => (p) => {
-  switch (id) {
-    case 'mists': return p.type === 'mist';
-    case 'gift-sets': return p.type === 'gift';
-    default: return true;
-  }
-};
-
 export default function Shop() {
   const { t } = useLanguage();
-  useSeo('Shop all | AZ Store', 'Browse the AZ collection: fine fragrance mists and gift sets. Filter by mood and price.');
+  useSeo('Shop all | AZ Store', 'Browse the AZ collection and explore products by section, price and availability.');
   const { products, categories } = useStore();
   const [params, setParams] = useSearchParams();
 
   const legacyFilter = params.get('filter') || 'all';
-  const typeFilter = params.get('type') || (['mists', 'gift-sets'].includes(legacyFilter) ? legacyFilter : 'all');
   const categoryFilter = params.get('category') || (legacyFilter.startsWith('category:') ? legacyFilter.slice('category:'.length) : ({ 'calm-and-deep': 'calm-and-deep', bold: 'bold', soft: 'soft-and-dreamy' }[legacyFilter] || ''));
   const sort = params.get('sort') || 'best-selling';
   const q = params.get('q') || '';
 
   const [refineOpen, setRefineOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
-  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [price, setPrice] = useState('any');
   const [inStock, setInStock] = useState(false);
@@ -48,7 +38,6 @@ export default function Shop() {
     const onKey = (e) => {
       if (e.key !== 'Escape') return;
       setSortOpen(false);
-      setTypeMenuOpen(false);
       setCategoryMenuOpen(false);
     };
     window.addEventListener('keydown', onKey);
@@ -59,12 +48,6 @@ export default function Shop() {
     const next = new URLSearchParams(params);
     if (!value || value === fallback) next.delete(key);
     else next.set(key, value);
-    setParams(next, { replace: true });
-  };
-  const setTypeFilter = (value) => {
-    const next = new URLSearchParams(params);
-    next.delete('filter');
-    if (!value || value === 'all') next.delete('type'); else next.set('type', value);
     setParams(next, { replace: true });
   };
   const setCategoryFilter = (value) => {
@@ -79,16 +62,15 @@ export default function Shop() {
     return names.map((name) => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), id: categories.find((category) => category.name === name)?.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [categories, products]);
-  const selectedTypeLabel = t(FILTER_CHIPS.find((chip) => chip.id === typeFilter)?.label || 'All');
   const selectedCategoryLabel = t(categoryOptions.find((category) => category.id === categoryFilter || category.slug === categoryFilter)?.name || 'All categories');
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
     const selectedCategory = categoryOptions.find((category) => category.id === categoryFilter || category.slug === categoryFilter) || null;
-    let list = products.filter((product) => chipTest(typeFilter)(product) && (!categoryFilter || product.category === selectedCategory?.name));
+    let list = products.filter((product) => !categoryFilter || product.category === selectedCategory?.name);
     if (term) {
       list = list.filter((p) =>
-        [p.name, p.category, p.tagline, p.description, p.sku, ...(p.scentNotes || p.notes || [])].join(' ').toLowerCase().includes(term));
+        [p.name, p.category, p.tagline, p.description, p.sku, ...(p.attributes || []).flatMap((attribute) => [attribute.label, attribute.value]), ...(p.scentNotes || p.notes || [])].join(' ').toLowerCase().includes(term));
     }
     const band = PRICE_BANDS.find((b) => b.id === price) || PRICE_BANDS[0];
     list = list.filter(band.test);
@@ -114,7 +96,7 @@ export default function Shop() {
       default: sorted.sort((a, b) => (Number(b.sold) || 0) - (Number(a.sold) || 0) || String(a.name).localeCompare(String(b.name)));
     }
     return sorted;
-  }, [products, categoryOptions, typeFilter, categoryFilter, q, price, inStock, onSale, brandAZ, sort]);
+  }, [products, categoryOptions, categoryFilter, q, price, inStock, onSale, brandAZ, sort]);
 
   const sortLabel = SORT_OPTIONS.find((s) => s.id === sort)?.label || 'Best Selling';
   const activeRefinements = (price !== 'any') + (inStock ? 1 : 0) + (onSale ? 1 : 0) + (!brandAZ ? 1 : 0);
@@ -138,18 +120,9 @@ export default function Shop() {
 
       <div className="shopbar">
         <div className="shop-filters">
-          <div className={`shop-filter-group shop-filter-group--dropdown${typeMenuOpen ? ' is-open' : ''}`} role="group" aria-label={t("Filter by product type")}>
-            <span className="shop-filter-group__label">{t("Product type")}</span>
-            <button type="button" className="shop-filter-group__toggle" aria-expanded={typeMenuOpen} onClick={() => { setTypeMenuOpen((open) => !open); setCategoryMenuOpen(false); }}>
-              <span>{t("Product type")}</span><b>{selectedTypeLabel}</b><i aria-hidden="true">⌄</i>
-            </button>
-            <div className="shop-filter-group__chips">
-              {FILTER_CHIPS.map((c) => <button key={c.id} className={`chip ${typeFilter === c.id ? 'chip--on' : ''}`} aria-pressed={typeFilter === c.id} onClick={() => { setTypeFilter(c.id); setTypeMenuOpen(false); }}>{t(c.label)}</button>)}
-            </div>
-          </div>
           <div className={`shop-filter-group shop-filter-group--dropdown${categoryMenuOpen ? ' is-open' : ''}`} role="group" aria-label={t("Filter by category")}>
             <span className="shop-filter-group__label">{t("Category")}</span>
-            <button type="button" className="shop-filter-group__toggle" aria-expanded={categoryMenuOpen} onClick={() => { setCategoryMenuOpen((open) => !open); setTypeMenuOpen(false); }}>
+            <button type="button" className="shop-filter-group__toggle" aria-expanded={categoryMenuOpen} onClick={() => setCategoryMenuOpen((open) => !open)}>
               <span>{t("Category")}</span><b>{selectedCategoryLabel}</b><i aria-hidden="true">⌄</i>
             </button>
             <div className="shop-filter-group__chips">
@@ -211,8 +184,8 @@ export default function Shop() {
 
       {results.length === 0 ? (
         <div className="empty">
-          <h3>{t("No scents found.")}</h3>
-          <p>{t("Try another mood, or clear the filters and start again.")}</p>
+          <h3>{t("No products found.")}</h3>
+          <p>{t("Try another section, or clear the filters and start again.")}</p>
           <button className="btn btn--primary" onClick={clearAll}>{t("Clear filters")}</button>
         </div>
       ) : (

@@ -6,7 +6,7 @@ import ProductCard from '../components/ProductCard.jsx';
 
 export default function Wishlist() {
   const { t } = useLanguage();
-  useSeo('Wishlist | AZ Store', 'The scents you saved for later.');
+  useSeo('Wishlist | AZ Store', 'The products you saved for later.');
   const { wishlist, products } = useStore();
   const saved = products.filter((p) => wishlist.includes(p.id));
 
@@ -14,12 +14,12 @@ export default function Wishlist() {
     <div className="container">
       <div className="page-head">
         <h1>{t("Your wishlist")}</h1>
-        <p>{saved.length ? t("The moods you’re keeping an eye on.") : t("Nothing saved yet — tap the heart on any scent to keep it here.")}</p>
+        <p>{saved.length ? t("The products you’re keeping an eye on.") : t("Nothing saved yet — tap the heart on a product to keep it here.")}</p>
       </div>
 
       {saved.length === 0 ? (
         <div className="empty">
-          <h3>{t("No saved scents.")}</h3>
+          <h3>{t("No saved products.")}</h3>
           <p>{t("Browse the collection and save the ones that speak to you.")}</p>
           <Link className="btn btn--primary" to="/shop">{t("Shop all")}</Link>
         </div>

@@ -5,58 +5,29 @@ import { Reveal } from '../hooks/Reveal.jsx';
 
 export default function About() {
   const { t } = useLanguage();
-  useSeo('Our story | AZ Store', 'AZ is an Egyptian fragrance house built on one idea: scent is self-expression. Three moods, one you.');
+  useSeo('Our story | AZ Store', 'Discover the AZ Store story: thoughtful products, considered details and personal service from Cairo.');
 
-  return (
-    <>
-      <section className="container about-hero">
-        <Reveal>
-          <h1>{t("Scent is self-expression.")}</h1>
-          <p>
-            {t("AZ began in Cairo with a simple frustration: beautiful fragrance was either imported and expensive, or local and forgettable. We wanted a third way — small-batch fine fragrance mists, made here, priced honestly, and dressed like the luxury object they are.")}
-          </p>
-        </Reveal>
-      </section>
+  return <>
+    <section className="container about-hero"><Reveal>
+      <h1>{t("Made for your everyday.")}</h1>
+      <p>{t("AZ began in Cairo with a simple idea: finding something you love should feel personal. We bring together thoughtfully selected products, clear information and attentive service, all with a distinct AZ point of view.")}</p>
+    </Reveal></section>
 
-      <section className="container about-grid">
-        <Reveal as="figure">
-          <img src="/images/trio-marble.jpg" alt={t("The three AZ mists standing on black marble with golden smoke")} loading="lazy" />
-        </Reveal>
-        <Reveal as="figure" className="wide">
-          <img src="/images/packaging-box.jpg" alt={t("AZ black gift box with gold monogram on bronze satin")} loading="lazy" />
-        </Reveal>
-      </section>
+    <section className="container about-grid">
+      <Reveal as="figure"><img src="/images/trio-marble.jpg" alt={t("A carefully styled AZ collection on dark marble")} loading="lazy" /></Reveal>
+      <Reveal as="figure" className="wide"><img src="/images/packaging-box.jpg" alt={t("AZ packaging with a gold monogram on bronze satin")} loading="lazy" /></Reveal>
+    </section>
 
-      <section className="container about-copy">
-        <Reveal>
-          <h2>{t("Three moods, one wardrobe")}</h2>
-          <p>
-            {t("We don’t release twenty scents a season. We release three, and we obsess over them: Through The Night for the calm and the deep, Black Kiss for the bold, Million Dreams for the soft and dreamy. One of them is always you — and some nights, all three are.")}
-          </p>
-          <p>
-            {t("Every mist is 220 ml of skin-safe, alcohol-balanced formula, filled in dated batches and rested before it ships, so the scent you spray in the morning is still with you at night.")}
-          </p>
-        </Reveal>
-        <Reveal>
-          <h2>{t("Made to be given")}</h2>
-          <p>
-            {t("A fragrance is the most personal gift you can give — and the hardest to get right. The AZ trio box solves that: all three moods in one black velvet-touch box, with a thank-you card and a dedication card tucked under the lid.")}
-          </p>
-          <p>
-            {t("From our studio in Cairo to doorsteps across Egypt, every box is packed by hand, sealed, and sent with the same care we would give a gift of our own.")}
-          </p>
-          <p style={{ marginTop: 22 }}>
-            <Link className="btn btn--primary" to="/shop">{t("Shop the collection")}</Link>
-          </p>
-        </Reveal>
-      </section>
-
-      <section className="container statement">
-        <Reveal>
-          <p>{t("Three moods. One you.")}</p>
-          <small>{t("AZ — Bodysplash & Serum")}</small>
-        </Reveal>
-      </section>
-    </>
-  );
+    <section className="container about-copy">
+      <Reveal><h2>{t("A collection that keeps growing")}</h2>
+        <p>{t("Our collection is designed to grow with the things our customers love. Each section has its own place, and every product includes the details that help you choose with confidence.")}</p>
+        <p>{t("From the first look to the final delivery, we want every part of the AZ experience to feel considered, reliable and easy.")}</p>
+      </Reveal>
+      <Reveal><h2>{t("From Cairo, with care")}</h2>
+        <p>{t("We serve customers across Egypt and take care with every order. Whether you are choosing a new everyday favorite or finding a gift, our team is here to help.")}</p>
+        <p style={{ marginTop: 22 }}><Link className="btn btn--primary" to="/shop">{t("Shop the collection")}</Link></p>
+      </Reveal>
+    </section>
+    <section className="container statement"><Reveal><p>{t("Thoughtful details. A distinct AZ touch.")}</p><small>{t("AZ Store — Cairo")}</small></Reveal></section>
+  </>;
 }

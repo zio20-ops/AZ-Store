@@ -8,7 +8,7 @@ export default function NotFound() {
   return (
     <div className="empty" style={{ padding: '120px 24px' }}>
       <h3>{t("This page wandered off.")}</h3>
-      <p>{t("Like a good scent trail, it faded. Let’s take you back to the collection.")}</p>
+      <p>{t("We could not find that page. Let us take you back to the collection.")}</p>
       <Link className="btn btn--primary" to="/">{t("Back home")}</Link>
     </div>
   );

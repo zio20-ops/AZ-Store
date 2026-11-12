@@ -111,7 +111,7 @@ export default function Checkout() {
     return (
       <div className="confirm">
         <h1>{t("Your bag is empty.")}</h1>
-        <p>{t("Add a scent or two before checking out.")}</p>
+        <p>{t("Add a product before checking out.")}</p>
         <div className="confirm__actions">
           <Link className="btn btn--dark" to="/shop">{t("Shop all")}</Link>
         </div>

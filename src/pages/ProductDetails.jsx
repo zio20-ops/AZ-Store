@@ -72,10 +72,7 @@ export default function ProductDetails() {
   const discountPercent = productDiscountPercent(product, variation);
 
   const accordionItems = [
-    { q: 'Scent notes', a: (product.scentNotes || product.notes || []).join(' · ') },
-    { q: 'How to use', a: product.howToUse || 'Spray generously on clean skin from 15 cm — wrists, neck and over clothing.' },
-    ...(product.ingredients?.length ? [{ q: 'Ingredients', a: product.ingredients.join(', ') }] : []),
-    ...(product.benefits?.length ? [{ q: 'Benefits', a: product.benefits.join(' · ') }] : []),
+    ...(product.attributes?.length ? [{ q: 'Product details', a: product.attributes.map((item) => `${item.label}: ${item.value}`).join(' · ') }] : []),
     { q: 'Delivery and returns', a: 'Standard delivery 2 to 4 days (EGP 60), express next day (EGP 110). Free standard delivery over EGP 1,800. Unopened products can be returned within 14 days.' },
   ];
 
@@ -109,7 +106,7 @@ export default function ProductDetails() {
           <h1 className="pdp__title" style={{ color: 'var(--product-accent)' }}>{t(product.name)}</h1>
           <p className="pdp__lead">{t(product.tagline)}</p>
           <div className="pdp__notes">
-            {(product.scentNotes || product.notes || []).map((n) => <span className="chip" key={n}>{t(n)}</span>)}
+            {(product.attributes || []).slice(0, 3).map((item) => <span className="chip" key={item.label}>{t(item.label)}: {t(item.value)}</span>)}
           </div>
 
           <div className="pdp__price">
@@ -120,7 +117,7 @@ export default function ProductDetails() {
           </div>
 
           {variations.length > 1 && (
-            <div className="variations" role="group" aria-label={t("Choose size")}>
+            <div className="variations" role="group" aria-label={t("Choose option")}>
               {variations.map((v) => (
                 <button
                   key={v.id}
@@ -163,12 +160,6 @@ export default function ProductDetails() {
               : <>{t('In stock · SKU')} {variation.sku}</>}
           </p>
 
-          {product.id !== 'trio-gift-box' && (
-            <div className="pdp__buy" style={{ marginTop: 12 }}>
-              <Link className="btn btn--ghost btn--block" to="/product/trio-gift-box">{t("Buy the trio box and save")}</Link>
-            </div>
-          )}
-
           <div className="pdp__accordions">
             <Accordion items={accordionItems} />
           </div>
@@ -177,7 +168,7 @@ export default function ProductDetails() {
 
       <section className="container sec" style={{ paddingInline: 0 }}>
         <div className="sec__head">
-          <h2 className="sec__title">{t("Complete the wardrobe")}</h2>
+          <h2 className="sec__title">{t("You may also like")}</h2>
           <Link className="btn btn--text" to="/shop">{t("View all")}</Link>
         </div>
         <div className="grid">

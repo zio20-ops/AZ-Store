@@ -6,7 +6,7 @@ import { isValidEmail } from '../utils/format.js';
 
 export default function Contact() {
   const { t } = useLanguage();
-  useSeo('Contact | AZ Store', 'Questions about an order, a scent or a gift? Talk to the AZ care team.');
+  useSeo('Contact | AZ Store', 'Questions about a product or an order? Talk to the AZ care team.');
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('');
@@ -43,7 +43,7 @@ export default function Contact() {
     <div className="container">
       <div className="page-head">
         <h1>{t("We’re listening.")}</h1>
-        <p>{t("Order questions, scent advice, gift help — the AZ care team answers every message, usually within a day.")}</p>
+        <p>{t("Questions about products, orders or delivery? The AZ care team is here to help.")}</p>
       </div>
 
       <div className="two-col">

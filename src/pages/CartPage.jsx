@@ -37,7 +37,7 @@ export default function CartPage() {
         {cart.length === 0 ? (
           <div className="drawer__empty">
             <h3>{t("Your bag is empty.")}</h3>
-            <p>{t("Three moods are waiting for you.")}</p>
+            <p>{t("Find something you love in the collection.")}</p>
             <Link className="btn btn--primary" to="/shop">{t("Shop all")}</Link>
           </div>
         ) : (
