@@ -88,10 +88,11 @@ export default function ProductForm() {
 
   const submit = async (e) => {
     e.preventDefault();
+    const updatedName = form.name.trim();
     const draft = {
       ...form,
       id: editing?.id,
-      name: form.name.trim(),
+      name: updatedName,
       sku: (form.sku || form.variations[0]?.sku || '').trim(),
       category: form.category.trim(),
       tagline: form.tagline.trim(),
@@ -101,6 +102,7 @@ export default function ProductForm() {
       discount: 0,
       stock: Number(form.stock),
       lowStockThreshold: Number(form.lowStockThreshold),
+      images: form.images.map((image, index) => ({ ...image, alt: `${updatedName} image ${index + 1}` })),
       attributes: (form.attributes || []).filter((item) => item.label.trim() && item.value.trim()).map((item) => ({ label: item.label.trim(), value: item.value.trim() })),
       badge: form.badge.trim() || null,
       variations: form.variations.map((v, i) => ({ ...v,
@@ -225,7 +227,7 @@ export default function ProductForm() {
                   <label>Image shown for this option</label>
                   <select value={Number.isInteger(Number(v.image)) ? Number(v.image) : 0} onChange={(e) => setVariation(i, 'image', Number(e.target.value))} disabled={!form.images.length}>
                     {form.images.length
-                      ? form.images.map((image, imageIndex) => <option key={`${image.src || 'image'}-${imageIndex}`} value={imageIndex}>Image {imageIndex + 1}{image.alt ? ` — ${image.alt}` : ''}</option>)
+                      ? form.images.map((image, imageIndex) => <option key={`${image.src || 'image'}-${imageIndex}`} value={imageIndex}>Image {imageIndex + 1}</option>)
                       : <option value={0}>Upload product images first</option>}
                   </select>
                   {form.images[Number(v.image) || 0]?.src && <img src={form.images[Number(v.image) || 0].src} alt="" loading="lazy" style={{ display: 'block', width: 52, height: 52, objectFit: 'cover', borderRadius: 6, marginTop: 6 }} />}
@@ -319,3 +321,4 @@ export default function ProductForm() {
     </AdminLayout>
   );
 }
+
