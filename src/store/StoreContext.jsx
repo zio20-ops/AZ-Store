@@ -326,7 +326,7 @@ export function StoreProvider({ children }) {
     productsLoading,
     refreshCatalog: loadCatalog,
     settings,
-    announcement: typeof settings.announcement === 'string' ? settings.announcement.trim() : 'Free gift cards with every trio box',
+    announcement: settings.announcement === 'Free gift cards with every trio box' ? 'Thoughtful finds from AZ Store' : (typeof settings.announcement === 'string' ? settings.announcement.trim() : 'Thoughtful finds from AZ Store'),
     cart: detailed,
     count,
     subtotal,
