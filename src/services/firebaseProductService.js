@@ -135,7 +135,7 @@ export const saveCategory = async (category) => {
   const name = category.name?.trim(); if (!name) return { ok: false, message: 'Category name is required.' };
   try { const all = await listCategories(); const id = category.id || slugify(name);
     if (all.some((c) => c.name.toLowerCase() === name.toLowerCase() && c.id !== id)) return { ok: false, message: 'A category with this name already exists.' };
-    const saved = { name, description: String(category.description || '').trim(), image: category.image || '', showOnHome: Boolean(category.showOnHome), sortOrder: Number(category.sortOrder) || 0, showInNavigation: Boolean(category.showInNavigation), navigationOrder: Number(category.navigationOrder ?? category.sortOrder) || 0 };
+    const saved = { name, nameAr: String(category.nameAr || '').trim(), description: String(category.description || '').trim(), descriptionAr: String(category.descriptionAr || '').trim(), image: category.image || '', showOnHome: Boolean(category.showOnHome), sortOrder: Number(category.sortOrder) || 0, showInNavigation: Boolean(category.showInNavigation), navigationOrder: Number(category.navigationOrder ?? category.sortOrder) || 0 };
     if (category.id) await putDocument('categories', id, saved, true); else await createDocument('categories', id, saved, true);
     return { ok: true, category: { ...saved, id }, created: !category.id };
   } catch (e) { return { ok: false, message: e.message }; }
