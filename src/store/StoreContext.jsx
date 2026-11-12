@@ -287,7 +287,9 @@ export function StoreProvider({ children }) {
           productId: l.product.id,
           variationId: l.variation.id,
           name: l.product.name,
+          nameAr: l.product.nameAr || '',
           meta: l.variation.label,
+          metaAr: l.variation.labelAr || '',
           qty: l.qty,
           price: l.price,
           image: l.image,
@@ -360,3 +362,4 @@ export function StoreProvider({ children }) {
 }
 
 export const useStore = () => useContext(StoreContext);
+
