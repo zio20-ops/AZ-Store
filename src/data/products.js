@@ -118,12 +118,10 @@ export const getVariation = (product, variationId) =>
 
 export const variationImageIndex = (product, variation) => {
   const images = Array.isArray(product?.images) ? product.images : [];
-  const index = Number.isInteger(Number(variation?.image)) ? Number(variation.image) : 0;
-  const candidate = images[index];
-  const isCollectionShot = product?.type === 'mist' && /trio|gift|box|collection/i.test(`${candidate?.src || ''} ${candidate?.alt || ''}`);
-  if (candidate?.src && !isCollectionShot) return index;
-  const primary = images.findIndex((image) => image?.src && !(product?.type === 'mist' && /trio|gift|box|collection/i.test(`${image.src} ${image.alt || ''}`)));
-  return primary >= 0 ? primary : images.findIndex((image) => image?.src);
+  const selected = variation?.image;
+  const index = Number(selected);
+  if (selected !== undefined && selected !== null && selected !== '' && Number.isInteger(index) && index >= 0 && images[index]?.src) return index;
+  return images.findIndex((image) => image?.src);
 };
 
 export const basePrice = (product) => getVariations(product)[0].price;
@@ -193,3 +191,4 @@ export const PAYMENT_METHODS = [
   { id: 'instapay', label: 'InstaPay', note: 'Transfer manually to the store account.' },
   { id: 'vodafone', label: 'Vodafone Cash', note: 'Transfer manually to the store wallet.' },
 ];
+
