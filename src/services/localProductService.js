@@ -99,7 +99,7 @@ const ensureSeed = () => {
   }
   if (!readStorage(SETTINGS_KEY, null)) {
     writeStorage(SETTINGS_KEY, {
-      announcement: 'Free gift cards with every trio box',
+      announcement: 'Thoughtful finds from AZ Store',
       freeDeliveryThreshold: 1800,
       defaultLowStockThreshold: 6,
       paymentMethods: {
@@ -234,6 +234,7 @@ export const duplicateProduct = async (id) => {
     status: 'draft',
     badge: null,
     featured: 99,
+    homeFeatured: false,
     sold: 0,
     reviews: 0,
     rating: 0,
@@ -254,7 +255,7 @@ export const saveCategory = async (category) => {
   await delay(40);
   const all = readStorage(CATEGORIES_KEY, []);
   const index = all.findIndex((c) => c.id === category.id);
-  const entry = { id: category.id || slugify(category.name), name: category.name.trim() };
+  const entry = { ...category, id: category.id || slugify(category.name), name: category.name.trim(), description: String(category.description || '').trim(), image: category.image || '', showOnHome: Boolean(category.showOnHome), sortOrder: Number(category.sortOrder) || 0 };
   if (!entry.name) return { ok: false, message: 'Category name is required.' };
   if (all.some((c) => c.name.toLowerCase() === entry.name.toLowerCase() && c.id !== entry.id)) {
     return { ok: false, message: 'A category with this name already exists.' };

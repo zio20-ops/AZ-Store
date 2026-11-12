@@ -6,7 +6,7 @@ const now = () => new Date().toISOString();
 const slugify = (name) => name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'product';
 const admin = () => readAdminAuth()?.isAdmin === true;
 export const DEFAULT_SETTINGS = {
-  announcement: 'Free gift cards with every trio box',
+  announcement: 'Thoughtful finds from AZ Store',
   freeDeliveryThreshold: 1800,
   defaultLowStockThreshold: 6,
   paymentMethods: {
@@ -29,7 +29,7 @@ export const validateProduct = (draft, all = []) => {
   if (!Number.isInteger(Number(draft.lowStockThreshold)) || Number(draft.lowStockThreshold) < 0) errors.lowStockThreshold = 'Threshold must be a whole number of 0 or more.';
   if (!draft.images?.length) errors.images = 'Add at least one product image.';
   (draft.variations || []).forEach((v, i) => {
-    if (!v.label?.trim() || !v.sku?.trim() || !Number.isFinite(Number(v.price)) || Number(v.price) <= 0) errors[`variation-${i}`] = 'Each size needs a label, SKU and valid price.';
+    if (!v.label?.trim() || !v.sku?.trim() || !Number.isFinite(Number(v.price)) || Number(v.price) <= 0) errors[`variation-${i}`] = 'Each option needs a label, SKU and valid price.';
     const discount = Number(v.discount || 0);
     if (!Number.isFinite(discount) || discount < 0 || discount > 90) errors[`variation-sale-${i}`] = 'Discount must be between 0 and 90.';
     if (v.compareAtPrice && (!Number.isFinite(Number(v.compareAtPrice)) || Number(v.compareAtPrice) <= Number(v.price))) errors[`variation-sale-${i}`] = 'Compare-at price must be higher than this size price.';
@@ -128,14 +128,14 @@ export const updateProduct = async (id, patch) => {
   } catch (e) { return { ok: false, message: e.message }; }
 };
 export const deleteProduct = async (id) => { try { await deleteDocument('products', id, true); return { ok: true }; } catch (e) { return { ok: false, message: e.message }; } };
-export const duplicateProduct = async (id) => { const source = await getProduct(id); if (!source) return { ok: false, message: 'Product not found.' }; return createProduct({ ...source, id: undefined, name: `${source.name} (Copy)`, sku: `${source.sku}-C`, status: 'draft', badge: null, featured: 99, sold: 0, reviews: 0, rating: 0, variations: source.variations.map((v) => ({ ...v, sku: `${v.sku}-C` })) }); };
+export const duplicateProduct = async (id) => { const source = await getProduct(id); if (!source) return { ok: false, message: 'Product not found.' }; return createProduct({ ...source, id: undefined, name: `${source.name} (Copy)`, sku: `${source.sku}-C`, status: 'draft', badge: null, featured: 99, homeFeatured: false, sold: 0, reviews: 0, rating: 0, variations: source.variations.map((v) => ({ ...v, sku: `${v.sku}-C` })) }); };
 
-export const listCategories = async () => (await listDocuments('categories', admin())).map((c) => ({ id: c.id, name: c.name }));
+export const listCategories = async () => (await listDocuments('categories', admin())).map((c) => ({ ...c, id: c.id, name: c.name, description: c.description || '', image: c.image || '', showOnHome: Boolean(c.showOnHome), sortOrder: Number(c.sortOrder) || 0 }));
 export const saveCategory = async (category) => {
   const name = category.name?.trim(); if (!name) return { ok: false, message: 'Category name is required.' };
   try { const all = await listCategories(); const id = category.id || slugify(name);
     if (all.some((c) => c.name.toLowerCase() === name.toLowerCase() && c.id !== id)) return { ok: false, message: 'A category with this name already exists.' };
-    const saved = { name };
+    const saved = { name, description: String(category.description || '').trim(), image: category.image || '', showOnHome: Boolean(category.showOnHome), sortOrder: Number(category.sortOrder) || 0 };
     if (category.id) await putDocument('categories', id, saved, true); else await createDocument('categories', id, saved, true);
     return { ok: true, category: { ...saved, id }, created: !category.id };
   } catch (e) { return { ok: false, message: e.message }; }
