@@ -10,6 +10,7 @@ export default function Categories() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [showOnHome, setShowOnHome] = useState(false);
+  const [showInNavigation, setShowInNavigation] = useState(false);
   const [editing, setEditing] = useState(null); // { id, name }
   const [confirm, setConfirm] = useState(null);
 
@@ -24,7 +25,7 @@ export default function Categories() {
       toast('Category name is required.');
       return;
     }
-    const result = await catalog.saveCategory({ name, description, showOnHome, sortOrder: categories.length });
+    const result = await catalog.saveCategory({ name, description, showOnHome, showInNavigation, sortOrder: categories.length, navigationOrder: categories.filter((category) => category.showInNavigation).length });
     if (!result.ok) {
       toast(result.message);
       return;
@@ -32,6 +33,7 @@ export default function Categories() {
     setName('');
     setDescription('');
     setShowOnHome(false);
+    setShowInNavigation(false);
     await load();
     await refreshCatalog();
     toast('Category created.');
@@ -82,6 +84,7 @@ export default function Categories() {
           </div>
           <div className="adfield" style={{ margin: 0, flex: '1 1 260px' }}><label htmlFor="cat-description">Short description</label><input id="cat-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional text shown on the homepage" /></div>
           <label className="adcheck"><input type="checkbox" checked={showOnHome} onChange={(e) => setShowOnHome(e.target.checked)} /> Show this section on the homepage</label>
+          <label className="adcheck"><input type="checkbox" checked={showInNavigation} onChange={(e) => setShowInNavigation(e.target.checked)} /> Show this category in the navigation bar</label>
           <button className="btn btn--primary" type="submit">+ Add Category</button>
         </form>
       </section>
@@ -91,7 +94,7 @@ export default function Categories() {
         <div className="adtable-wrap">
           <table className="adtable responsive">
             <thead>
-              <tr><th>Category</th><th className="num">Products</th><th>Homepage</th><th>Actions</th></tr>
+              <tr><th>Category</th><th className="num">Products</th><th>Homepage</th><th>Navigation</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {categories.map((c) => (
@@ -99,6 +102,7 @@ export default function Categories() {
                   <td data-label="Category"><span className="prod-name">{c.name}</span></td>
                   <td data-label="Products" className="num">{countFor(c)}</td>
                   <td data-label="Homepage">{c.showOnHome ? 'Shown' : 'Hidden'}</td>
+                  <td data-label="Navigation">{c.showInNavigation ? 'Shown' : 'Hidden'}</td>
                   <td data-label="Actions">
                     <div className="ad__actions">
                       <button onClick={() => setEditing({ ...c })}>Edit</button>
@@ -123,6 +127,8 @@ export default function Categories() {
             </div>
             <div className="adfield"><label htmlFor="cat-edit-description">Short description</label><input id="cat-edit-description" value={editing.description || ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} /></div>
             <label className="adcheck"><input type="checkbox" checked={Boolean(editing.showOnHome)} onChange={(e) => setEditing({ ...editing, showOnHome: e.target.checked })} /> Show this section on the homepage</label>
+            <label className="adcheck"><input type="checkbox" checked={Boolean(editing.showInNavigation)} onChange={(e) => setEditing({ ...editing, showInNavigation: e.target.checked })} /> Show this category in the navigation bar</label>
+            {editing.showInNavigation && <div className="adfield"><label htmlFor="cat-edit-navigation-order">Navigation order</label><input id="cat-edit-navigation-order" type="number" min="0" value={editing.navigationOrder ?? editing.sortOrder ?? 0} onChange={(e) => setEditing({ ...editing, navigationOrder: Number(e.target.value) })} /></div>}
             <div className="adfield"><label htmlFor="cat-edit-order">Homepage order</label><input id="cat-edit-order" type="number" min="0" value={editing.sortOrder ?? 0} onChange={(e) => setEditing({ ...editing, sortOrder: Number(e.target.value) })} /></div>
             <div className="admodal__actions">
               <button className="btn btn--ghost" onClick={() => setEditing(null)}>Cancel</button>
