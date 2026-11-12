@@ -17,7 +17,7 @@ export default function Footer() {
         <div className="footer__grid">
           <div className="footer__brand">
             <span className="logo">AZ</span>
-            <p>{t("Fine fragrance mists and gift boxes, made in Egypt for every mood you wear.")}</p>
+            <p>{t("Thoughtfully selected products, with a distinct AZ touch.")}</p>
             <div className="footer__social" aria-label={t("Follow AZ Store")}>
               {CONTACT_INFO.filter((c) => socialIcons[c.label]).map((social) => {
                 const icon = <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{socialIcons[social.label]}</svg>;
@@ -47,8 +47,8 @@ export default function Footer() {
         </div>
 
         <div className="footer__base">
-          <span>{t("© 2026 AZ Store — Bodysplash & Serum. All rights reserved.")}</span>
-          <span>{t("Three moods. One you.")}</span>
+          <span>{t("© 2026 AZ Store. All rights reserved.")}</span>
+          <span>{t("Made for the moments that make you, you.")}</span>
         </div>
       </div>
     </footer>

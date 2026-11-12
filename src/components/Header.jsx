@@ -2,19 +2,23 @@ import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
-import { NAV_LINKS } from '../data/content.js';
 import * as auth from '../services/authService.js';
 import { AccountIcon, BagIcon, SearchIcon } from './icons.jsx';
 import LanguageToggle from './LanguageToggle.jsx';
 
 export default function Header() {
   const { t } = useLanguage();
-  const { count, setCartOpen, setSearchOpen, announcement } = useStore();
+  const { count, setCartOpen, setSearchOpen, announcement, categories } = useStore();
   const [accountOpen, setAccountOpen] = useState(false);
   const [user, setUser] = useState(() => auth.getCurrentUser());
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const accountRef = useRef(null);
+  const navLinks = [
+    { label: 'Shop all', to: '/shop' },
+    ...[...categories].sort((a, b) => Number(Boolean(b.showOnHome)) - Number(Boolean(a.showOnHome)) || (a.sortOrder || 0) - (b.sortOrder || 0)).slice(0, 3).map((category) => ({ label: category.name, to: `/shop?category=${encodeURIComponent(category.id)}` })),
+    { label: 'Our story', to: '/about' },
+  ];
 
   useEffect(() => {
     setAccountOpen(false);
@@ -54,7 +58,7 @@ export default function Header() {
           <Link to="/" className="logo logo--header" aria-label={t("AZ Store home")}>AZ</Link>
 
           <nav className="header__nav" aria-label={t("Primary")}>
-            {NAV_LINKS.map((l) => (
+            {navLinks.map((l) => (
               <NavLink key={l.label} to={l.to} className={({ isActive }) => (isActive && !l.to.includes('?') ? 'active' : '')}>
                 {t(l.label)}
               </NavLink>
@@ -90,7 +94,7 @@ export default function Header() {
       <div className={`mmenu-scrim ${menuOpen ? 'mmenu-scrim--on' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
       <nav className={`mmenu ${menuOpen ? 'mmenu--open' : ''}`} aria-label={t("Mobile")}>
         <button className="mmenu__close" onClick={() => setMenuOpen(false)}>{t("Close")}</button>
-        {NAV_LINKS.map((l) => (
+        {navLinks.map((l) => (
           <Link key={l.label} to={l.to}>{t(l.label)}</Link>
         ))}
         <Link to={user ? '/account' : '/account/login'}>{user ? t("My account") : t("Sign in / Create account")}</Link>

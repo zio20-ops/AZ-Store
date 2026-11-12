@@ -33,7 +33,7 @@ export default function SearchOverlay() {
     const term = q.trim().toLowerCase();
     if (!term) return [];
     return products.filter((p) =>
-      [p.name, p.category, p.tagline, p.description, p.sku, ...(p.scentNotes || p.notes || [])].join(' ').toLowerCase().includes(term),
+      [p.name, p.category, p.tagline, p.description, p.sku, ...(p.attributes || []).flatMap((attribute) => [attribute.label, attribute.value]), ...(p.scentNotes || p.notes || [])].join(' ').toLowerCase().includes(term),
     );
   }, [q, products]);
 
@@ -49,14 +49,14 @@ export default function SearchOverlay() {
     <div className="search" role="dialog" aria-modal="true" aria-label={t("Search products")}>
       <div className="search__in">
         <div className="search__top">
-          <span>{t("Search by name, scent or mood")}</span>
+          <span>{t("Search by product, section or details")}</span>
           <button onClick={() => setSearchOpen(false)}>{t("Close")}</button>
         </div>
         <form onSubmit={goShop}>
           <input
             ref={inputRef}
             className="search__field"
-            placeholder={t("What are you in the mood for?")}
+            placeholder={t("Search products or sections")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             aria-label={t("Search products")}
@@ -66,7 +66,7 @@ export default function SearchOverlay() {
         {q.trim() && (
           <div className="search__results">
             {results.length === 0 ? (
-              <p className="search__hint">{t("No scents found. Try “night”, “bold” or “gift”.")}</p>
+              <p className="search__hint">{t("No products found. Try another name or section.")}</p>
             ) : (
               results.map((p) => (
                 <button
@@ -87,7 +87,7 @@ export default function SearchOverlay() {
         )}
 
         {!q.trim() && (
-          <p className="search__hint">{t("Popular tonight: Black Kiss · gift box · rose · night flowers")}</p>
+          <p className="search__hint">{t("Search products by name, section or details.")}</p>
         )}
       </div>
     </div>

@@ -44,7 +44,7 @@ export default function CartDrawer() {
         {cart.length === 0 ? (
           <div className="drawer__empty">
             <h3>{t("Your bag is empty.")}</h3>
-            <p>{t("Three moods are waiting for you.")}</p>
+            <p>{t("Find something you love in the collection.")}</p>
             <button className="btn btn--primary" onClick={() => { setCartOpen(false); navigate('/shop'); }}>{t("Shop all")}</button>
           </div>
         ) : (
