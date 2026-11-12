@@ -12,10 +12,11 @@ import NotFound from './NotFound.jsx';
 import { HeartIcon } from '../components/icons.jsx';
 
 export default function ProductDetails() {
-  const { t } = useLanguage();
+  const { t, localize } = useLanguage();
   const { id } = useParams();
-  const { addToCart, wishlist, toggleWish, products, productsLoading } = useStore();
+  const { addToCart, wishlist, toggleWish, products, categories, productsLoading } = useStore();
   const product = products.find((p) => p.id === id);
+  const productCategory = categories.find((category) => category.name === product?.category) || product?.category;
   const variations = product ? getVariations(product) : [];
 
   const [variationId, setVariationId] = useState(variations[0]?.id);
@@ -34,8 +35,8 @@ export default function ProductDetails() {
   const variation = variations.find((v) => v.id === variationId) || variations[0];
 
   useSeo(
-    product ? `${product.name} | AZ Store` : 'Product not found | AZ Store',
-    product?.tagline,
+    product ? `${localize(product)} | AZ Store` : 'Product not found | AZ Store',
+    product ? localize(product, 'tagline') : '',
   );
 
   useEffect(() => {
@@ -73,14 +74,15 @@ export default function ProductDetails() {
   const discountPercent = productDiscountPercent(product, variation);
 
   const accordionItems = [
-    ...(product.attributes?.length ? [{ q: 'Product details', a: product.attributes.map((item) => `${item.label}: ${item.value}`).join(' · ') }] : []),
+    ...(localize(product, 'description') ? [{ q: localize({ name: 'About this product', nameAr: 'عن المنتج' }), a: localize(product, 'description') }] : []),
+    ...(product.attributes?.length ? [{ q: 'Product details', a: product.attributes.map((item) => `${localize(item, 'label')}: ${localize(item, 'value')}`).join(' · ') }] : []),
     { q: 'Delivery and returns', a: 'Standard delivery 2 to 4 days (EGP 60), express next day (EGP 110). Free standard delivery over EGP 1,800. Unopened products can be returned within 14 days.' },
   ];
 
   return (
     <div className="container">
       <nav className="crumb" aria-label={t("Breadcrumb")}>
-        <Link to="/">{t("Home")}</Link> / <Link to="/shop">{t("Shop all")}</Link> / <span>{t(product.name)}</span>
+        <Link to="/">{t("Home")}</Link> / <Link to="/shop">{t("Shop all")}</Link> / <span>{localize(product)}</span>
       </nav>
 
       <div className="pdp" style={{ '--product-accent': product.accentHex || '#e2ad55' }}>
@@ -93,28 +95,28 @@ export default function ProductDetails() {
               aria-label={`Show image ${i + 1}`}
               aria-pressed={imageIndex === i}
             >
-              <img src={g.src} alt={t(g.alt || '')} loading="lazy" />
+              <img src={g.src} alt={localize(product)} loading="lazy" />
             </button>
           ) : null)}
         </div>
 
         <div className="pdp__main">
-          <img src={(product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.src} alt={t((product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.alt || product.name)} />
+          <img src={(product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src))?.src} alt={localize(product)} />
         </div>
 
         <div className="pdp__info">
-          <span className="chip">{t(product.category)}</span>
-          <h1 className="pdp__title" style={{ color: 'var(--product-accent)' }}>{t(product.name)}</h1>
-          <p className="pdp__lead">{t(product.tagline)}</p>
+          <span className="chip">{localize(productCategory)}</span>
+          <h1 className="pdp__title" style={{ color: 'var(--product-accent)' }}>{localize(product)}</h1>
+          <p className="pdp__lead">{localize(product, 'tagline')}</p>
           <div className="pdp__notes">
-            {(product.attributes || []).slice(0, 3).map((item) => <span className="chip" key={item.label}>{t(item.label)}: {t(item.value)}</span>)}
+            {(product.attributes || []).slice(0, 3).map((item) => <span className="chip" key={item.label}>{localize(item, 'label')}: {localize(item, 'value')}</span>)}
           </div>
 
           <div className="pdp__price">
             <span>{egp(currentPrice)}</span>
             {comparePrice && <s>{egp(comparePrice)}</s>}
             {discountPercent > 0 && <b className="pdp__sale">{t("Save")} {discountPercent}%</b>}
-            <small>{t(variation.label)}</small>
+            <small>{localize(variation, 'label')}</small>
           </div>
 
           {variations.length > 1 && (
@@ -126,7 +128,7 @@ export default function ProductDetails() {
                   aria-pressed={v.id === variation.id}
                   onClick={() => { setVariationId(v.id); setImageIndex(variationImageIndex(product, v)); setQty(1); }}
                 >
-                  {t(v.label)}
+                  {localize(v, 'label')}
                 </button>
               ))}
             </div>
@@ -146,7 +148,7 @@ export default function ProductDetails() {
               className={`pdp__wish ${wished ? 'pdp__wish--on' : ''}`}
               type="button"
               onClick={() => toggleWish(product.id)}
-              aria-label={wished ? `${t('Remove')} ${t(product.name)} ${t('from wishlist')}` : `${t('Save')} ${t(product.name)} ${t('to wishlist')}`}
+              aria-label={wished ? `${t('Remove')} ${localize(product)} ${t('from wishlist')}` : `${t('Save')} ${localize(product)} ${t('to wishlist')}`}
               aria-pressed={wished}
               title={wished ? t('Remove from wishlist') : t('Save to wishlist')}
             >

@@ -7,7 +7,7 @@ import { ORDER_STEPS } from '../data/content.js';
 import LanguageToggle from '../components/LanguageToggle.jsx';
 
 export default function OrderConfirmation() {
-  const { t } = useLanguage();
+  const { t, localize } = useLanguage();
   useSeo('Thank you for your order | AZ Store', 'Your AZ order has been received.');
   const { lastOrder } = useStore();
   const location = useLocation();
@@ -57,7 +57,7 @@ export default function OrderConfirmation() {
             <div className="confirm__row"><dt>{t("Customer")}</dt><dd>{order.name}</dd></div>
             <div className="confirm__row">
               <dt>{t("Products")}</dt>
-              <dd>{order.items.map((i) => `${t(i.name)} × ${i.qty}`).join(', ')}</dd>
+              <dd>{order.items.map((i) => `${localize(i)} × ${i.qty}`).join(', ')}</dd>
             </div>
             <div className="confirm__row"><dt>{t("Payment method")}</dt><dd>{t(order.payment)}</dd></div>
             <div className="confirm__row"><dt>{t("Delivery")}</dt><dd>{t(order.deliveryMethod)}</dd></div>
@@ -74,3 +74,4 @@ export default function OrderConfirmation() {
     </>
   );
 }
+

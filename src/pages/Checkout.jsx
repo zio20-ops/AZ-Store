@@ -15,7 +15,7 @@ const initialForm = {
 };
 
 export default function Checkout() {
-  const { t } = useLanguage();
+  const { t, localize } = useLanguage();
   useSeo('Checkout | AZ Store', 'Choose a payment method and complete your AZ Store order.');
   const { cart, subtotal, discount, promo, removePromo, freeThreshold, settings, placeOrder, setCartOpen } = useStore();
   const navigate = useNavigate();
@@ -233,7 +233,7 @@ export default function Checkout() {
           <h2>{t("Order summary")}</h2>
           {cart.map((l) => (
             <div className="sum__row" key={l.key}>
-              <span>{t(l.product.name)} × {l.qty}</span>
+              <span>{localize(l.product)} × {l.qty}</span>
               <span>{egp(l.price * l.qty)}</span>
             </div>
           ))}

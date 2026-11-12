@@ -6,7 +6,7 @@ import { useSeo } from '../hooks/useSeo.js';
 import { egp } from '../utils/format.js';
 
 export default function CartPage() {
-  const { t } = useLanguage();
+  const { t, localize } = useLanguage();
   useSeo('Your bag | AZ Store', 'Review your AZ bag, apply a promo code and check out securely.');
   const { cart, subtotal, discount, setQty, removeLine, freeThreshold, applyPromo, removePromo, promo } = useStore();
   const [code, setCode] = useState('');
@@ -52,15 +52,15 @@ export default function CartPage() {
             <div className="drawer__items">
               {cart.map((line) => (
                 <div className="li" key={line.key}>
-                  <div className="li__img"><img src={line.image} alt={t(line.product.name)} loading="lazy" /></div>
+                  <div className="li__img"><img src={line.image} alt={localize(line.product)} loading="lazy" /></div>
                   <div className="li__body">
-                    <div className="li__name">{t(line.product.name)}</div>
-                    <div className="li__meta">{t(line.variation.label)} {t("· Qty")} {line.qty}</div>
+                    <div className="li__name">{localize(line.product)}</div>
+                    <div className="li__meta">{localize(line.variation, 'label')} {t("· Qty")} {line.qty}</div>
                     <div className="li__ctrl">
-                      <button onClick={() => setQty(line.key, line.qty - 1)} aria-label={`${t('Decrease quantity of')} ${t(line.product.name)}`}>−</button>
+                      <button onClick={() => setQty(line.key, line.qty - 1)} aria-label={`${t('Decrease quantity of')} ${localize(line.product)}`}>−</button>
                       <span aria-live="polite">{line.qty}</span>
-                      <button onClick={() => setQty(line.key, line.qty + 1)} disabled={line.qty >= line.variation.stock} aria-label={`${t('Increase quantity of')} ${t(line.product.name)}`}>+</button>
-                      <button className="li__remove" onClick={() => removeLine(line.key)} aria-label={`${t('Remove')} ${t(line.product.name)} ${t('from your bag')}`} title={t("Remove item")}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-.8 13H6.8L6 7m4 4v5m4-5v5" /></svg><span>{t("Remove")}</span></button>
+                      <button onClick={() => setQty(line.key, line.qty + 1)} disabled={line.qty >= line.variation.stock} aria-label={`${t('Increase quantity of')} ${localize(line.product)}`}>+</button>
+                      <button className="li__remove" onClick={() => removeLine(line.key)} aria-label={`${t('Remove')} ${localize(line.product)} ${t('from your bag')}`} title={t("Remove item")}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-.8 13H6.8L6 7m4 4v5m4-5v5" /></svg><span>{t("Remove")}</span></button>
                     </div>
                   </div>
                   <b className="li__price">{line.promoDiscount ? <><del>{egp(line.price * line.qty)}</del><span className="li__sale-price">{egp(line.promoLineTotal)}</span></> : egp(line.price * line.qty)}</b>

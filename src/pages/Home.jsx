@@ -7,7 +7,7 @@ import ProductCard from '../components/ProductCard.jsx';
 import { TRUST_ITEMS } from '../data/content.js';
 
 export default function Home() {
-  const { t } = useLanguage();
+  const { t, localize } = useLanguage();
   useSeo('AZ Store | Shop the collection', 'Discover the AZ Store collection and explore new sections, with delivery across Egypt.');
   const { products, categories } = useStore();
   const featured = products.filter((product) => product.homeFeatured);
@@ -45,10 +45,10 @@ export default function Home() {
             const product = products.find((item) => item.category === category.name);
             const image = category.image || product?.images?.find((item) => item?.src)?.src;
             return <Reveal className={`mood mood--${['night', 'bold', 'soft'][index % 3]}`} key={category.id}>
-              {image && <img src={image} alt={t(category.name)} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8, marginBottom: 16 }} />}
+              {image && <img src={image} alt={localize(category)} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8, marginBottom: 16 }} />}
               <span className="mood__no">{String(index + 1).padStart(2, '0')}</span>
-              <h3>{t(category.name)}</h3>
-              <p>{t(category.description || `Explore products in ${category.name}.`)}</p>
+              <h3>{localize(category)}</h3>
+              <p>{localize(category, 'description') || t(`Explore products in ${category.name}.`)}</p>
               <Link className="btn btn--text" to={`/shop?category=${encodeURIComponent(category.id)}`}>{t("Shop section")}</Link>
             </Reveal>;
           })}

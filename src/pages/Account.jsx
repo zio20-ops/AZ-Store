@@ -20,7 +20,7 @@ function getOrderStage(status) {
 }
 
 export default function Account() {
-  const { t } = useLanguage();
+  const { t, localize } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useStore();
@@ -133,7 +133,7 @@ export default function Account() {
                 <div className="account-order__identity"><span>{t("ORDER")}</span><b>{order.id}</b><small>{new Date(order.placedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</small></div>
                 <div className="account-order__total"><span>{t("ORDER TOTAL")}</span><strong>{egp(order.total)}</strong></div>
               </div>
-              <div className="account-order__items-wrap"><span className="account-order__label">{t("ITEMS")}</span><ul className="account-order__items">{(order.items || []).map((item, index) => <li key={`${item.productId || item.name}-${item.variationId || index}`}><b>{t(item.name)} × {item.qty}</b>{item.meta && <small>{t(item.meta)}</small>}</li>)}</ul></div>
+              <div className="account-order__items-wrap"><span className="account-order__label">{t("ITEMS")}</span><ul className="account-order__items">{(order.items || []).map((item, index) => <li key={`${item.productId || item.name}-${item.variationId || index}`}><b>{localize(item)} × {item.qty}</b>{item.meta && <small>{localize({ name: item.meta, nameAr: item.metaAr })}</small>}</li>)}</ul></div>
               <div className="account-order__bottom">
                 <div><span className="account-order__label">{t("ORDER STATUS")}</span><strong className={`account-order__status${order.cancelled ? ' is-cancelled' : ''}`}>{order.cancelled ? t("Cancelled") : t(ORDER_STEPS[Number(order.status)] || 'Order Received')}</strong></div>
                 <div><span className="account-order__label">{t("PAYMENT")}</span><strong className="account-order__payment">{t(order.payment || 'Payment')} · {t(order.paymentStatus || 'Pending')}</strong></div>
@@ -265,3 +265,4 @@ export default function Account() {
     </div>
   );
 }
+

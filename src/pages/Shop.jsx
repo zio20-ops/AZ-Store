@@ -16,7 +16,7 @@ const PRICE_BANDS = [
 ];
 
 export default function Shop() {
-  const { t } = useLanguage();
+  const { t, localize } = useLanguage();
   useSeo('Shop all | AZ Store', 'Browse the AZ collection and explore products by section, price and availability.');
   const { products, categories } = useStore();
   const [params, setParams] = useSearchParams();
@@ -59,10 +59,10 @@ export default function Shop() {
 
   const categoryOptions = useMemo(() => {
     const names = [...new Set([...categories.map((category) => category.name), ...products.map((product) => product.category)].filter(Boolean))];
-    return names.map((name) => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), id: categories.find((category) => category.name === name)?.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') }))
+    return names.map((name) => { const saved = categories.find((category) => category.name === name); return { name, nameAr: saved?.nameAr || '', slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), id: saved?.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') }; })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [categories, products]);
-  const selectedCategoryLabel = t(categoryOptions.find((category) => category.id === categoryFilter || category.slug === categoryFilter)?.name || 'All categories');
+  const selectedCategoryLabel = localize(categoryOptions.find((category) => category.id === categoryFilter || category.slug === categoryFilter) || 'All categories');
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -70,7 +70,7 @@ export default function Shop() {
     let list = products.filter((product) => !categoryFilter || product.category === selectedCategory?.name);
     if (term) {
       list = list.filter((p) =>
-        [p.name, p.category, p.tagline, p.description, p.sku, ...(p.attributes || []).flatMap((attribute) => [attribute.label, attribute.value]), ...(p.scentNotes || p.notes || [])].join(' ').toLowerCase().includes(term));
+        [p.name, p.nameAr, p.category, categories.find((category) => category.name === p.category)?.nameAr, p.tagline, p.taglineAr, p.description, p.descriptionAr, p.sku, ...(p.attributes || []).flatMap((attribute) => [attribute.label, attribute.labelAr, attribute.value, attribute.valueAr]), ...(p.scentNotes || p.notes || [])].join(' ').toLowerCase().includes(term));
     }
     const band = PRICE_BANDS.find((b) => b.id === price) || PRICE_BANDS[0];
     list = list.filter(band.test);
@@ -128,7 +128,7 @@ export default function Shop() {
             <div className="shop-filter-group__chips">
               <button className={`chip ${!categoryFilter ? 'chip--on' : ''}`} aria-pressed={!categoryFilter} onClick={() => { setCategoryFilter(''); setCategoryMenuOpen(false); }}>{t("All categories")}</button>
               {categoryOptions.map((category) => {
-                return <button key={category.id} className={`chip ${categoryFilter === category.id || categoryFilter === category.slug ? 'chip--on' : ''}`} aria-pressed={categoryFilter === category.id || categoryFilter === category.slug} onClick={() => { setCategoryFilter(category.id); setCategoryMenuOpen(false); }}>{t(category.name)}</button>;
+                return <button key={category.id} className={`chip ${categoryFilter === category.id || categoryFilter === category.slug ? 'chip--on' : ''}`} aria-pressed={categoryFilter === category.id || categoryFilter === category.slug} onClick={() => { setCategoryFilter(category.id); setCategoryMenuOpen(false); }}>{localize(category)}</button>;
               })}
             </div>
           </div>
