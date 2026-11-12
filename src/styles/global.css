@@ -347,6 +347,8 @@ textarea.field { resize: vertical; min-height: 90px; }
   transform: translateX(103%); transition: transform 0.4s var(--ease);
 }
 .drawer--open { transform: none; }
+[dir='rtl'] .drawer:not(.drawer--open) { transform: translateX(-103%); }
+[dir='rtl'] .drawer--open { transform: none; }
 .drawer__head { display: flex; justify-content: space-between; align-items: baseline; }
 .drawer__title { font: 400 34px/1 var(--disp); }
 .drawer__close { font-size: 13px; opacity: 0.7; }
