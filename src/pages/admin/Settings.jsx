@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { useStore } from '../../store/StoreContext.jsx';
 import * as catalog from '../../services/productService.js';
 import { ADMIN_EMAIL } from '../../services/firebaseConfig.js';
-import { isFirebase } from '../../services/backend.js';
+import { fileToDataUrl } from '../../components/admin/ImageManager.jsx';
+
+const DEFAULT_HOMEPAGE_IMAGES = {
+  hero: '/images/az-watch-hero.png',
+  gift: '/images/az-watch-gift.png',
+};
 
 export default function Settings() {
   const { settings, refreshCatalog, toast } = useStore();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState('');
 
   useEffect(() => {
     if (settings && Object.keys(settings).length) {
@@ -17,6 +22,10 @@ export default function Settings() {
         announcement: settings.announcement ?? '',
         freeDeliveryThreshold: settings.freeDeliveryThreshold ?? 1800,
         defaultLowStockThreshold: settings.defaultLowStockThreshold ?? 6,
+        homepageImages: {
+          hero: settings.homepageImages?.hero || '',
+          gift: settings.homepageImages?.gift || '',
+        },
         paymentMethods: {
           cod: { enabled: settings.paymentMethods?.cod?.enabled ?? true },
           instapay: { enabled: settings.paymentMethods?.instapay?.enabled ?? false, account: settings.paymentMethods?.instapay?.account || '', accountName: settings.paymentMethods?.instapay?.accountName || '' },
@@ -27,6 +36,22 @@ export default function Settings() {
   }, [settings]);
 
   if (!form) return <AdminLayout title="Settings"><div className="adempty">Loading…</div></AdminLayout>;
+
+  const chooseHomepageImage = async (key, file) => {
+    if (!file) return;
+    setUploadingImage(key);
+    try {
+      const image = await fileToDataUrl(file);
+      setForm((current) => ({ ...current, homepageImages: { ...current.homepageImages, [key]: image } }));
+    } catch {
+      toast('Image upload failed. Please choose a valid image and try again.');
+    } finally {
+      setUploadingImage('');
+    }
+  };
+
+  const resetHomepageImage = (key) =>
+    setForm((current) => ({ ...current, homepageImages: { ...current.homepageImages, [key]: '' } }));
 
   const save = async (e) => {
     e.preventDefault();
@@ -43,6 +68,7 @@ export default function Settings() {
       announcement: form.announcement.trim(),
       freeDeliveryThreshold: threshold,
       defaultLowStockThreshold: low,
+      homepageImages: form.homepageImages,
       paymentMethods: {
         cod: { enabled: Boolean(form.paymentMethods.cod.enabled) },
         instapay: { ...form.paymentMethods.instapay, account: form.paymentMethods.instapay.account.trim(), accountName: form.paymentMethods.instapay.accountName.trim() },
@@ -66,7 +92,7 @@ export default function Settings() {
           <div className="adfield">
             <label htmlFor="set-ann">Announcement bar</label>
             <input id="set-ann" value={form.announcement} onChange={(e) => setForm({ ...form, announcement: e.target.value })} />
-            <span className="hint">Shown at the top of every customer page. Leave this empty and save to hide the announcement completely.</span>
+            <span className="hint">Shown at the top of every customer page.</span>
           </div>
           <div className="adgrid">
             <div className="adfield">
@@ -78,6 +104,27 @@ export default function Settings() {
               <input id="set-low" type="number" min="0" value={form.defaultLowStockThreshold} onChange={(e) => setForm({ ...form, defaultLowStockThreshold: e.target.value })} />
               <span className="hint">Applied to new products; existing products keep their own threshold.</span>
             </div>
+          </div>
+        </section>
+        <section className="adsec">
+          <h2>Homepage images</h2>
+          <p className="hint">Choose the photos shown in the homepage hero and gift section. Images are resized before saving. Remove a custom image to restore the AZ default.</p>
+          <div className="adgrid" style={{ marginTop: 16 }}>
+            {[
+              { key: 'hero', label: 'Hero banner', fallback: DEFAULT_HOMEPAGE_IMAGES.hero, ratio: '4 / 5' },
+              { key: 'gift', label: 'Gift section', fallback: DEFAULT_HOMEPAGE_IMAGES.gift, ratio: '4 / 3' },
+            ].map(({ key, label, fallback, ratio }) => (
+              <div className="adfield" key={key}>
+                <label htmlFor={`set-home-${key}`}>{label}</label>
+                <img src={form.homepageImages[key] || fallback} alt={`${label} preview`} style={{ display: 'block', width: '100%', maxWidth: 360, aspectRatio: ratio, objectFit: 'cover', borderRadius: 12, marginBottom: 10, background: '#211812' }} />
+                <input id={`set-home-${key}`} type="file" accept="image/*" onChange={(e) => { chooseHomepageImage(key, e.target.files?.[0]); e.target.value = ''; }} />
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
+                  <span className="hint">{form.homepageImages[key] ? 'Custom image selected' : 'Using AZ default image'}</span>
+                  {form.homepageImages[key] && <button className="btn btn--ghost" type="button" onClick={() => resetHomepageImage(key)}>Restore default</button>}
+                  {uploadingImage === key && <span className="hint">Preparing image…</span>}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
         <section className="adsec">
@@ -98,20 +145,16 @@ export default function Settings() {
               <input id="set-vodafone-number" type="tel" inputMode="tel" value={form.paymentMethods.vodafone.number} onChange={(e) => setForm({ ...form, paymentMethods: { ...form.paymentMethods, vodafone: { ...form.paymentMethods.vodafone, number: e.target.value } } })} placeholder="01xxxxxxxxx" />
             </div>
           </div>
-          <p className="hint" style={{ marginTop: 14 }}>
-            Card payments (Visa / Mastercard) are intentionally not enabled: they require a licensed payment provider (for example Stripe, Paymob or Checkout.com). We never collect or store card numbers, CVVs or banking passwords. When you sign up with a provider, connect it in <code>api/orders.js</code> and add its option here — the checkout UI is already built to show a configured provider.
-          </p>
         </section>
         <section className="adsec">
           <h2>Authentication</h2>
           <p style={{ fontSize: 13.5, color: 'rgba(244,234,217,0.65)' }}>
-            {isFirebase
-              ? <>Administrator sign-in is handled by Firebase Authentication. Access is limited to the verified {ADMIN_EMAIL} owner plus any admins you add. Manage admins and change your password from <Link to="/admin/users" style={{ color: 'var(--gold)' }}>Admin access</Link>.</>
-              : <>This demo runs on local authentication. Manage admins and change your password from <Link to="/admin/users" style={{ color: 'var(--gold)' }}>Admin access</Link>. On the live deployment, sign-in is handled securely by Firebase Authentication.</>}
+            Administrator access is managed by Firebase Authentication and restricted to the verified {ADMIN_EMAIL} account.
+            Use “Forgot password?” on the admin login page to change a forgotten password.
           </p>
         </section>
         <div className="adbar" style={{ marginTop: 18 }}>
-          <button className="btn btn--primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save settings'}</button>
+          <button className="btn btn--primary" type="submit" disabled={saving || Boolean(uploadingImage)}>{uploadingImage ? 'Preparing image…' : saving ? 'Saving…' : 'Save settings'}</button>
         </div>
       </form>
     </AdminLayout>
