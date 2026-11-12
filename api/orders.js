@@ -112,7 +112,7 @@ export default async function handler(req, res) {
         ? variationCompareAt > regularPrice ? regularPrice : variationDiscount ? Math.max(0, Math.round(regularPrice * (100 - variationDiscount) / 100)) : regularPrice
         : isPrimaryVariation && compareAt > regularPrice ? regularPrice : appliedDiscount ? Math.max(0, Math.round(regularPrice * (100 - appliedDiscount) / 100)) : regularPrice;
       subtotal += unitPrice * line.qty;
-      normalizedItems.push({ productId: product.id || line.productId, variationId: variation.id, name: product.name, meta: variation.label, qty: line.qty, price: unitPrice, image: product.images?.[variation.image]?.src || product.images?.[0]?.src || '' });
+      normalizedItems.push({ productId: product.id || line.productId, variationId: variation.id, name: product.name, nameAr: product.nameAr || '', meta: variation.label, metaAr: variation.labelAr || '', qty: line.qty, price: unitPrice, image: product.images?.[variation.image]?.src || product.images?.[0]?.src || '' });
     }
     const standardFree = deliveryMethod === 'standard' && subtotal >= Number(storeSettings.freeDeliveryThreshold ?? 1800);
     const baseDeliveryFee = standardFree ? 0 : deliveryMethod === 'express' ? 110 : 60;
@@ -193,3 +193,4 @@ export default async function handler(req, res) {
     return problem(res, 503, 'Order service is not configured yet. Please try again later.');
   }
 }
+
