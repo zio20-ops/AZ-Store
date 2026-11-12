@@ -8,6 +8,8 @@ export default function Categories() {
   const { allProducts, refreshCatalog, toast } = useStore();
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [showOnHome, setShowOnHome] = useState(false);
   const [editing, setEditing] = useState(null); // { id, name }
   const [confirm, setConfirm] = useState(null);
 
@@ -22,12 +24,14 @@ export default function Categories() {
       toast('Category name is required.');
       return;
     }
-    const result = await catalog.saveCategory({ name });
+    const result = await catalog.saveCategory({ name, description, showOnHome, sortOrder: categories.length });
     if (!result.ok) {
       toast(result.message);
       return;
     }
     setName('');
+    setDescription('');
+    setShowOnHome(false);
     await load();
     await refreshCatalog();
     toast('Category created.');
@@ -74,8 +78,10 @@ export default function Categories() {
         <form onSubmit={create} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="adfield" style={{ margin: 0, flex: '1 1 220px' }}>
             <label htmlFor="cat-name">Category name</label>
-            <input id="cat-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="New Arrivals" />
+            <input id="cat-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Watches" />
           </div>
+          <div className="adfield" style={{ margin: 0, flex: '1 1 260px' }}><label htmlFor="cat-description">Short description</label><input id="cat-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional text shown on the homepage" /></div>
+          <label className="adcheck"><input type="checkbox" checked={showOnHome} onChange={(e) => setShowOnHome(e.target.checked)} /> Show this section on the homepage</label>
           <button className="btn btn--primary" type="submit">+ Add Category</button>
         </form>
       </section>
@@ -85,13 +91,14 @@ export default function Categories() {
         <div className="adtable-wrap">
           <table className="adtable responsive">
             <thead>
-              <tr><th>Category</th><th className="num">Products</th><th>Actions</th></tr>
+              <tr><th>Category</th><th className="num">Products</th><th>Homepage</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {categories.map((c) => (
                 <tr key={c.id}>
                   <td data-label="Category"><span className="prod-name">{c.name}</span></td>
                   <td data-label="Products" className="num">{countFor(c)}</td>
+                  <td data-label="Homepage">{c.showOnHome ? 'Shown' : 'Hidden'}</td>
                   <td data-label="Actions">
                     <div className="ad__actions">
                       <button onClick={() => setEditing({ ...c })}>Edit</button>
@@ -114,6 +121,9 @@ export default function Categories() {
               <input id="cat-edit-name" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
               <span className="hint">Renaming also moves every product assigned to this category.</span>
             </div>
+            <div className="adfield"><label htmlFor="cat-edit-description">Short description</label><input id="cat-edit-description" value={editing.description || ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} /></div>
+            <label className="adcheck"><input type="checkbox" checked={Boolean(editing.showOnHome)} onChange={(e) => setEditing({ ...editing, showOnHome: e.target.checked })} /> Show this section on the homepage</label>
+            <div className="adfield"><label htmlFor="cat-edit-order">Homepage order</label><input id="cat-edit-order" type="number" min="0" value={editing.sortOrder ?? 0} onChange={(e) => setEditing({ ...editing, sortOrder: Number(e.target.value) })} /></div>
             <div className="admodal__actions">
               <button className="btn btn--ghost" onClick={() => setEditing(null)}>Cancel</button>
               <button className="btn btn--primary" onClick={saveEdit}>Save</button>

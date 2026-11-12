@@ -11,12 +11,11 @@ const blank = (categories) => ({
   tagline: '', description: '',
   price: 450,
   stock: 10, lowStockThreshold: 6, available: true,
-  volume: '220 ml', weight: '265 g', scent: '', scentFamily: categories[0]?.name || '',
-  ingredients: '', howToUse: '', benefits: '',
-  type: 'mist', badge: '', accentHex: '#e2ad55',
+  attributes: [], homeFeatured: false,
+  badge: '', accentHex: '#e2ad55',
   status: 'active',
   images: [],
-  variations: [{ id: 'v1', label: '220 ml / 7.4 fl oz', price: 450, stock: 10, sku: '', image: 0 }],
+  variations: [{ id: 'v1', label: 'Standard', price: 450, stock: 10, sku: '', image: 0 }],
 });
 
 const fromProduct = (p) => ({
@@ -24,9 +23,8 @@ const fromProduct = (p) => ({
   tagline: p.tagline || '', description: p.description || '',
   price: p.price,
   stock: p.stock, lowStockThreshold: p.lowStockThreshold ?? 6, available: p.stock > 0,
-  volume: p.volume || '', weight: p.weight || '', scent: (p.scentNotes || []).join(', '), scentFamily: p.scentFamily || p.category,
-  ingredients: (p.ingredients || []).join('\n'), howToUse: p.howToUse || '', benefits: (p.benefits || []).join('\n'),
-  type: p.type || 'mist', badge: p.badge || '', accentHex: p.accentHex || '#e2ad55',
+  attributes: p.attributes || [], homeFeatured: Boolean(p.homeFeatured),
+  badge: p.badge || '', accentHex: p.accentHex || '#e2ad55',
   status: p.status,
   images: p.images.map((i) => ({ ...i })),
   variations: p.variations.map((v, i) => {
@@ -102,12 +100,7 @@ export default function ProductForm() {
       discount: 0,
       stock: Number(form.stock),
       lowStockThreshold: Number(form.lowStockThreshold),
-      scentNotes: form.scent ? form.scent.split(',').map((s) => s.trim()).filter(Boolean) : [],
-      scentFamily: form.scentFamily || form.category,
-      ingredients: form.ingredients ? form.ingredients.split('\n').map((s) => s.trim()).filter(Boolean) : [],
-      benefits: form.benefits ? form.benefits.split('\n').map((s) => s.trim()).filter(Boolean) : [],
-      howToUse: form.howToUse.trim(),
-      notes: form.scent ? form.scent.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 3) : [],
+      attributes: (form.attributes || []).filter((item) => item.label.trim() && item.value.trim()).map((item) => ({ label: item.label.trim(), value: item.value.trim() })),
       badge: form.badge.trim() || null,
       variations: form.variations.map((v, i) => ({ ...v,
         sku: (i === 0 ? form.sku || v.sku : v.sku || '').trim(),
@@ -169,19 +162,13 @@ export default function ProductForm() {
               <span className="hint">This changes the category for this product. Add new categories in Admin → Categories.</span>
             </div>
             <div className="adfield">
-              <label htmlFor="pf-type">Product type *</label>
-              <select id="pf-type" value={form.type} onChange={(e) => set('type', e.target.value)}>
-                <option value="mist">Mist</option><option value="serum">Serum</option><option value="gift">Gift set</option>
-              </select>
-            </div>
-            <div className="adfield">
               <label htmlFor="pf-brand">Brand</label>
               <input id="pf-brand" value={form.brand} onChange={(e) => set('brand', e.target.value)} />
             </div>
           </div>
           <div className="adfield">
             <label htmlFor="pf-tag">Short description</label>
-            <input id="pf-tag" value={form.tagline} onChange={(e) => set('tagline', e.target.value)} placeholder="Bold and enchanting, with a trace you won’t forget." />
+            <input id="pf-tag" value={form.tagline} onChange={(e) => set('tagline', e.target.value)} placeholder="A short highlight customers will remember." />
           </div>
           <div className="adfield">
             <label htmlFor="pf-desc">Full description</label>
@@ -198,14 +185,14 @@ export default function ProductForm() {
               {fieldError('price')}
             </div>
           </div>
-          <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.5)' }}>Regular price is set separately for each size. Add a sale price or discount to the specific sizes below; leave both empty for no discount.</p>
+          <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.5)' }}>Regular price is set separately for each option. Add a sale price or discount to the specific options below; leave both empty for no discount.</p>
         </section>
 
         <section className="adsec">
           <h2>Inventory</h2>
           <div className="adgrid">
             <div className={`adfield ${errors.stock ? 'adfield--err' : ''}`}>
-              <label htmlFor="pf-stock">Stock quantity (primary size) *</label>
+              <label htmlFor="pf-stock">Stock quantity (primary option) *</label>
               <input id="pf-stock" type="number" min="0" value={form.stock} onChange={(e) => setPrimary('stock', Number(e.target.value))} />
               {fieldError('stock')}
             </div>
@@ -217,21 +204,21 @@ export default function ProductForm() {
           </div>
           <label className="adcheck">
             <input type="checkbox" checked={form.available} onChange={(e) => setAvailable(e.target.checked)} />
-            Available for sale (primary size in stock)
+            Available for sale (primary option in stock)
           </label>
         </section>
 
         <section className="adsec">
-          <h2>Sizes &amp; stock (variations)</h2>
+          <h2>Options &amp; stock (variations)</h2>
           <p className="hint" style={{ fontSize: 12.5, color: 'rgba(244,234,217,0.5)', marginBottom: 12 }}>
-            The first size is the primary one shown on cards and used by the pricing fields above.
+            The first option is the primary one shown on cards and used by the pricing fields above.
           </p>
           {form.variations.map((v, i) => (
             <div className="advar" key={v.id || i}>
             <div className="advar__row">
                 <div className={`adfield ${errors[`variation-${i}`] ? 'adfield--err' : ''}`}>
-                  <label>Size label</label>
-                  <input value={v.label} onChange={(e) => setVariation(i, 'label', e.target.value)} placeholder="220 ml / 7.4 fl oz" />
+                  <label>Option label</label>
+                  <input value={v.label} onChange={(e) => setVariation(i, 'label', e.target.value)} placeholder="Color, size or model" />
                 </div>
                 <div className="adfield">
                   <label>Price</label>
@@ -264,21 +251,22 @@ export default function ProductForm() {
               {errors[`variation-${i}`] && <span className="err" style={{ color: '#ff9a9a', fontSize: 12 }}>{errors[`variation-${i}`]}</span>}
             </div>
           ))}
-          <button type="button" className="btn btn--ghost" onClick={addVariation}>+ Add size</button>
+          <button type="button" className="btn btn--ghost" onClick={addVariation}>+ Add option</button>
         </section>
 
         <section className="adsec">
           <h2>Product details</h2>
-          <div className="adgrid">
-            <div className="adfield"><label htmlFor="pf-volume">Volume</label><input id="pf-volume" value={form.volume} onChange={(e) => set('volume', e.target.value)} /></div>
-            <div className="adfield"><label htmlFor="pf-weight">Weight</label><input id="pf-weight" value={form.weight} onChange={(e) => set('weight', e.target.value)} /></div>
-            <div className="adfield"><label htmlFor="pf-scent">Scent notes (comma separated)</label><input id="pf-scent" value={form.scent} onChange={(e) => set('scent', e.target.value)} placeholder="Warm vanilla, Seductive musk" /></div>
-            <div className="adfield"><label htmlFor="pf-family">Scent family</label><input id="pf-family" value={form.scentFamily} onChange={(e) => set('scentFamily', e.target.value)} /></div>
-          </div>
-          <div className="adfield"><label htmlFor="pf-ing">Ingredients (one per line)</label><textarea id="pf-ing" value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} rows={3} /></div>
-          <div className="adfield"><label htmlFor="pf-use">How to use</label><textarea id="pf-use" value={form.howToUse} onChange={(e) => set('howToUse', e.target.value)} rows={2} /></div>
-          <div className="adfield"><label htmlFor="pf-ben">Benefits (one per line)</label><textarea id="pf-ben" value={form.benefits} onChange={(e) => set('benefits', e.target.value)} rows={2} /></div>
-          <div className="adgrid">
+          <p className="hint" style={{ marginBottom: 12 }}>Add the specifications that fit this product, such as material, movement, size or fabric.</p>
+          {(form.attributes || []).map((item, index) => (
+            <div className="adgrid" key={`attribute-${index}`}>
+              <div className="adfield"><label>Detail name</label><input value={item.label} onChange={(e) => set('attributes', form.attributes.map((entry, i) => i === index ? { ...entry, label: e.target.value } : entry))} placeholder="Material" /></div>
+              <div className="adfield"><label>Detail value</label><input value={item.value} onChange={(e) => set('attributes', form.attributes.map((entry, i) => i === index ? { ...entry, value: e.target.value } : entry))} placeholder="Stainless steel" /></div>
+              <button type="button" className="btn btn--text danger" onClick={() => set('attributes', form.attributes.filter((_, i) => i !== index))}>Remove</button>
+            </div>
+          ))}
+          <button type="button" className="btn btn--ghost" onClick={() => set('attributes', [...(form.attributes || []), { label: '', value: '' }])}>+ Add product detail</button>
+          <div className="adgrid" style={{ marginTop: 18 }}>
+            <label className="adcheck"><input type="checkbox" checked={form.homeFeatured} onChange={(e) => set('homeFeatured', e.target.checked)} /> Feature this product on the homepage</label>
             <div className="adfield"><label htmlFor="pf-badge">Badge (e.g. Best seller)</label><input id="pf-badge" value={form.badge} onChange={(e) => set('badge', e.target.value)} /></div>
             <div className="adfield"><label htmlFor="pf-accent">Accent colour</label><div className="accent-editor"><input id="pf-accent" type="color" value={/^#[0-9a-f]{6}$/i.test(form.accentHex) ? form.accentHex : '#e2ad55'} onChange={(e) => set('accentHex', e.target.value)} aria-label="Choose accent colour" /><input type="text" value={form.accentHex} onChange={(e) => set('accentHex', e.target.value)} aria-label="Accent colour hex value" placeholder="#e2ad55" maxLength={7} /></div>{fieldError('accentHex')}</div>
           </div>
