@@ -1,22 +1,23 @@
 import { useLanguage } from '../i18n/LanguageContext.jsx';
 
 export default function LanguageToggle() {
-  const { language, toggleLanguage, t } = useLanguage();
-  const nextLanguage = language === 'ar' ? 'English' : 'العربية';
+  const { isArabic, toggleLanguage } = useLanguage();
+  const targetLanguage = isArabic ? 'English' : 'عربي';
+  const actionLabel = isArabic ? 'Switch language to English' : 'تغيير اللغة إلى العربية';
 
   return (
     <button
-      type="button"
       className="language-toggle"
+      type="button"
       onClick={toggleLanguage}
-      aria-label={`${t('Switch language to')} ${nextLanguage}`}
-      title={`${t('Switch language to')} ${nextLanguage}`}
+      aria-label={actionLabel}
+      title={actionLabel}
     >
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="12" cy="12" r="9" />
-        <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+        <path d="M3.5 12h17M12 3c2.3 2.4 3.4 5.4 3.4 9s-1.1 6.6-3.4 9c-2.3-2.4-3.4-5.4-3.4-9S9.7 5.4 12 3Z" />
       </svg>
-      <span>{language === 'ar' ? 'EN' : 'عربي'}</span>
+      <span>{targetLanguage}</span>
     </button>
   );
 }

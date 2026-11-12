@@ -7,7 +7,7 @@ import { AccountIcon, BagIcon, SearchIcon } from './icons.jsx';
 import LanguageToggle from './LanguageToggle.jsx';
 
 export default function Header() {
-  const { t, localize } = useLanguage();
+  const { t, localize, language } = useLanguage();
   const { count, setCartOpen, setSearchOpen, announcement, categories } = useStore();
   const [accountOpen, setAccountOpen] = useState(false);
   const [user, setUser] = useState(() => auth.getCurrentUser());
@@ -24,6 +24,10 @@ export default function Header() {
     setAccountOpen(false);
     setMenuOpen(false);
   }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [language]);
 
   useEffect(() => {
     const update = () => setUser(auth.getCurrentUser());
