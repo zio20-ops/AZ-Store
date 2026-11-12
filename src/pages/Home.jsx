@@ -25,6 +25,7 @@ export default function Home() {
         </div>
         <div className="hero__media hero__media--watch">
           <img src="/images/az-watch-hero.png" alt={t("A luxury AZ watch photographed on dark stone")} fetchpriority="high" />
+          <span className="hero__brand-mark" aria-hidden="true">AZ</span>
         </div>
       </section>
 
