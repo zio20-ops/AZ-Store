@@ -108,6 +108,26 @@ export const PRODUCTS = [
 
 export const getProduct = (id) => PRODUCTS.find((p) => p.id === id);
 
+// Card artwork is selected independently from the ordered product gallery.
+export const getCardImage = (product) => {
+  const images = Array.isArray(product?.images) ? product.images : [];
+  const index = Number(product?.cardImageIndex);
+  return images[Number.isInteger(index) && index >= 0 && images[index]?.src ? index : 0] || images.find((image) => image?.src) || null;
+};
+
+export const getCardImageStyle = (product) => {
+  const clamp = (value, fallback, min, max) => Math.min(max, Math.max(min, Number.isFinite(Number(value)) ? Number(value) : fallback));
+  const zoom = clamp(product?.cardImageZoom, 100, 100, 180) / 100;
+  const x = clamp(product?.cardImagePositionX, 50, 0, 100);
+  const y = clamp(product?.cardImagePositionY, 50, 0, 100);
+  return {
+    objectFit: product?.cardImageFit === 'contain' ? 'contain' : 'cover',
+    objectPosition: `${x}% ${y}%`,
+    transformOrigin: `${x}% ${y}%`,
+    '--card-image-zoom': zoom,
+  };
+};
+
 export const getVariations = (product) =>
   product.variations && product.variations.length
     ? product.variations
