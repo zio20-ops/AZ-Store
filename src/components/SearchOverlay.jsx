@@ -3,11 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { egp } from '../utils/format.js';
-import { getVariations, productComparePrice, productPrice } from '../data/products.js';
+import { getCardImage, getCardImageStyle, getVariations, productComparePrice, productPrice } from '../data/products.js';
 
 export default function SearchOverlay() {
-  const { t } = useLanguage();
-  const { searchOpen, setSearchOpen, products } = useStore();
+  const { t, localize } = useLanguage();
+  const { searchOpen, setSearchOpen, products, categories } = useStore();
   const [q, setQ] = useState('');
   const inputRef = useRef(null);
   const navigate = useNavigate();
@@ -33,9 +33,9 @@ export default function SearchOverlay() {
     const term = q.trim().toLowerCase();
     if (!term) return [];
     return products.filter((p) =>
-      [p.name, p.category, p.tagline, p.description, p.sku, ...(p.attributes || []).flatMap((attribute) => [attribute.label, attribute.value]), ...(p.scentNotes || p.notes || [])].join(' ').toLowerCase().includes(term),
+      [p.name, p.nameAr, p.category, categories.find((category) => category.name === p.category)?.nameAr, p.tagline, p.taglineAr, p.description, p.descriptionAr, p.sku, ...(p.attributes || []).flatMap((attribute) => [attribute.label, attribute.labelAr, attribute.value, attribute.valueAr]), ...(p.scentNotes || p.notes || [])].join(' ').toLowerCase().includes(term),
     );
-  }, [q, products]);
+  }, [q, products, categories]);
 
   if (!searchOpen) return null;
 
@@ -74,10 +74,10 @@ export default function SearchOverlay() {
                   className="search__row"
                   onClick={() => { setSearchOpen(false); navigate(`/product/${p.id}`); }}
                 >
-                  <img src={p.images[0].src} alt="" loading="lazy" />
+                  {getCardImage(p) && <img src={getCardImage(p).src} alt="" style={getCardImageStyle(p)} loading="lazy" />}
                   <span>
-                    <b style={{ color: p.accentHex }}>{t(p.name)}</b>
-                    <small>{t(p.category)}</small>
+                    <b style={{ color: p.accentHex }}>{localize(p)}</b>
+                    <small>{localize(categories.find((category) => category.name === p.category) || p.category)}</small>
                   </span>
                   <span className="search__price">{egp(productPrice(p))}{productComparePrice(p, getVariations(p)[0]) && <s>{egp(productComparePrice(p, getVariations(p)[0]))}</s>}</span>
                 </button>
