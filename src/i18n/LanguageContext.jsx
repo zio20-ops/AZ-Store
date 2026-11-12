@@ -16,6 +16,8 @@ export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState(readSavedLanguage);
 
   useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
     try {
       window.localStorage.setItem(STORAGE_KEY, language);
     } catch {
