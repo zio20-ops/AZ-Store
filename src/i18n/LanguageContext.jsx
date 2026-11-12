@@ -28,6 +28,13 @@ export function LanguageProvider({ children }) {
     isArabic: language === 'ar',
     toggleLanguage: () => setLanguage((current) => current === 'ar' ? 'en' : 'ar'),
     t: (text) => language === 'ar' ? (ARABIC_TEXT[text] || text) : text,
+    localize: (entity, field = 'name') => {
+      const english = typeof entity === 'string' ? entity : entity?.[field];
+      if (typeof english !== 'string') return '';
+      if (language !== 'ar') return english;
+      const arabic = typeof entity === 'string' ? '' : entity?.[`${field}Ar`];
+      return (typeof arabic === 'string' && arabic.trim()) || ARABIC_TEXT[english] || english;
+    },
   }), [language]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
@@ -38,3 +45,4 @@ export function useLanguage() {
   if (!context) throw new Error('useLanguage must be used inside LanguageProvider.');
   return context;
 }
+
