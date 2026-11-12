@@ -16,7 +16,7 @@ export default function Header() {
   const accountRef = useRef(null);
   const navLinks = [
     { label: 'Shop all', to: '/shop' },
-    ...[...categories].sort((a, b) => Number(Boolean(b.showOnHome)) - Number(Boolean(a.showOnHome)) || (a.sortOrder || 0) - (b.sortOrder || 0)).slice(0, 3).map((category) => ({ label: category.name, to: `/shop?category=${encodeURIComponent(category.id)}` })),
+    ...categories.filter((category) => category.showInNavigation).sort((a, b) => (a.navigationOrder ?? a.sortOrder ?? 0) - (b.navigationOrder ?? b.sortOrder ?? 0)).slice(0, 3).map((category) => ({ label: category.name, to: `/shop?category=${encodeURIComponent(category.id)}` })),
     { label: 'Our story', to: '/about' },
   ];
 
