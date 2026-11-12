@@ -152,6 +152,10 @@ textarea.field { resize: vertical; min-height: 90px; }
 .header__icons .header__icon-btn { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; position: relative; border: 1px solid var(--line-2); border-radius: 50%; color: var(--pearl); transition: background .25s, border-color .25s, color .25s, transform .25s; }
 .header__icons .header__icon-btn:hover { color: var(--gold); border-color: rgba(226,173,85,.6); background: rgba(226,173,85,.08); transform: translateY(-1px); }
 .header__icon-btn svg { width: 20px; height: 20px; }
+.header__icons .language-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 88px; height: 40px; padding: 0 13px; border: 1px solid var(--line-2); border-radius: 999px; background: rgba(255,255,255,.025); color: var(--pearl); font: 500 13px/1 var(--body); white-space: nowrap; transition: background .25s, border-color .25s, color .25s, transform .25s; }
+.header__icons .language-toggle:hover { color: var(--gold); border-color: rgba(226,173,85,.6); background: rgba(226,173,85,.08); transform: translateY(-1px); }
+.language-toggle svg { width: 17px; height: 17px; flex: 0 0 auto; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.language-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .header__icons .bag-icon-btn { background: linear-gradient(145deg, #f6d68f, #d7a64d); color: #27170a; border-color: rgba(255,230,174,.75); }
 .header__icons .bag-icon-btn:hover { color: #150c08; background: var(--pearl); border-color: var(--pearl); }
 .bag-count { position: absolute; top: -4px; inset-inline-end: -4px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; color: var(--pearl); background: var(--plum); border: 1px solid var(--bg); border-radius: 99px; font: 700 10px/1 var(--body); }
@@ -184,6 +188,8 @@ textarea.field { resize: vertical; min-height: 90px; }
   transform: translateX(102%); transition: transform 0.4s var(--ease); overflow-y: auto;
 }
 .mmenu--open { transform: none; }
+[dir='rtl'] .mmenu:not(.mmenu--open) { transform: translateX(-102%); }
+[dir='rtl'] .mmenu--open { transform: none; }
 .mmenu__close { align-self: flex-end; font-size: 14px; opacity: 0.7; }
 .mmenu a { font: 400 30px/1.25 var(--disp); padding: 8px 0; border-bottom: 1px solid var(--line-1); }
 .mmenu a:last-of-type { border-bottom: 0; }
