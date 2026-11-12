@@ -8,7 +8,9 @@ import { TRUST_ITEMS } from '../data/content.js';
 export default function Home() {
   const { t, localize } = useLanguage();
   useSeo('AZ Store | Shop the collection', 'Discover the AZ Store collection and explore new sections, with delivery across Egypt.');
-  const { products, categories } = useStore();
+  const { products, categories, settings } = useStore();
+  const heroImage = settings.homepageImages?.hero || '/images/az-watch-hero.png';
+  const giftImage = settings.homepageImages?.gift || '/images/az-watch-gift.png';
   const homeCategories = [...categories].filter((category) => category.showOnHome && products.some((product) => product.category === category.name))
     .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
@@ -24,7 +26,7 @@ export default function Home() {
           </div>
         </div>
         <div className="hero__media hero__media--watch">
-          <img src="/images/az-watch-hero.png" alt={t("A luxury AZ watch photographed on dark stone")} fetchpriority="high" />
+          <img src={heroImage} alt={t("A luxury AZ watch photographed on dark stone")} fetchpriority="high" />
           <span className="hero__brand-mark" aria-hidden="true">AZ</span>
         </div>
       </section>
@@ -54,7 +56,7 @@ export default function Home() {
       </section>}
 
       <section className="container gift">
-        <Reveal className="gift__media"><img src="/images/az-watch-gift.png" alt={t("A luxury watch presented in its gift box")} loading="lazy" /></Reveal>
+        <Reveal className="gift__media"><img src={giftImage} alt={t("A luxury watch presented in its gift box")} loading="lazy" /></Reveal>
         <Reveal><h2>{t("Made to be")}<br />{t("remembered.")}</h2><p>{t("Explore the collection and find a thoughtful gift or a new everyday favorite.")}</p><Link className="btn btn--primary" to="/shop">{t("Discover the collection")}</Link></Reveal>
       </section>
 
