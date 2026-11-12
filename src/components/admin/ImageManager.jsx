@@ -70,11 +70,28 @@ export default function ImageManager({ images, onChange, onError, altBase = 'pro
     <div>
       <div className="imgs">
         {images.map((img, i) => (
-          <div className="imgs__item" key={img.src.slice(-24) + i}>
+          <div className="imgs__item" key={img.src.slice(-24) + i} style={{ width: 180 }}>
             <div className={`imgs__thumb ${i === 0 ? 'imgs__thumb--primary' : ''}`}>
               <img src={img.src} alt={img.alt || `${altBase} image ${i + 1}`} />
               {i === 0 && <span className="imgs__primary-tag">Primary</span>}
             </div>
+            <label className="adfield" style={{ display: 'block', marginTop: 8, fontSize: 11 }}>
+              <span>Product page image fit</span>
+              <select
+                value={img.fit === 'contain' ? 'contain' : 'cover'}
+                onChange={(e) => onChange(images.map((image, index) => index === i ? { ...image, fit: e.target.value } : image))}
+              >
+                <option value="cover">Fill frame (may crop)</option>
+                <option value="contain">Show full image</option>
+              </select>
+            </label>
+            <label className="adfield" style={{ display: 'block', marginTop: 6, fontSize: 11 }}>
+              <span>Image zoom · {Number(img.zoom ?? 100)}%</span>
+              <input
+                type="range" min="100" max="150" step="1" value={Number(img.zoom ?? 100)}
+                onChange={(e) => onChange(images.map((image, index) => index === i ? { ...image, zoom: Number(e.target.value) } : image))}
+              />
+            </label>
             <div className="imgs__ctrl">
               {i !== 0 && <button type="button" onClick={() => setPrimary(i)} title="Make primary">★</button>}
               <button type="button" onClick={() => move(i, -1)} disabled={i === 0} title="Move earlier">←</button>
