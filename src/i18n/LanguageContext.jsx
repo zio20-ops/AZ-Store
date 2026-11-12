@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { ARABIC_TEXT } from './ar.js';
 
 const LanguageContext = createContext(null);
@@ -15,9 +15,12 @@ function readSavedLanguage() {
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState(readSavedLanguage);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.lang = language;
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+  }, [language]);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(STORAGE_KEY, language);
     } catch {
