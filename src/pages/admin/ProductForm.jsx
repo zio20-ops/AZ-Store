@@ -7,31 +7,36 @@ import * as catalog from '../../services/productService.js';
 import { egp } from '../../utils/format.js';
 
 const blank = (categories) => ({
-  name: '', sku: '', category: categories[0]?.name || '', brand: 'AZ',
-  tagline: '', description: '',
+  name: '', nameAr: '', sku: '', category: categories[0]?.name || '', brand: 'AZ',
+  tagline: '', taglineAr: '', description: '', descriptionAr: '',
   price: 450,
   stock: 10, lowStockThreshold: 6, available: true,
   attributes: [], homeFeatured: false,
   badge: '', accentHex: '#e2ad55',
   status: 'active',
   images: [],
-  variations: [{ id: 'v1', label: 'Standard', price: 450, stock: 10, sku: '', image: 0 }],
+  cardImageIndex: 0, cardImageFit: 'cover', cardImagePositionX: 50, cardImagePositionY: 50, cardImageZoom: 100,
+  variations: [{ id: 'v1', label: 'Standard', labelAr: '', price: 450, stock: 10, sku: '', image: 0 }],
 });
 
 const fromProduct = (p) => ({
-  name: p.name, sku: p.sku, category: p.category, brand: p.brand || 'AZ',
-  tagline: p.tagline || '', description: p.description || '',
+  name: p.name, nameAr: p.nameAr || '', sku: p.sku, category: p.category, brand: p.brand || 'AZ',
+  tagline: p.tagline || '', taglineAr: p.taglineAr || '', description: p.description || '', descriptionAr: p.descriptionAr || '',
   price: p.price,
   stock: p.stock, lowStockThreshold: p.lowStockThreshold ?? 6, available: p.stock > 0,
   attributes: p.attributes || [], homeFeatured: Boolean(p.homeFeatured),
   badge: p.badge || '', accentHex: p.accentHex || '#e2ad55',
   status: p.status,
   images: p.images.map((i) => ({ ...i })),
+  cardImageIndex: Number.isInteger(Number(p.cardImageIndex)) ? Number(p.cardImageIndex) : 0,
+  cardImageFit: p.cardImageFit === 'contain' ? 'contain' : 'cover',
+  cardImagePositionX: Number(p.cardImagePositionX ?? 50), cardImagePositionY: Number(p.cardImagePositionY ?? 50), cardImageZoom: Number(p.cardImageZoom ?? 100),
   variations: p.variations.map((v, i) => {
     const legacyCompareAt = i === 0 && Number(p.compareAtPrice ?? p.compareAt ?? 0) > Number(v.price) ? Number(p.compareAtPrice ?? p.compareAt) : '';
     return {
       ...v,
       image: Number.isInteger(Number(v.image)) ? Number(v.image) : 0,
+      labelAr: v.labelAr || '',
       compareAtPrice: v.compareAtPrice || legacyCompareAt || '',
       discount: v.discount ?? (legacyCompareAt ? 0 : Number(p.discount || 0)),
     };
@@ -82,7 +87,7 @@ export default function ProductForm() {
     }));
 
   const addVariation = () =>
-    setForm((f) => ({ ...f, variations: [...f.variations, { id: `v${f.variations.length + 1}-${Date.now() % 1000}`, label: '', price: f.price, stock: 0, sku: '', image: 0 }] }));
+    setForm((f) => ({ ...f, variations: [...f.variations, { id: `v${f.variations.length + 1}-${Date.now() % 1000}`, label: '', labelAr: '', price: f.price, stock: 0, sku: '', image: 0 }] }));
   const removeVariation = (index) =>
     setForm((f) => (f.variations.length === 1 ? f : { ...f, variations: f.variations.filter((_, i) => i !== index) }));
 
@@ -93,19 +98,26 @@ export default function ProductForm() {
       ...form,
       id: editing?.id,
       name: updatedName,
+      nameAr: form.nameAr.trim(),
       sku: (form.sku || form.variations[0]?.sku || '').trim(),
       category: form.category.trim(),
       tagline: form.tagline.trim(),
+      taglineAr: form.taglineAr.trim(),
       description: form.description.trim(),
+      descriptionAr: form.descriptionAr.trim(),
       price: Number(form.price),
       compareAtPrice: null,
       discount: 0,
       stock: Number(form.stock),
       lowStockThreshold: Number(form.lowStockThreshold),
       images: form.images.map((image, index) => ({ ...image, alt: `${updatedName} image ${index + 1}` })),
-      attributes: (form.attributes || []).filter((item) => item.label.trim() && item.value.trim()).map((item) => ({ label: item.label.trim(), value: item.value.trim() })),
+      cardImageIndex: Math.max(0, Math.min(Number(form.cardImageIndex) || 0, form.images.length - 1)),
+      cardImageFit: form.cardImageFit === 'contain' ? 'contain' : 'cover',
+      cardImagePositionX: Number(form.cardImagePositionX), cardImagePositionY: Number(form.cardImagePositionY), cardImageZoom: Number(form.cardImageZoom),
+      attributes: (form.attributes || []).filter((item) => item.label.trim() && item.value.trim()).map((item) => ({ label: item.label.trim(), value: item.value.trim(), labelAr: (item.labelAr || '').trim(), valueAr: (item.valueAr || '').trim() })),
       badge: form.badge.trim() || null,
       variations: form.variations.map((v, i) => ({ ...v,
+        labelAr: (v.labelAr || '').trim(),
         sku: (i === 0 ? form.sku || v.sku : v.sku || '').trim(),
         price: Number(v.price),
         compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : null,
@@ -150,6 +162,10 @@ export default function ProductForm() {
               <input id="pf-name" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Black Kiss Intense" />
               {fieldError('name')}
             </div>
+            <div className="adfield">
+              <label htmlFor="pf-name-ar">Arabic product name (optional)</label>
+              <input id="pf-name-ar" dir="rtl" value={form.nameAr || ''} onChange={(e) => set('nameAr', e.target.value)} placeholder="اسم المنتج بالعربية" />
+            </div>
             <div className={`adfield ${errors.sku ? 'adfield--err' : ''}`}>
               <label htmlFor="pf-sku">Primary SKU *</label>
               <input id="pf-sku" value={form.sku} onChange={(e) => setPrimary('sku', e.target.value)} placeholder="AZ-BLK-220" />
@@ -174,8 +190,16 @@ export default function ProductForm() {
             <input id="pf-tag" value={form.tagline} onChange={(e) => set('tagline', e.target.value)} placeholder="A short highlight customers will remember." />
           </div>
           <div className="adfield">
+            <label htmlFor="pf-tag-ar">Arabic short description (optional)</label>
+            <input id="pf-tag-ar" dir="rtl" value={form.taglineAr || ''} onChange={(e) => set('taglineAr', e.target.value)} placeholder="وصف قصير بالعربية" />
+          </div>
+          <div className="adfield">
             <label htmlFor="pf-desc">Full description</label>
             <textarea id="pf-desc" value={form.description} onChange={(e) => set('description', e.target.value)} rows={3} />
+          </div>
+          <div className="adfield">
+            <label htmlFor="pf-desc-ar">Arabic full description (optional)</label>
+            <textarea id="pf-desc-ar" dir="rtl" value={form.descriptionAr || ''} onChange={(e) => set('descriptionAr', e.target.value)} rows={3} />
           </div>
         </section>
 
@@ -222,6 +246,10 @@ export default function ProductForm() {
                 <div className={`adfield ${errors[`variation-${i}`] ? 'adfield--err' : ''}`}>
                   <label>Option label</label>
                   <input value={v.label} onChange={(e) => setVariation(i, 'label', e.target.value)} placeholder="Color, size or model" />
+                </div>
+                <div className="adfield">
+                  <label>Arabic option label (optional)</label>
+                  <input dir="rtl" value={v.labelAr || ''} onChange={(e) => setVariation(i, 'labelAr', e.target.value)} placeholder="اسم الخيار بالعربية" />
                 </div>
                 <div className="adfield">
                   <label>Image shown for this option</label>
@@ -272,11 +300,13 @@ export default function ProductForm() {
           {(form.attributes || []).map((item, index) => (
             <div className="adgrid" key={`attribute-${index}`}>
               <div className="adfield"><label>Detail name</label><input value={item.label} onChange={(e) => set('attributes', form.attributes.map((entry, i) => i === index ? { ...entry, label: e.target.value } : entry))} placeholder="Material" /></div>
+              <div className="adfield"><label>Arabic detail name (optional)</label><input dir="rtl" value={item.labelAr || ''} onChange={(e) => set('attributes', form.attributes.map((entry, i) => i === index ? { ...entry, labelAr: e.target.value } : entry))} placeholder="اسم الخاصية بالعربية" /></div>
               <div className="adfield"><label>Detail value</label><input value={item.value} onChange={(e) => set('attributes', form.attributes.map((entry, i) => i === index ? { ...entry, value: e.target.value } : entry))} placeholder="Stainless steel" /></div>
+              <div className="adfield"><label>Arabic detail value (optional)</label><input dir="rtl" value={item.valueAr || ''} onChange={(e) => set('attributes', form.attributes.map((entry, i) => i === index ? { ...entry, valueAr: e.target.value } : entry))} placeholder="قيمة الخاصية بالعربية" /></div>
               <button type="button" className="btn btn--text danger" onClick={() => set('attributes', form.attributes.filter((_, i) => i !== index))}>Remove</button>
             </div>
           ))}
-          <button type="button" className="btn btn--ghost" onClick={() => set('attributes', [...(form.attributes || []), { label: '', value: '' }])}>+ Add product detail</button>
+          <button type="button" className="btn btn--ghost" onClick={() => set('attributes', [...(form.attributes || []), { label: '', labelAr: '', value: '', valueAr: '' }])}>+ Add product detail</button>
           <div className="adgrid" style={{ marginTop: 18 }}>
             <label className="adcheck"><input type="checkbox" checked={form.homeFeatured} onChange={(e) => set('homeFeatured', e.target.checked)} /> Feature this product on the homepage</label>
             <div className="adfield"><label htmlFor="pf-badge">Badge (e.g. Best seller)</label><input id="pf-badge" value={form.badge} onChange={(e) => set('badge', e.target.value)} /></div>
@@ -294,6 +324,20 @@ export default function ProductForm() {
             onError={(message) => toast(message)}
             altBase={form.name || 'Product'}
           />
+          <div className="adfield" style={{ marginTop: 22 }}>
+            <label htmlFor="card-image-choice">Product card image</label>
+            <p className="hint">Choose which gallery image appears on shop and home product cards. This does not change the gallery order or color image links.</p>
+            <select id="card-image-choice" value={form.cardImageIndex} onChange={(e) => set('cardImageIndex', Number(e.target.value))} disabled={!form.images.length}>
+              {form.images.map((image, index) => <option key={`${image.src}-${index}`} value={index}>Image {index + 1}{image.alt ? ` — ${image.alt}` : ''}</option>)}
+            </select>
+            {form.images[form.cardImageIndex]?.src && <img src={form.images[form.cardImageIndex].src} alt="Selected product card preview" style={{ display: 'block', width: 180, aspectRatio: '3 / 4', objectFit: form.cardImageFit, objectPosition: `${form.cardImagePositionX}% ${form.cardImagePositionY}%`, transform: `scale(${Number(form.cardImageZoom) / 100})`, transformOrigin: `${form.cardImagePositionX}% ${form.cardImagePositionY}%`, borderRadius: 8, marginTop: 12, background: '#211812' }} />}
+          </div>
+          <div className="adgrid" style={{ marginTop: 16 }}>
+            <label className="adfield"><span>Card image fitting</span><select value={form.cardImageFit} onChange={(e) => set('cardImageFit', e.target.value)}><option value="cover">Fill card (crop)</option><option value="contain">Show whole image</option></select></label>
+            <label className="adfield"><span>Zoom · {form.cardImageZoom}%</span><input type="range" min="100" max="180" step="1" value={form.cardImageZoom} onChange={(e) => set('cardImageZoom', Number(e.target.value))} /></label>
+            <label className="adfield"><span>Horizontal position · {form.cardImagePositionX}%</span><input type="range" min="0" max="100" step="1" value={form.cardImagePositionX} onChange={(e) => set('cardImagePositionX', Number(e.target.value))} /></label>
+            <label className="adfield"><span>Vertical position · {form.cardImagePositionY}%</span><input type="range" min="0" max="100" step="1" value={form.cardImagePositionY} onChange={(e) => set('cardImagePositionY', Number(e.target.value))} /></label>
+          </div>
         </section>
 
         <section className="adsec">

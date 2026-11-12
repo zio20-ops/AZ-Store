@@ -8,7 +8,9 @@ export default function Categories() {
   const { allProducts, refreshCatalog, toast } = useStore();
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState('');
+  const [nameAr, setNameAr] = useState('');
   const [description, setDescription] = useState('');
+  const [descriptionAr, setDescriptionAr] = useState('');
   const [showOnHome, setShowOnHome] = useState(false);
   const [showInNavigation, setShowInNavigation] = useState(false);
   const [editing, setEditing] = useState(null); // { id, name }
@@ -25,13 +27,15 @@ export default function Categories() {
       toast('Category name is required.');
       return;
     }
-    const result = await catalog.saveCategory({ name, description, showOnHome, showInNavigation, sortOrder: categories.length, navigationOrder: categories.filter((category) => category.showInNavigation).length });
+    const result = await catalog.saveCategory({ name, nameAr, description, descriptionAr, showOnHome, showInNavigation, sortOrder: categories.length, navigationOrder: categories.filter((category) => category.showInNavigation).length });
     if (!result.ok) {
       toast(result.message);
       return;
     }
     setName('');
+    setNameAr('');
     setDescription('');
+    setDescriptionAr('');
     setShowOnHome(false);
     setShowInNavigation(false);
     await load();
@@ -82,7 +86,9 @@ export default function Categories() {
             <label htmlFor="cat-name">Category name</label>
             <input id="cat-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Watches" />
           </div>
+          <div className="adfield" style={{ margin: 0, flex: '1 1 220px' }}><label htmlFor="cat-name-ar">Arabic category name (optional)</label><input id="cat-name-ar" dir="rtl" value={nameAr} onChange={(e) => setNameAr(e.target.value)} placeholder="اسم القسم بالعربية" /></div>
           <div className="adfield" style={{ margin: 0, flex: '1 1 260px' }}><label htmlFor="cat-description">Short description</label><input id="cat-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional text shown on the homepage" /></div>
+          <div className="adfield" style={{ margin: 0, flex: '1 1 260px' }}><label htmlFor="cat-description-ar">Arabic short description (optional)</label><input id="cat-description-ar" dir="rtl" value={descriptionAr} onChange={(e) => setDescriptionAr(e.target.value)} placeholder="وصف قصير للقسم بالعربية" /></div>
           <label className="adcheck"><input type="checkbox" checked={showOnHome} onChange={(e) => setShowOnHome(e.target.checked)} /> Show this section on the homepage</label>
           <label className="adcheck"><input type="checkbox" checked={showInNavigation} onChange={(e) => setShowInNavigation(e.target.checked)} /> Show this category in the navigation bar</label>
           <button className="btn btn--primary" type="submit">+ Add Category</button>
@@ -125,7 +131,9 @@ export default function Categories() {
               <input id="cat-edit-name" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
               <span className="hint">Renaming also moves every product assigned to this category.</span>
             </div>
+            <div className="adfield"><label htmlFor="cat-edit-name-ar">Arabic name (optional)</label><input id="cat-edit-name-ar" dir="rtl" value={editing.nameAr || ''} onChange={(e) => setEditing({ ...editing, nameAr: e.target.value })} placeholder="اسم القسم بالعربية" /></div>
             <div className="adfield"><label htmlFor="cat-edit-description">Short description</label><input id="cat-edit-description" value={editing.description || ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} /></div>
+            <div className="adfield"><label htmlFor="cat-edit-description-ar">Arabic short description (optional)</label><input id="cat-edit-description-ar" dir="rtl" value={editing.descriptionAr || ''} onChange={(e) => setEditing({ ...editing, descriptionAr: e.target.value })} /></div>
             <label className="adcheck"><input type="checkbox" checked={Boolean(editing.showOnHome)} onChange={(e) => setEditing({ ...editing, showOnHome: e.target.checked })} /> Show this section on the homepage</label>
             <label className="adcheck"><input type="checkbox" checked={Boolean(editing.showInNavigation)} onChange={(e) => setEditing({ ...editing, showInNavigation: e.target.checked })} /> Show this category in the navigation bar</label>
             {editing.showInNavigation && <div className="adfield"><label htmlFor="cat-edit-navigation-order">Navigation order</label><input id="cat-edit-navigation-order" type="number" min="0" value={editing.navigationOrder ?? editing.sortOrder ?? 0} onChange={(e) => setEditing({ ...editing, navigationOrder: Number(e.target.value) })} /></div>}
