@@ -123,7 +123,7 @@ export default function Shop() {
           <div className={`shop-filter-group shop-filter-group--dropdown${categoryMenuOpen ? ' is-open' : ''}`} role="group" aria-label={t("Filter by category")}>
             <span className="shop-filter-group__label">{t("Category")}</span>
             <button type="button" className="shop-filter-group__toggle" aria-expanded={categoryMenuOpen} onClick={() => setCategoryMenuOpen((open) => !open)}>
-              <span>{t("Category")}</span><b>{selectedCategoryLabel}</b><i aria-hidden="true">⌄</i>
+              <b>{selectedCategoryLabel}</b><i aria-hidden="true">⌄</i>
             </button>
             <div className="shop-filter-group__chips">
               <button className={`chip ${!categoryFilter ? 'chip--on' : ''}`} aria-pressed={!categoryFilter} onClick={() => { setCategoryFilter(''); setCategoryMenuOpen(false); }}>{t("All categories")}</button>
