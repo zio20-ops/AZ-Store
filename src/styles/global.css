@@ -519,8 +519,10 @@ textarea.field { resize: vertical; min-height: 90px; }
 .about-hero p { margin-top: 26px; max-width: 56ch; font-size: 17px; opacity: 0.8; }
 .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; padding-block: 50px; }
 .about-grid figure { border-radius: var(--arch); overflow: hidden; aspect-ratio: 3/3.6; background: var(--cocoa); }
+.about-grid figure.about-story-box { position: relative; aspect-ratio: 3 / 2; }
 .about-grid figure.wide { border-radius: 22px; aspect-ratio: 4/3; }
 .about-grid img { width: 100%; height: 100%; object-fit: cover; }
+.about-story-box__mark { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .about-copy { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; padding-block: 20px 70px; }
 .about-copy h2 { font: 400 34px/1.15 var(--disp); margin-bottom: 16px; }
 .about-copy p { opacity: 0.78; margin-bottom: 14px; }
