@@ -12,7 +12,7 @@ export default function About() {
     </Reveal></section>
 
     <section className="container about-grid">
-      <Reveal as="figure" className="about-story-box">
+      <Reveal as="figure" className="wide about-story-box">
         <img src="/images/az-story-brand-box.jpg" alt="A minimal black AZ presentation box" loading="lazy" />
         <svg className="about-story-box__mark" viewBox="0 0 2136 1424" preserveAspectRatio="none" aria-hidden="true">
           <defs>
@@ -22,7 +22,7 @@ export default function About() {
           <text x="0" y="0" transform="matrix(1 -0.24 0.6 1 1255 665)" fill="url(#azStoryGold)" filter="url(#azStoryEmboss)" fontFamily="Georgia, 'Times New Roman', serif" fontSize="118" fontWeight="500" letterSpacing="-8">AZ</text>
         </svg>
       </Reveal>
-      <Reveal as="figure" className="wide"><img src="/images/packaging-box.jpg" alt="AZ packaging with a gold monogram on bronze satin" loading="lazy" /></Reveal>
+      <Reveal as="figure" className="wide"><img src="/images/az-story-order-packing.jpg" alt="A thoughtfully wrapped AZ gift being handed over" loading="lazy" /></Reveal>
     </section>
 
     <section className="container about-copy">
