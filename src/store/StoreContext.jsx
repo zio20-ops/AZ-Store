@@ -58,16 +58,12 @@ export function StoreProvider({ children }) {
   const loadCatalog = useCallback(() => {
     setProductsLoading(true);
     return Promise.allSettled([catalog.listProducts(), catalog.getSettings(), catalog.listCategories()]).then(([productsResult, settingsResult, categoriesResult]) => {
-      const products = productsResult.status === 'fulfilled' ? productsResult.value : [];
-      const nextSettings = settingsResult.status === 'fulfilled' ? settingsResult.value : catalog.DEFAULT_SETTINGS;
-      const visibleProducts = products.length ? products : catalog.getSeedProducts();
-      setAllProducts(visibleProducts);
-      const loadedCategories = categoriesResult.status === 'fulfilled' ? categoriesResult.value : [];
-      setCategories(loadedCategories.length ? loadedCategories : [...new Set(visibleProducts.map((product) => product.category).filter(Boolean))].map((name) => ({ id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name, image: '' })));
-      setSettings(nextSettings);
+      if (productsResult.status === 'fulfilled') setAllProducts(productsResult.value);
+      if (settingsResult.status === 'fulfilled') setSettings(settingsResult.value);
+      if (categoriesResult.status === 'fulfilled') setCategories(categoriesResult.value);
       setProductsLoading(false);
-      const error = productsResult.status === 'rejected' ? productsResult.reason : settingsResult.status === 'rejected' ? settingsResult.reason : null;
-      if (error) toast(error.message || 'Unable to connect to the store database. Showing built-in products.');
+      const failedRequest = [productsResult, settingsResult, categoriesResult].find((result) => result.status === 'rejected');
+      if (failedRequest) toast(failedRequest.reason?.message || 'Could not refresh store data. Showing the last successfully loaded information.');
     });
   }, [toast]);
 
