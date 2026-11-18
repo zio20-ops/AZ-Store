@@ -108,6 +108,11 @@ export const PRODUCTS = [
 
 export const getProduct = (id) => PRODUCTS.find((p) => p.id === id);
 
+export const categorySlug = (category) => {
+  const name = typeof category === 'string' ? category : category?.name;
+  return String(name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+};
+
 // Card artwork is selected independently from the ordered product gallery.
 export const getCardImage = (product) => {
   const images = Array.isArray(product?.images) ? product.images : [];
