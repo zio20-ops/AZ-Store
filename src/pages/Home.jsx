@@ -4,6 +4,7 @@ import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
 import { Reveal } from '../hooks/Reveal.jsx';
 import { TRUST_ITEMS } from '../data/content.js';
+import { categorySlug } from '../data/products.js';
 
 export default function Home() {
   const { t, localize } = useLanguage();
@@ -49,7 +50,7 @@ export default function Home() {
               <span className="mood__no">{String(index + 1).padStart(2, '0')}</span>
               <h3>{localize(category)}</h3>
               <p>{localize(category, 'description') || t(`Explore products in ${category.name}.`)}</p>
-              <Link className="btn btn--text" to={`/shop?category=${encodeURIComponent(category.id)}`}>{t("Shop section")}</Link>
+              <Link className="btn btn--text" to={`/shop?category=${encodeURIComponent(categorySlug(category) || category.id)}`}>{t("Shop section")}</Link>
             </Reveal>;
           })}
         </div>

@@ -5,7 +5,7 @@ import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
 import ProductCard from '../components/ProductCard.jsx';
 import { SORT_OPTIONS } from '../data/content.js';
-import { getVariations, productDiscountPercent, productPrice } from '../data/products.js';
+import { categorySlug, getVariations, productDiscountPercent, productPrice } from '../data/products.js';
 
 const PRICE_BANDS = [
   { id: 'any', label: 'Any price', test: () => true },
@@ -59,7 +59,7 @@ export default function Shop() {
 
   const categoryOptions = useMemo(() => {
     const names = [...new Set([...categories.map((category) => category.name), ...products.map((product) => product.category)].filter(Boolean))];
-    return names.map((name) => { const saved = categories.find((category) => category.name === name); return { name, nameAr: saved?.nameAr || '', slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), id: saved?.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') }; })
+    return names.map((name) => { const saved = categories.find((category) => category.name === name); return { name, nameAr: saved?.nameAr || '', slug: categorySlug(name), id: saved?.id || categorySlug(name) }; })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [categories, products]);
   const selectedCategoryLabel = localize(categoryOptions.find((category) => category.id === categoryFilter || category.slug === categoryFilter) || 'All categories');
@@ -128,7 +128,7 @@ export default function Shop() {
             <div className="shop-filter-group__chips">
               <button className={`chip ${!categoryFilter ? 'chip--on' : ''}`} aria-pressed={!categoryFilter} onClick={() => { setCategoryFilter(''); setCategoryMenuOpen(false); }}>{t("All categories")}</button>
               {categoryOptions.map((category) => {
-                return <button key={category.id} className={`chip ${categoryFilter === category.id || categoryFilter === category.slug ? 'chip--on' : ''}`} aria-pressed={categoryFilter === category.id || categoryFilter === category.slug} onClick={() => { setCategoryFilter(category.id); setCategoryMenuOpen(false); }}>{localize(category)}</button>;
+                return <button key={category.id} className={`chip ${categoryFilter === category.id || categoryFilter === category.slug ? 'chip--on' : ''}`} aria-pressed={categoryFilter === category.id || categoryFilter === category.slug} onClick={() => { setCategoryFilter(category.slug || category.id); setCategoryMenuOpen(false); }}>{localize(category)}</button>;
               })}
             </div>
           </div>
