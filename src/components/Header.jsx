@@ -2,6 +2,7 @@ import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
+import { categorySlug } from '../data/products.js';
 import * as auth from '../services/authService.js';
 import { AccountIcon, BagIcon, SearchIcon } from './icons.jsx';
 import LanguageToggle from './LanguageToggle.jsx';
@@ -16,7 +17,7 @@ export default function Header() {
   const accountRef = useRef(null);
   const navLinks = [
     { label: 'Shop all', to: '/shop' },
-    ...categories.filter((category) => category.showInNavigation).sort((a, b) => (a.navigationOrder ?? a.sortOrder ?? 0) - (b.navigationOrder ?? b.sortOrder ?? 0)).slice(0, 3).map((category) => ({ label: localize(category), to: `/shop?category=${encodeURIComponent(category.id)}` })),
+    ...categories.filter((category) => category.showInNavigation).sort((a, b) => (a.navigationOrder ?? a.sortOrder ?? 0) - (b.navigationOrder ?? b.sortOrder ?? 0)).slice(0, 3).map((category) => ({ label: localize(category), to: `/shop?category=${encodeURIComponent(categorySlug(category) || category.id)}` })),
     { label: 'Our story', to: '/about' },
   ];
 
