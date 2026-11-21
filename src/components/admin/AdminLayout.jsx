@@ -36,7 +36,7 @@ export default function AdminLayout({ title, actions, children }) {
   }
 
   const onLogout = async () => {
-    await auth.logout();
+    await auth.logoutAdmin();
     setSession(null);
     navigate('/admin/login');
   };
