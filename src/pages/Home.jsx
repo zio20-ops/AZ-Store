@@ -5,6 +5,7 @@ import { useSeo } from '../hooks/useSeo.js';
 import { Reveal } from '../hooks/Reveal.jsx';
 import { TRUST_ITEMS } from '../data/content.js';
 import { categorySlug } from '../data/products.js';
+import ProductCard from '../components/ProductCard.jsx';
 
 export default function Home() {
   const { t, localize } = useLanguage();
@@ -14,6 +15,7 @@ export default function Home() {
   const giftImage = settings.homepageImages?.gift || '/images/az-watch-gift.png';
   const homeCategories = [...categories].filter((category) => category.showOnHome && products.some((product) => product.category === category.name))
     .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  const featuredProducts = products.filter((product) => product.homeFeatured).slice(0, 4);
 
   return (
     <>
@@ -27,7 +29,7 @@ export default function Home() {
           </div>
         </div>
         <div className="hero__media hero__media--watch">
-          <img src={heroImage} alt={t("A luxury AZ watch photographed on dark stone")} fetchpriority="high" />
+          <img src={heroImage} alt={t("AZ Store featured collection") } fetchpriority="high" />
           <span className="hero__brand-mark" aria-hidden="true">AZ</span>
         </div>
       </section>
@@ -56,8 +58,24 @@ export default function Home() {
         </div>
       </section>}
 
+      {featuredProducts.length > 0 && <section className="container sec home-edit" aria-labelledby="home-edit-title">
+        <Reveal className="sec__head">
+          <div>
+            <span className="home-edit__eyebrow">AZ / THE EDIT</span>
+            <h2 className="sec__title" id="home-edit-title">{t("Selected by AZ")}</h2>
+            <p className="sec__sub">{t("A small selection of pieces worth keeping close.")}</p>
+          </div>
+          <Link className="btn btn--text" to="/shop">{t("View all")}</Link>
+        </Reveal>
+        <div className="grid home-edit__grid">
+          {featuredProducts.map((product, index) => <Reveal key={product.id} style={{ '--reveal-delay': `${index * 70}ms` }}>
+            <div className="home-edit__card"><span>{String(index + 1).padStart(2, '0')}</span><ProductCard product={product} priority={index < 2} /></div>
+          </Reveal>)}
+        </div>
+      </section>}
+
       <section className="container gift">
-        <Reveal className="gift__media"><img src={giftImage} alt={t("A luxury watch presented in its gift box")} loading="lazy" /></Reveal>
+        <Reveal className="gift__media"><img src={giftImage} alt={t("A thoughtful AZ Store gift") } loading="lazy" /></Reveal>
         <Reveal><h2>{t("Made to be")}<br />{t("remembered.")}</h2><p>{t("Explore the collection and find a thoughtful gift or a new everyday favorite.")}</p><Link className="btn btn--primary" to="/shop">{t("Discover the collection")}</Link></Reveal>
       </section>
 
