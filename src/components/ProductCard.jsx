@@ -11,6 +11,7 @@ export default function ProductCard({ product, priority = false, featured = fals
   const category = categories.find((item) => item.name === product.category);
   const productName = localize(product);
   const cardImage = getCardImage(product);
+  const hoverImage = product.images.find((image) => image?.src && image.src !== cardImage?.src);
   const categoryName = category ? localize(category) : t(product.category);
   const wished = wishlist.includes(product.id);
   const defaultVariation = getVariations(product)[0];
@@ -25,6 +26,7 @@ export default function ProductCard({ product, priority = false, featured = fals
       <div className="card__media">
         <Link to={`/product/${product.id}`} aria-label={`${t('View')} ${productName}`}>
           {cardImage && <img src={cardImage.src} alt={productName} style={getCardImageStyle(product)} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" />}
+          {hoverImage && <img className="card__image-hover" src={hoverImage.src} alt="" aria-hidden="true" loading="lazy" decoding="async" />}
         </Link>
         {product.badge && <span className="card__badge">{t(product.badge)}</span>}
         {discountPercent > 0 ? <span className="card__sale">{t("Save")} {discountPercent}%</span> : hasOtherSizeOffer && <span className="card__sale">{t("Offers on sizes")}</span>}
