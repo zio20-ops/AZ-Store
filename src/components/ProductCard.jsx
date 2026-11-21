@@ -5,7 +5,7 @@ import { getCardImage, getCardImageStyle, getVariations, productComparePrice, pr
 import { egp } from '../utils/format.js';
 import { HeartIcon } from './icons.jsx';
 
-export default function ProductCard({ product, priority = false }) {
+export default function ProductCard({ product, priority = false, featured = false }) {
   const { t, localize } = useLanguage();
   const { addToCart, wishlist, toggleWish, categories } = useStore();
   const category = categories.find((item) => item.name === product.category);
@@ -21,7 +21,7 @@ export default function ProductCard({ product, priority = false }) {
   const hasOtherSizeOffer = getVariations(product).slice(1).some((variation) => productDiscountPercent(product, variation) > 0);
 
   return (
-    <article className="card" style={{ '--product-accent': product.accentHex || '#e2ad55' }}>
+    <article className={`card${featured ? ' card--feature' : ''}`} style={{ '--product-accent': product.accentHex || '#e2ad55' }}>
       <div className="card__media">
         <Link to={`/product/${product.id}`} aria-label={`${t('View')} ${productName}`}>
           {cardImage && <img src={cardImage.src} alt={productName} style={getCardImageStyle(product)} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" />}
