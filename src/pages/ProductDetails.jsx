@@ -1,5 +1,5 @@
 import { useLanguage } from '../i18n/LanguageContext.jsx';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
@@ -22,6 +22,9 @@ export default function ProductDetails() {
   const [variationId, setVariationId] = useState(variations[0]?.id);
   const [imageIndex, setImageIndex] = useState(0);
   const [qty, setQty] = useState(1);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const touchStartX = useRef(null);
+  const swipedGallery = useRef(false);
 
   useEffect(() => {
     if (product) {
@@ -31,6 +34,25 @@ export default function ProductDetails() {
       setQty(1);
     }
   }, [product]);
+
+  const galleryImages = product?.images?.filter((image) => image?.src) || [];
+  const showGalleryImage = (index) => setImageIndex((index + galleryImages.length) % galleryImages.length);
+
+  useEffect(() => {
+    if (!galleryOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setGalleryOpen(false);
+      if (event.key === 'ArrowRight') showGalleryImage(imageIndex + (document.documentElement.dir === 'rtl' ? -1 : 1));
+      if (event.key === 'ArrowLeft') showGalleryImage(imageIndex + (document.documentElement.dir === 'rtl' ? 1 : -1));
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [galleryOpen, imageIndex, galleryImages.length]);
 
   const variation = variations.find((v) => v.id === variationId) || variations[0];
 
@@ -72,7 +94,7 @@ export default function ProductDetails() {
   const currentPrice = productPrice(product, variation);
   const comparePrice = productComparePrice(product, variation);
   const discountPercent = productDiscountPercent(product, variation);
-  const selectedImage = product.images[imageIndex]?.src ? product.images[imageIndex] : product.images.find((image) => image?.src);
+  const selectedImage = galleryImages[imageIndex] || galleryImages[0];
 
   const accordionItems = [
     ...(localize(product, 'description') ? [{ q: localize({ name: 'About this product', nameAr: 'عن المنتج' }), a: localize(product, 'description') }] : []),
@@ -88,21 +110,24 @@ export default function ProductDetails() {
 
       <div className="pdp" style={{ '--product-accent': product.accentHex || '#e2ad55' }}>
         <div className="thumbs" role="group" aria-label={t("Product images")}>
-          {product.images.map((g, i) => g?.src ? (
+          {galleryImages.map((g, i) => (
             <button
               key={g.src + i}
               className={`thumb ${imageIndex === i ? 'thumb--on' : ''}`}
-              onClick={() => setImageIndex(i)}
+              onClick={() => showGalleryImage(i)}
               aria-label={`Show image ${i + 1}`}
               aria-pressed={imageIndex === i}
             >
               <img src={g.src} alt={localize(product)} loading="lazy" />
             </button>
-          ) : null)}
+          ))}
         </div>
 
         <div className="pdp__main">
-          {selectedImage && <img src={selectedImage.src} alt={localize(product)} style={{ objectFit: selectedImage.fit === 'contain' ? 'contain' : 'cover', transform: `scale(${Math.min(1.5, Math.max(1, Number(selectedImage.zoom ?? 100) / 100))})` }} />}
+          {selectedImage && <button type="button" className="pdp__zoom-trigger" onClick={() => { if (swipedGallery.current) { swipedGallery.current = false; return; } setGalleryOpen(true); }} aria-label={t('Enlarge image')} onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => { if (touchStartX.current === null || galleryImages.length < 2) return; const delta = event.changedTouches[0].clientX - touchStartX.current; if (Math.abs(delta) > 48) { showGalleryImage(imageIndex + (delta < 0 ? 1 : -1)); swipedGallery.current = true; } touchStartX.current = null; }}>
+            <img src={selectedImage.src} alt={localize(product)} style={{ objectFit: selectedImage.fit === 'contain' ? 'contain' : 'cover', transform: `scale(${Math.min(1.5, Math.max(1, Number(selectedImage.zoom ?? 100) / 100))})` }} />
+            <span className="pdp__zoom-hint">{t('Click to enlarge')}</span>
+          </button>}
         </div>
 
         <div className="pdp__info">
@@ -169,6 +194,14 @@ export default function ProductDetails() {
           </div>
         </div>
       </div>
+
+      {galleryOpen && selectedImage && <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={t('Product images')} onMouseDown={(event) => { if (event.target === event.currentTarget) setGalleryOpen(false); }}>
+        <button type="button" className="gallery-lightbox__close" onClick={() => setGalleryOpen(false)} aria-label={t('Close')}>×</button>
+        {galleryImages.length > 1 && <button type="button" className="gallery-lightbox__arrow gallery-lightbox__arrow--prev" onClick={() => showGalleryImage(imageIndex - 1)} aria-label={t('Previous image')}>‹</button>}
+        <img src={selectedImage.src} alt={`${localize(product)} — ${imageIndex + 1}`} />
+        {galleryImages.length > 1 && <button type="button" className="gallery-lightbox__arrow gallery-lightbox__arrow--next" onClick={() => showGalleryImage(imageIndex + 1)} aria-label={t('Next image')}>›</button>}
+        <span className="gallery-lightbox__count">{imageIndex + 1} / {galleryImages.length}</span>
+      </div>}
 
       <section className="container sec" style={{ paddingInline: 0 }}>
         <div className="sec__head">
