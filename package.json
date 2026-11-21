@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "AZ Store — fine fragrance mists & gift sets. Premium e-commerce experience.",
+  "description": "AZ Store — a considered collection of products for everyday life and gifting.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
