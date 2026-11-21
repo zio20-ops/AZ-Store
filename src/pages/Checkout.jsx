@@ -76,10 +76,6 @@ export default function Checkout() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!auth.getCurrentUser()) {
-      setErrors((old) => ({ ...old, submit: 'Sign in or create an account before placing your order.' }));
-      return;
-    }
     if (!validate()) {
       document.querySelector('.field--error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -134,9 +130,9 @@ export default function Checkout() {
         <form onSubmit={submit} noValidate>
           <h2>{t("Delivery")}</h2>
           {!auth.getCurrentUser() && <div className="checkout-account-note" role="note">
-            <b>{t("Sign in required to place an order.")}</b>
-            <span>{t("Your bag will be saved to your account if you don’t already have a saved bag.")}</span>
-            <span><Link to="/account/login" state={{ returnTo: '/checkout' }}>{t("Sign in")}</Link> {t("or")} <Link to="/account/signup" state={{ returnTo: '/checkout' }}>{t("create an account")}</Link> {t("to continue.")}</span>
+            <b>{t("You can place your order as a guest.")}</b>
+            <span>{t("Creating an account is optional. Use the phone number you enter here to track your order.")}</span>
+            <span>{t("Already have an account?")} <Link to="/account/login" state={{ returnTo: '/checkout' }}>{t("Sign in")}</Link></span>
           </div>}
           <div className="co__fields">
             <div>
@@ -221,12 +217,9 @@ export default function Checkout() {
 
           {errors.submit && <p className="field-error" role="alert">{errors.submit}</p>}
 
-          {auth.getCurrentUser() ? <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || paymentOptions.length === 0 || promoShippingMethodMismatch || promoShippingMinimum}>
+          <button className="btn btn--dark btn--lg" type="submit" style={{ marginTop: 30 }} disabled={placing || paymentOptions.length === 0 || promoShippingMethodMismatch || promoShippingMinimum}>
             {placing ? t("Placing order…") : `Place order · ${egp(total)}`}
-          </button> : <div className="checkout-account-cta">
-            <Link className="btn btn--primary btn--lg" to="/account/login" state={{ returnTo: '/checkout' }}>{t("Sign in to place your order")}</Link>
-            <Link to="/account/signup" state={{ returnTo: '/checkout' }}>{t("Create account")}</Link>
-          </div>}
+          </button>
         </form>
 
         <aside className="sum" aria-label={t("Order summary")}>
