@@ -22,7 +22,6 @@ export default function OrderConfirmation() {
         <h1>{t("No order found.")}</h1>
         <p>{t("We couldn’t find an order for this session. Head back to the store whenever you’re ready.")}</p>
         <div className="confirm__actions">
-          {order.customerUid && <Link className="btn btn--ghost" to="/account">{t("View your orders")}</Link>}
           <Link className="btn btn--dark" to="/shop">{t("Continue shopping")}</Link>
         </div>
       </div>
@@ -68,6 +67,7 @@ export default function OrderConfirmation() {
         </div>
 
         <div className="confirm__actions">
+          <Link className="btn btn--ghost" to={`/track-order?order=${encodeURIComponent(order.id)}`}>{t("Track order")}</Link>
           <Link className="btn btn--dark" to="/shop">{t("Continue shopping")}</Link>
         </div>
       </div>
