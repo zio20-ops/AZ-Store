@@ -22,8 +22,7 @@ export const cancelMyOrder = async (id) => {
 };
 export const createOrder = async (order) => {
   const user = auth.getCurrentUser();
-  if (!user || user.isAdmin) throw new Error('Sign in or create a customer account before placing an order.');
-  const idToken = await currentCustomerIdToken();
+  const idToken = user && !user.isAdmin ? await currentCustomerIdToken() : null;
   const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) }, body: JSON.stringify({
     customer: { name: order.name, phone: order.phone, email: order.email, address: order.address, notes: order.notes },
     items: order.items.map((item) => ({ productId: item.productId, variationId: item.variationId, qty: item.qty })),
