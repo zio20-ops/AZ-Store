@@ -177,6 +177,7 @@
   .ad__side { position: fixed; inset-block: 0; inset-inline-start: 0; width: min(300px, calc(100vw - 52px)); transform: translateX(-102%); transition: transform 0.3s var(--ease); box-shadow: 0 0 60px rgba(0, 0, 0, 0.5); overflow-y: auto; overscroll-behavior: contain; }
   :dir(rtl) .ad__side { transform: translateX(102%); }
   .ad__side--open { transform: none; }
+  :dir(rtl) .ad__side--open { transform: none; }
   .ad__scrim { display: block; position: fixed; inset: 0; z-index: 70; background: rgba(5, 2, 1, 0.6); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
   .ad__scrim--on { opacity: 1; pointer-events: auto; }
   .ad__menu-btn { display: inline-block; }
