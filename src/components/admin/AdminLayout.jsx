@@ -31,6 +31,18 @@ export default function AdminLayout({ title, actions, children }) {
     setMenuOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event) => { if (event.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [menuOpen]);
+
   if (!session) {
     return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
   }
@@ -44,7 +56,8 @@ export default function AdminLayout({ title, actions, children }) {
   return (
     <div className="ad">
       <div className={`ad__scrim ${menuOpen ? 'ad__scrim--on' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
-      <aside className={`ad__side ${menuOpen ? 'ad__side--open' : ''}`} aria-label="Admin navigation">
+      <aside id="admin-navigation" className={`ad__side ${menuOpen ? 'ad__side--open' : ''}`} aria-label="Admin navigation" aria-hidden={!menuOpen && window.matchMedia('(max-width: 980px)').matches}>
+        <button type="button" className="ad__close-btn" onClick={() => setMenuOpen(false)} aria-label="Close admin menu">×</button>
         <div className="ad__brand">AZ<small>Admin Portal</small></div>
         <nav className="ad__nav">
           {NAV.map((item) => (
@@ -67,7 +80,7 @@ export default function AdminLayout({ title, actions, children }) {
 
       <div className="ad__main">
         <header className="ad__top">
-          <button className="ad__menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open admin menu">Menu</button>
+          <button className="ad__menu-btn" aria-controls="admin-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? 'Close admin menu' : 'Open admin menu'}>{menuOpen ? 'Close' : 'Menu'}</button>
           <h1>{title}</h1>
           <div className="ad__top-right">
             {actions}
