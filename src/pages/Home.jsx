@@ -48,7 +48,7 @@ export default function Home() {
             const product = products.find((item) => item.category === category.name);
             const image = category.image || product?.images?.find((item) => item?.src)?.src;
             const categoryPath = `/shop?category=${encodeURIComponent(categorySlug(category) || category.id)}`;
-            return <Reveal className={`mood mood--${['night', 'bold', 'soft'][index % 3]}`} key={category.id}>
+            return <Reveal className={`mood mood--${['night', 'bold', 'soft'][index % 3]}${homeCategories.length === 1 ? ' mood--featured' : ''}`} key={category.id}>
               {image && <Link className="mood__image-link" to={categoryPath} aria-label={`${t('Shop section')}: ${localize(category)}`}><img src={image} alt={localize(category)} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8, marginBottom: 16 }} /></Link>}
               <span className="mood__no">{String(index + 1).padStart(2, '0')}</span>
               <h3><Link className="mood__title-link" to={categoryPath}>{localize(category)}</Link></h3>
