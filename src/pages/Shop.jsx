@@ -190,7 +190,7 @@ export default function Shop() {
         </div>
       ) : (
         <div className="grid grid--editorial" id="shop-results">
-          {results.map((p, index) => <ProductCard key={p.id} product={p} priority={index < 2} featured={index === 0} />)}
+          {results.map((p, index) => <ProductCard key={p.id} product={p} priority={index < 2} />)}
         </div>
       )}
     </div>
