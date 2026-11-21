@@ -5,6 +5,7 @@ import App from './App.jsx';
 import { StoreProvider } from './store/StoreContext.jsx';
 import { LanguageProvider } from './i18n/LanguageContext.jsx';
 import './styles/global.css';
+import './styles/storefront-redesign.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
