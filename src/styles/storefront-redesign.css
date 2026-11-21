@@ -67,6 +67,11 @@
 .store-layout .mood h3 { font-size: clamp(26px, 2.5vw, 37px); }
 .store-layout .mood p { color: rgba(238, 233, 223, .68); }
 .store-layout .mood .btn--text { color: var(--gold); }
+.store-layout .mood__image-link { display: block; overflow: hidden; width: 100%; border-radius: 44% 44% 4px 4px; }
+.store-layout .mood__image-link img { display: block; transition: transform .6s cubic-bezier(.2,.65,.2,1); }
+.store-layout .mood__image-link:hover img, .store-layout .mood__image-link:focus-visible img { transform: scale(1.035); }
+.store-layout .mood__title-link { color: inherit; text-decoration: none; }
+.store-layout .mood__title-link:hover, .store-layout .mood__title-link:focus-visible { color: var(--gold); }
 .store-layout .home-edit { position: relative; }
 .store-layout .home-edit__eyebrow { display: block; color: var(--gold); font: 600 10px/1.4 var(--body); letter-spacing: .19em; margin-bottom: 12px; }
 .store-layout .home-edit__grid { padding-top: 28px; }
@@ -150,6 +155,39 @@
 .store-layout .tabbar { background: rgba(16,25,28,.97); border-top-color: var(--line-2); }
 .store-layout .tabbar a.active, .store-layout .tabbar button:hover { color: var(--gold); }
 .store-layout .toast__inner { background: #eee9df; color: #172326; border-radius: 3px; }
+.store-layout .track__guide { margin: 20px 0 24px; padding: 18px 20px; border: 1px solid var(--line-2); background: rgba(238,233,223,.035); color: rgba(238,233,223,.78); }
+.store-layout .track__guide b { display: block; margin-bottom: 10px; color: var(--gold); font-size: 13px; }
+.store-layout .track__guide ol { display: grid; gap: 7px; margin: 0; padding-inline-start: 22px; font-size: 12px; line-height: 1.65; }
+.store-layout .track__guide small { display: block; margin-top: 12px; color: rgba(238,233,223,.55); }
+.store-layout .track__form label { display: grid; gap: 7px; color: rgba(238,233,223,.7); font-size: 12px; }
+.store-layout .track { width: min(100%, 760px); max-width: 760px; margin-inline: auto; padding: clamp(38px, 6vw, 72px) clamp(16px, 3vw, 30px) 88px; }
+.store-layout .track h1 { max-width: 16ch; margin-inline: auto; color: var(--pearl); }
+.store-layout .track > p { color: rgba(238,233,223,.62); }
+.store-layout .track__guide { border-radius: 4px; }
+.store-layout .track__form { grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 34px; }
+.store-layout .track__form label { min-width: 0; }
+.store-layout .track__form label .field { width: 100%; min-width: 0; }
+.store-layout .track__form > button { grid-column: 1 / -1; justify-self: start; min-width: 220px; }
+.store-layout .track__result { margin-top: 38px; padding: clamp(18px, 3vw, 30px); border: 1px solid var(--line-2); background: rgba(238,233,223,.025); }
+.store-layout .track__result > h2 { margin-bottom: 16px; color: var(--gold); font: 400 clamp(24px, 3vw, 34px)/1.15 var(--disp); }
+.store-layout .track__summary { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 14px; margin-bottom: 20px; padding: 15px 16px; border: 1px solid var(--line-1); background: rgba(0,0,0,.12); }
+.store-layout .track__summary > div { display: grid; gap: 5px; min-width: 0; }
+.store-layout .track__summary small { color: rgba(238,233,223,.48); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+.store-layout .track__summary b { color: var(--pearl); font-size: 13px; overflow-wrap: anywhere; }
+.store-layout .track__summary > div:last-child b { color: var(--gold); white-space: nowrap; }
+.store-layout .steps { margin: 0; padding: 22px 20px; border: 1px solid var(--line-1); list-style: none; }
+.store-layout .step { grid-template-columns: 26px minmax(0,1fr); gap: 14px; text-align: start; }
+.store-layout .step::before { left: auto; inset-inline-start: 12.5px; }
+.store-layout .step__label { color: var(--pearl); font-size: clamp(18px, 2vw, 22px); }
+.store-layout .step--todo .step__label { color: rgba(238,233,223,.55); }
+@media (max-width: 600px) {
+  .store-layout .track { padding: 32px 16px 70px; }
+  .store-layout .track__form { grid-template-columns: 1fr; gap: 12px; }
+  .store-layout .track__form > button { grid-column: auto; width: 100%; }
+  .store-layout .track__summary { grid-template-columns: 1fr 1fr; }
+  .store-layout .track__summary > div:first-child { grid-column: 1 / -1; }
+  .store-layout .steps { padding: 18px 13px; }
+}
 
 /* Checkout and confirmation use the same storefront palette, while the admin is untouched. */
 .paper.store-paper {
