@@ -47,12 +47,13 @@ export default function Home() {
           {homeCategories.map((category, index) => {
             const product = products.find((item) => item.category === category.name);
             const image = category.image || product?.images?.find((item) => item?.src)?.src;
+            const categoryPath = `/shop?category=${encodeURIComponent(categorySlug(category) || category.id)}`;
             return <Reveal className={`mood mood--${['night', 'bold', 'soft'][index % 3]}`} key={category.id}>
-              {image && <img src={image} alt={localize(category)} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8, marginBottom: 16 }} />}
+              {image && <Link className="mood__image-link" to={categoryPath} aria-label={`${t('Shop section')}: ${localize(category)}`}><img src={image} alt={localize(category)} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8, marginBottom: 16 }} /></Link>}
               <span className="mood__no">{String(index + 1).padStart(2, '0')}</span>
-              <h3>{localize(category)}</h3>
+              <h3><Link className="mood__title-link" to={categoryPath}>{localize(category)}</Link></h3>
               <p>{localize(category, 'description') || t(`Explore products in ${category.name}.`)}</p>
-              <Link className="btn btn--text" to={`/shop?category=${encodeURIComponent(categorySlug(category) || category.id)}`}>{t("Shop section")}</Link>
+              <Link className="btn btn--text" to={categoryPath}>{t("Shop section")}</Link>
             </Reveal>;
           })}
         </div>
@@ -69,7 +70,7 @@ export default function Home() {
         </Reveal>
         <div className="grid home-edit__grid">
           {featuredProducts.map((product, index) => <Reveal key={product.id} style={{ '--reveal-delay': `${index * 70}ms` }}>
-            <div className="home-edit__card"><span>{String(index + 1).padStart(2, '0')}</span><ProductCard product={product} priority={index < 2} featured={index === 0} /></div>
+            <div className="home-edit__card"><span>{String(index + 1).padStart(2, '0')}</span><ProductCard product={product} priority={index < 2} /></div>
           </Reveal>)}
         </div>
       </section>}
