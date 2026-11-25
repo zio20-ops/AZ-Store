@@ -20,7 +20,6 @@ export default function Header() {
   const navLinks = [
     { label: 'Shop all', to: '/shop' },
     ...categories.filter((category) => category.showInNavigation).sort((a, b) => (a.navigationOrder ?? a.sortOrder ?? 0) - (b.navigationOrder ?? b.sortOrder ?? 0)).slice(0, 3).map((category) => ({ label: localize(category), to: `/shop?category=${encodeURIComponent(categorySlug(category) || category.id)}` })),
-    { label: 'Our story', to: '/about' },
   ];
 
   useEffect(() => {
@@ -109,7 +108,6 @@ export default function Header() {
                   <Link to="/account" role="menuitem">{user ? t("My account") : t("Sign in / Create account")}</Link>
                   <Link to="/track-order" role="menuitem">{t("Track your order")}</Link>
                   <Link to="/wishlist" role="menuitem">{t("Wishlist")}</Link>
-                  <Link to="/contact" role="menuitem">{t("Contact us")}</Link>
                 </div>
               )}
             </div>}
@@ -144,7 +142,8 @@ export default function Header() {
         {customerLoginEnabled && <Link to={user ? '/account' : '/account/login'}>{user ? t("My account") : t("Sign in / Create account")}</Link>}
         <Link to="/track-order">{t("Track your order")}</Link>
         <Link to="/wishlist">{t("Wishlist")}</Link>
-        <Link to="/contact">{t("Contact")}</Link>
+        <Link to="/faq#shipping">{t("Shipping policy")}</Link>
+        <Link to="/faq#returns">{t("Exchange & return policy")}</Link>
         <div className="mmenu__foot">
           <span>{t("AZ Store — Cairo, Egypt")}</span>
         </div>
