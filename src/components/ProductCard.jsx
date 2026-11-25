@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { getCardImage, getCardImageStyle, getVariations, productComparePrice, productDiscountPercent, productPrice } from '../data/products.js';
 import { egp } from '../utils/format.js';
-import { HeartIcon } from './icons.jsx';
+import { BagIcon, HeartIcon } from './icons.jsx';
 
 export default function ProductCard({ product, priority = false, featured = false }) {
   const { t, localize } = useLanguage();
   const { addToCart, wishlist, toggleWish, categories } = useStore();
   const category = categories.find((item) => item.name === product.category);
   const productName = localize(product);
+  const productDescription = localize(product, 'tagline') || localize(product, 'description');
   const cardImage = getCardImage(product);
   const hoverImage = product.images.find((image) => image?.src && image.src !== cardImage?.src);
   const categoryName = category ? localize(category) : t(product.category);
@@ -34,8 +35,10 @@ export default function ProductCard({ product, priority = false, featured = fals
           className={`card__quick ${soldOut ? 'card__quick--off' : ''}`}
           onClick={() => addToCart(product.id, defaultVariation.id, 1)}
           disabled={soldOut}
+          aria-label={soldOut ? t("Sold out") : `${t("Add to bag")} — ${productName}`}
         >
-          {soldOut ? t("Sold out") : t("Add to bag")}
+          <BagIcon />
+          <span className="card__quick-label">{soldOut ? t("Sold out") : t("Add to bag")}</span>
         </button>
       </div>
       <button
@@ -51,6 +54,7 @@ export default function ProductCard({ product, priority = false, featured = fals
       <h3 className="card__name">
         <Link to={`/product/${product.id}`}>{productName}</Link>
       </h3>
+      {productDescription && <p className="card__description">{productDescription}</p>}
       <div className="card__meta">
           <span className="card__cat">{categoryName}</span>
         <b className="card__price"><span>{egp(currentPrice)}</span>{comparePrice && <s>{egp(comparePrice)}</s>}</b>
