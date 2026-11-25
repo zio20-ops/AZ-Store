@@ -45,15 +45,22 @@ export default function Home() {
           <Link className="btn btn--text" to="/shop">{t("View all")}</Link>
         </Reveal>
         <div className="moods">
-          {homeCategories.map((category, index) => {
+          {homeCategories.map((category) => {
             const product = products.find((item) => item.category === category.name);
             const image = category.image || product?.images?.find((item) => item?.src)?.src;
+            const categoryProductCount = products.filter((item) => item.category === category.name).length;
             const categoryPath = `/shop?category=${encodeURIComponent(categorySlug(category) || category.id)}`;
-            return <Reveal className={`mood mood--${['night', 'bold', 'soft'][index % 3]}${homeCategories.length === 1 ? ' mood--featured' : ''}`} key={category.id}>
-              {image && <Link className="mood__image-link" to={categoryPath} aria-label={`${t('Shop section')}: ${localize(category)}`}><img src={image} alt={localize(category)} loading="lazy" />}</Link>}
-              <h3><Link className="mood__title-link" to={categoryPath}>{localize(category)}</Link></h3>
-              <p>{localize(category, 'description') || t(`Explore products in ${category.name}.`)}</p>
-              <Link className="btn btn--text" to={categoryPath}>{t("Shop section")}</Link>
+            const countLabel = categoryProductCount === 1 ? t('product') : t('products');
+            return <Reveal className="mood" key={category.id}>
+              {image && <Link className="mood__image-link" to={categoryPath} aria-label={`${t('Shop section')}: ${localize(category)}, ${categoryProductCount} ${countLabel}`}>
+                <img src={image} alt={localize(category)} loading="lazy" />
+                <span className="mood__overlay">
+                  <span className="mood__overlay-count">{categoryProductCount} {countLabel}</span>
+                  <span className="mood__overlay-title">{localize(category)}</span>
+                  <span className="mood__overlay-action">{t("Shop section")} <span aria-hidden="true">↗</span></span>
+                </span>
+              </Link>}
+              <p className="mood__caption">{localize(category, 'description') || t(`Explore products in ${category.name}.`)}</p>
             </Reveal>;
           })}
         </div>
@@ -68,7 +75,7 @@ export default function Home() {
           </div>
           <Link className="btn btn--text" to="/shop">{t("View all")}</Link>
         </Reveal>
-        <div className="grid home-edit__grid">
+        <div className={`grid home-edit__grid home-edit__track${featuredProducts.length === 1 ? ' home-edit__track--single' : ''}`} role="region" aria-label={t("Selected by AZ")} tabIndex={0}>
           {featuredProducts.map((product, index) => <Reveal key={product.id} style={{ '--reveal-delay': `${index * 70}ms` }}>
             <div className="home-edit__card"><ProductCard product={product} priority={index < 2} /></div>
           </Reveal>)}
