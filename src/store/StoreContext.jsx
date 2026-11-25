@@ -13,6 +13,10 @@ const activeCustomerUid = () => {
   return user && !user.isAdmin ? user.uid : null;
 };
 const readCart = (uid) => readStorage(cartStorageKey(uid), []);
+const readDirectCheckout = () => {
+  if (window.location.pathname !== '/checkout') return null;
+  try { return JSON.parse(sessionStorage.getItem('az.directCheckout') || 'null'); } catch { return null; }
+};
 
 export const defaultPaymentStatus = (order) => {
   if (order.paymentRef) return 'Verification Required';
@@ -23,6 +27,7 @@ export const defaultPaymentStatus = (order) => {
 export function StoreProvider({ children }) {
   const initialCartOwner = useRef(activeCustomerUid());
   const [cart, setCart] = useState(() => readCart(initialCartOwner.current));
+  const [directCheckout, setDirectCheckout] = useState(readDirectCheckout);
   const [cartReady, setCartReady] = useState(() => !initialCartOwner.current);
   const cartOwner = useRef(initialCartOwner.current);
   const latestCart = useRef(cart);
@@ -169,9 +174,10 @@ export function StoreProvider({ children }) {
 
   const findProduct = useCallback((id) => allProducts.find((p) => p.id === id), [allProducts]);
 
+  const activeCart = directCheckout ? [directCheckout] : cart;
   const baseDetailed = useMemo(
     () =>
-      cart
+      activeCart
         .map((line) => {
           const product = findProduct(line.productId);
           if (!product) return null;
@@ -179,7 +185,7 @@ export function StoreProvider({ children }) {
       return { ...line, product, variation, price: productPrice(product, variation), image: product.images[variationImageIndex(product, variation)]?.src || product.images.find((image) => image?.src)?.src || '' };
         })
         .filter(Boolean),
-    [cart, findProduct],
+    [activeCart, findProduct],
   );
 
   const count = useMemo(() => cart.reduce((n, l) => n + l.qty, 0), [cart]);
@@ -229,6 +235,22 @@ export function StoreProvider({ children }) {
     },
     [toast, findProduct],
   );
+
+  const startDirectCheckout = useCallback((productId, variationId, qty = 1) => {
+    const product = findProduct(productId);
+    if (!product) return false;
+    const variation = getVariations(product).find((v) => v.id === variationId) || getVariations(product)[0];
+    if (!variation?.stock) return false;
+    const line = { key: `${productId}__${variation.id}`, productId, variationId: variation.id, qty: Math.min(Math.max(1, Number(qty) || 1), variation.stock) };
+    try { sessionStorage.setItem('az.directCheckout', JSON.stringify(line)); } catch { /* In-memory checkout still works. */ }
+    setDirectCheckout(line);
+    return true;
+  }, [findProduct]);
+
+  const clearDirectCheckout = useCallback(() => {
+    try { sessionStorage.removeItem('az.directCheckout'); } catch { /* Ignore blocked storage. */ }
+    setDirectCheckout(null);
+  }, []);
 
   const setQty = useCallback(
     (key, qty) => {
@@ -299,11 +321,11 @@ export function StoreProvider({ children }) {
       const saved = await orderService.createOrder(order);
       setLastOrder(saved);
       try { sessionStorage.setItem('az.lastOrder', JSON.stringify(saved)); } catch { /* storage full or blocked */ }
-      setCart([]);
-      setPromo(null);
+      if (directCheckout) clearDirectCheckout();
+      else { setCart([]); setPromo(null); }
       return saved;
     },
-    [detailed, subtotal, discount],
+    [detailed, subtotal, discount, directCheckout, clearDirectCheckout],
   );
 
   const updateOrder = useCallback(async (id, patch) => {
@@ -336,6 +358,8 @@ export function StoreProvider({ children }) {
     searchOpen,
     setSearchOpen,
     addToCart,
+    startDirectCheckout,
+    clearDirectCheckout,
     setQty,
     removeLine,
     clearCart,
