@@ -562,6 +562,15 @@
 .store-layout .pdp__info { grid-area: info; }
 .store-layout .pdp__main { grid-area: gallery; }
 .store-layout .thumbs { grid-area: thumbs; }
+.store-layout .pdp__main {
+  aspect-ratio: 4 / 5.35;
+  max-height: min(78vh, 760px);
+  border: 1px solid var(--line-1);
+  border-radius: 3px;
+  background: #111d20;
+}
+.store-layout .pdp__checkout { width: 100%; min-height: 48px; margin-top: 9px; border-radius: 2px; }
+.store-layout .pdp__checkout:disabled { opacity: .45; cursor: not-allowed; }
 
 @media (max-width: 1100px) {
   .store-layout .pdp { grid-template-columns: minmax(245px, .82fr) minmax(0, 1.08fr) 62px; grid-template-areas: "info gallery thumbs"; }
@@ -577,6 +586,8 @@
 
 @media (max-width: 767px) {
   .store-layout .pdp { grid-template-columns: minmax(0, 1fr); grid-template-areas: "gallery" "thumbs" "info"; }
+  .store-layout .pdp__main { width: 100%; height: min(128vw, 76vh, 720px); max-height: none; aspect-ratio: auto; }
+  .store-layout .pdp__checkout { min-height: 46px; }
   .store-layout .grid--editorial { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 13px; }
   .store-layout .grid--editorial > .card,
   .store-layout .grid--editorial > .card--feature { grid-column: span 1; grid-row: auto; display: flex; }
