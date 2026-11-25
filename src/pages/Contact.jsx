@@ -71,12 +71,13 @@ export default function Contact() {
           {CONTACT_INFO.map((c) => c.href ? (
             <a key={c.label} href={c.href} target={c.href.startsWith('http') ? '_blank' : undefined} rel="noreferrer noopener">
               <span>{c.label}</span>
-              <span>{c.value}</span>
+              <span>{c.href.startsWith('tel:') || c.href.includes('wa.me') ? <bdi dir="ltr">{c.value}</bdi> : c.value}</span>
             </a>
-          ) : <div key={c.label}><span>{c.label}</span><span>{c.value}</span></div>)}
+          ) : <div key={c.label}><span>{c.label}</span><span>{c.href.startsWith('tel:') || c.href.includes('wa.me') ? <bdi dir="ltr">{c.value}</bdi> : c.value}</span></div>)}
           <div><span>{t("Hours")}</span><span>{t("Sat to Thu, 10:00 – 20:00")}</span></div>
         </div>
       </div>
     </div>
   );
 }
+
