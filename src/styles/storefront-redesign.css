@@ -1303,3 +1303,40 @@
   .store-layout .home-edit__track:not(.home-edit__track--single) { grid-auto-columns: min(82%, 360px); gap: 14px; padding: 18px 1px 16px; }
 }
 
+/* Keep order tracking readable on the light storefront surface. */
+.store-layout .track { color: #214c3d; }
+.store-layout .track h1,
+.store-layout .track > p,
+.store-layout .track__form label,
+.store-layout .track__guide,
+.store-layout .track__summary b,
+.store-layout .track__summary > div:last-child b,
+.store-layout .step__label { color: #214c3d; }
+.store-layout .track > p { color: rgba(32,61,51,.76); }
+.store-layout .track__guide,
+.store-layout .track__result { background: #f5f2e9; border-color: rgba(32,61,51,.2); }
+.store-layout .track__guide { color: rgba(32,61,51,.88); }
+.store-layout .track__guide small { color: rgba(32,61,51,.7); }
+.store-layout .track__form label { color: rgba(32,61,51,.88); }
+.store-layout .track__form .field { color: #214c3d; border-color: rgba(32,61,51,.4); }
+.store-layout .track__form .field::placeholder { color: rgba(32,61,51,.58); opacity: 1; }
+.store-layout .track .field-error { color: #a8322b; }
+.store-layout .track__result > h2 { color: #214c3d; }
+.store-layout .track__summary { background: #e8e5db; border-color: rgba(32,61,51,.2); }
+.store-layout .track__summary small { color: rgba(32,61,51,.68); }
+.store-layout .track__summary b { color: #214c3d; }
+.store-layout .track__summary > div:last-child b { color: #214c3d; }
+.store-layout .steps { border-color: rgba(32,61,51,.2); }
+.store-layout .step__label { color: #214c3d; }
+.store-layout .step--todo .step__label { color: #486257; opacity: 1; }
+.store-layout .step__date { color: rgba(32,61,51,.68); opacity: 1; }
+.store-layout .step__dot { color: #214c3d; border-color: rgba(32,61,51,.35); background: #f5f2e9; }
+.store-layout .step--done .step__dot { color: #241408; background: var(--gold); border-color: var(--gold); }
+
+@media (max-width: 767px) {
+  .store-layout .footer__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
+  .store-layout .footer__brand { grid-column: 1 / -1; }
+  .store-layout .footer__grid > div:not(.footer__brand) { min-width: 0; }
+  .store-layout .footer ul { font-size: 13px; }
+  .store-layout .footer__base { align-items: flex-start; }
+}
