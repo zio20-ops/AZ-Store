@@ -1083,3 +1083,39 @@
   .store-layout .gift__copy p { margin: 11px 0 17px; font-size: 14px; line-height: 1.7; }
 }
 
+/* A lone featured product uses the full section width as a balanced feature. */
+.store-layout .home-edit__grid > .reveal:only-child { grid-column: 1 / -1; min-width: 0; }
+.store-layout .home-edit__grid > .reveal:only-child .home-edit__card { height: auto; }
+.store-layout .home-edit__grid > .reveal:only-child .card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  grid-template-rows: auto auto auto;
+  column-gap: clamp(18px, 4vw, 58px);
+  align-items: center;
+  padding: 0;
+  border: 0;
+}
+.store-layout .home-edit__grid > .reveal:only-child .card__media {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: 100%;
+  aspect-ratio: .95 / 1;
+  margin: 0;
+  border: 1px solid rgba(32,61,51,.15);
+  border-radius: 3px;
+  background: #e5e2d2;
+}
+.store-layout .home-edit__grid > .reveal:only-child .card__wish { inset-inline-start: 12px; inset-inline-end: auto; }
+.store-layout .home-edit__grid > .reveal:only-child .card__name { grid-column: 2; grid-row: 1; align-self: end; margin-bottom: 7px; font-size: clamp(24px, 3vw, 40px); }
+.store-layout .home-edit__grid > .reveal:only-child .card__description { grid-column: 2; grid-row: 2; align-self: start; margin-bottom: 14px; font-size: clamp(13px, 1.2vw, 16px); }
+.store-layout .home-edit__grid > .reveal:only-child .card__meta { grid-column: 2; grid-row: 3; align-self: start; flex-direction: column; align-items: flex-start; gap: 6px; }
+.store-layout .home-edit__grid > .reveal:only-child .card__price { font-size: 19px; }
+@media (max-width: 767px) {
+  .store-layout .home-edit__grid > .reveal:only-child .card { column-gap: 15px; }
+  .store-layout .home-edit__grid > .reveal:only-child .card__media { aspect-ratio: .9 / 1; }
+  .store-layout .home-edit__grid > .reveal:only-child .card__name { font-size: clamp(22px, 5vw, 30px); }
+  .store-layout .home-edit__grid > .reveal:only-child .card__description { font-size: 12px; }
+  .store-layout .home-edit__grid > .reveal:only-child .card__price { font-size: 16px; }
+  .store-layout .home-edit__grid > .reveal:only-child .card__quick { width: 38px; height: 38px; }
+}
+
