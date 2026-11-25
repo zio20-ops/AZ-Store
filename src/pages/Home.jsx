@@ -70,7 +70,7 @@ export default function Home() {
         </Reveal>
         <div className="grid home-edit__grid">
           {featuredProducts.map((product, index) => <Reveal key={product.id} style={{ '--reveal-delay': `${index * 70}ms` }}>
-            <div className="home-edit__card"><span>{String(index + 1).padStart(2, '0')}</span><ProductCard product={product} priority={index < 2} /></div>
+            <div className="home-edit__card"><ProductCard product={product} priority={index < 2} /></div>
           </Reveal>)}
         </div>
       </section>}
