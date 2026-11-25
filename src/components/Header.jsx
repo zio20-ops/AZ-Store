@@ -9,7 +9,9 @@ import LanguageToggle from './LanguageToggle.jsx';
 
 export default function Header() {
   const { t, localize, language } = useLanguage();
-  const { count, setCartOpen, setSearchOpen, announcement, categories } = useStore();
+  const { count, setCartOpen, setSearchOpen, announcement, categories, settings } = useStore();
+  const [customerLoginOverride, setCustomerLoginOverride] = useState(null);
+  const customerLoginEnabled = customerLoginOverride ?? settings.showCustomerLogin !== false;
   const [accountOpen, setAccountOpen] = useState(false);
   const [user, setUser] = useState(() => auth.getCurrentUser());
   const [menuOpen, setMenuOpen] = useState(false);
@@ -29,6 +31,28 @@ export default function Header() {
   useEffect(() => {
     setMenuOpen(false);
   }, [language]);
+
+  useEffect(() => {
+    const receiveSetting = (value) => {
+      if (typeof value?.showCustomerLogin === 'boolean') setCustomerLoginOverride(value.showCustomerLogin);
+    };
+    const onStorage = (event) => {
+      if (event.key === 'az.storefront.showCustomerLogin' && (event.newValue === 'true' || event.newValue === 'false')) {
+        receiveSetting({ showCustomerLogin: event.newValue === 'true' });
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('az-store-settings');
+    if (channel) channel.onmessage = (event) => receiveSetting(event.data);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      channel?.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!customerLoginEnabled) setAccountOpen(false);
+  }, [customerLoginEnabled]);
 
   useEffect(() => {
     const update = () => setUser(auth.getCurrentUser());
@@ -75,18 +99,19 @@ export default function Header() {
             <button className="header__icon-btn desktop-only" onClick={() => setSearchOpen(true)} aria-label={t("Search products")} title={t("Search")}>
               <SearchIcon />
             </button>
-            <div className="account desktop-only" ref={accountRef}>
+            {customerLoginEnabled && <div className="account desktop-only" ref={accountRef}>
               <button className="header__icon-btn" aria-label={t("Account menu")} title={t("Account")} aria-haspopup="true" aria-expanded={accountOpen} onClick={() => setAccountOpen((v) => !v)}>
                 <AccountIcon />
               </button>
               {accountOpen && (
                 <div className="account__panel" role="menu">
                   <Link to="/account" role="menuitem">{user ? t("My account") : t("Sign in / Create account")}</Link>
+                  <Link to="/track-order" role="menuitem">{t("Track your order")}</Link>
                   <Link to="/wishlist" role="menuitem">{t("Wishlist")}</Link>
                   <Link to="/contact" role="menuitem">{t("Contact us")}</Link>
                 </div>
               )}
-            </div>
+            </div>}
             <button className="header__icon-btn bag-icon-btn" onClick={() => setCartOpen(true)} aria-label={`Open shopping bag, ${count} items`} title={t("Shopping bag")}>
               <BagIcon />
               <span className="bag-count" aria-hidden="true">{count}</span>
@@ -102,7 +127,8 @@ export default function Header() {
         {navLinks.map((l) => (
           <Link key={l.label} to={l.to}>{t(l.label)}</Link>
         ))}
-        <Link to={user ? '/account' : '/account/login'}>{user ? t("My account") : t("Sign in / Create account")}</Link>
+        {customerLoginEnabled && <Link to={user ? '/account' : '/account/login'}>{user ? t("My account") : t("Sign in / Create account")}</Link>}
+        <Link to="/track-order">{t("Track your order")}</Link>
         <Link to="/wishlist">{t("Wishlist")}</Link>
         <Link to="/contact">{t("Contact")}</Link>
         <div className="mmenu__foot">
