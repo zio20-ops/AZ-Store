@@ -1251,6 +1251,10 @@
 .store-layout .home-edit__track:not(.home-edit__track--single) > .reveal:first-child { grid-column: auto; grid-row: auto; }
 .store-layout .home-edit__track:not(.home-edit__track--single) .home-edit__card { height: 100%; }
 
+/* Product accordion copy sits on the light product page surface. */
+.store-layout .acc__body > div { color: rgba(32,61,51,.84); opacity: 1; }
+.store-layout .acc--open .acc__body { max-height: 900px; }
+
 /* Refined storefront navigation */
 @media (max-width: 767px) {
   .store-layout .header { background: #214c3d; }
