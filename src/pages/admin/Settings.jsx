@@ -20,6 +20,7 @@ export default function Settings() {
     if (settings && Object.keys(settings).length) {
       setForm({
         announcement: settings.announcement ?? '',
+        showCustomerLogin: settings.showCustomerLogin !== false,
         freeDeliveryThreshold: settings.freeDeliveryThreshold ?? 1800,
         defaultLowStockThreshold: settings.defaultLowStockThreshold ?? 6,
         homepageImages: {
@@ -66,6 +67,7 @@ export default function Settings() {
     setSaving(true);
     const result = await catalog.saveSettings({
       announcement: form.announcement.trim(),
+      showCustomerLogin: Boolean(form.showCustomerLogin),
       freeDeliveryThreshold: threshold,
       defaultLowStockThreshold: low,
       homepageImages: form.homepageImages,
@@ -94,6 +96,8 @@ export default function Settings() {
             <input id="set-ann" value={form.announcement} onChange={(e) => setForm({ ...form, announcement: e.target.value })} />
             <span className="hint">Shown at the top of every customer page.</span>
           </div>
+          <label className="adcheck"><input type="checkbox" checked={form.showCustomerLogin} onChange={(e) => setForm({ ...form, showCustomerLogin: e.target.checked })} /> Show customer sign-in / account access in the storefront</label>
+          <p className="hint">This only shows or hides the customer account links. It does not change Firebase Authentication or administrator access.</p>
           <div className="adgrid">
             <div className="adfield">
               <label htmlFor="set-free">Free delivery threshold (EGP)</label>
