@@ -1036,3 +1036,50 @@
   .store-layout .pdp__buy-primary { min-height: 46px; font-size: 14px; }
 }
 
+/* Gift story: a composed two-part feature with no spare image-frame space. */
+.store-layout .gift {
+  grid-template-columns: minmax(0, 1.08fr) minmax(280px, .92fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 72px);
+  margin-block: 34px;
+  padding: clamp(16px, 2.4vw, 30px);
+  border: 1px solid rgba(33,76,61,.2);
+  border-radius: 4px;
+  background: #214c3d;
+  color: #f5f1df;
+}
+.store-layout .gift__media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.24 / 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(228,198,128,.32);
+  border-radius: 3px;
+  background: #382c23;
+  line-height: 0;
+}
+.store-layout .gift__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  object-fit: cover;
+  object-position: center;
+}
+.store-layout .gift__copy { padding: clamp(8px, 1.8vw, 24px); }
+.store-layout .gift__eyebrow { display: block; margin-bottom: 14px; color: #dfc27d; font: 600 10px/1.4 var(--body, sans-serif); letter-spacing: .2em; }
+.store-layout .gift__copy h2 { max-width: 11ch; margin: 0; color: #f5f1df; font-size: clamp(35px, 4.2vw, 58px); line-height: 1.06; }
+.store-layout .gift__copy p { max-width: 36ch; margin: 16px 0 22px; color: rgba(245,241,223,.78); font-size: 15px; line-height: 1.75; }
+.store-layout .gift__copy .btn--primary { min-height: 46px; border: 1px solid #d6b96f; border-radius: 3px; background: #d6b96f; color: #203d33; font-weight: 600; }
+.store-layout .gift__copy .btn--primary:hover { border-color: #e7cf91; background: #e7cf91; }
+@media (max-width: 767px) {
+  .store-layout .gift { grid-template-columns: minmax(0,1fr); gap: 0; margin-block: 26px; padding: 12px; }
+  .store-layout .gift__media { aspect-ratio: 1.2 / 1; }
+  .store-layout .gift__copy { padding: 22px 10px 14px; }
+  .store-layout .gift__eyebrow { margin-bottom: 10px; font-size: 9px; }
+  .store-layout .gift__copy h2 { max-width: 13ch; font-size: clamp(34px, 8.5vw, 42px); line-height: 1.12; }
+  .store-layout .gift__copy p { margin: 11px 0 17px; font-size: 14px; line-height: 1.7; }
+}
+
