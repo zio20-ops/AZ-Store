@@ -422,6 +422,8 @@ export const ARABIC_TEXT = {
   "AZ began in Cairo with a simple idea: finding something you love should feel personal. We bring together thoughtfully selected products, clear information and attentive service, all with a distinct AZ point of view.": "بدأت AZ في القاهرة بفكرة بسيطة: أن يكون العثور على ما تحب تجربة شخصية. نجمع منتجات مختارة بعناية ومعلومات واضحة وخدمة تهتم بالتفاصيل، كلها بلمسة AZ المميزة.",
   "A carefully styled AZ collection on dark marble": "مجموعة AZ بتنسيق أنيق على رخام داكن",
   "AZ packaging with a gold monogram on bronze satin": "تغليف AZ بشعار ذهبي على قماش برونزي",
+  "A minimal black AZ presentation box": "صندوق AZ أسود بتصميم بسيط",
+  "A thoughtfully wrapped AZ gift being handed over": "هدية AZ مغلّفة بعناية يجري تقديمها",
   "A collection that keeps growing": "مجموعة تتوسع باستمرار",
   "Our collection is designed to grow with the things our customers love. Each section has its own place, and every product includes the details that help you choose with confidence.": "صُممت مجموعتنا لتتوسع بما يحبه عملاؤنا. لكل قسم مكانه، ولكل منتج تفاصيل تساعدك على الاختيار بثقة.",
   "From the first look to the final delivery, we want every part of the AZ experience to feel considered, reliable and easy.": "من أول نظرة حتى التوصيل، نريد لكل خطوة في تجربة AZ أن تكون مدروسة وموثوقة وسهلة.",
@@ -456,3 +458,5 @@ export const ARABIC_TEXT = {
   "Discover the collection": "اكتشف المجموعة",
   "Add a product before checking out.": "أضف منتجًا قبل إتمام الطلب."
 };
+
+
