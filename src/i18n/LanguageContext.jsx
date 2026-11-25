@@ -6,9 +6,10 @@ const STORAGE_KEY = 'az-store-language';
 
 function readSavedLanguage() {
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === 'ar' ? 'ar' : 'en';
+    const savedLanguage = window.localStorage.getItem(STORAGE_KEY);
+    return savedLanguage === 'ar' || savedLanguage === 'en' ? savedLanguage : 'ar';
   } catch {
-    return 'en';
+    return 'ar';
   }
 }
 
