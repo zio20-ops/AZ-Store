@@ -117,10 +117,10 @@ export default function Header() {
               {count > 0 && <span className="bag-count" aria-hidden="true">{count}</span>}
             </button>
             <div className="header__mobile-tools">
-              <button className="header__icon-btn header__search-btn" onClick={() => setSearchOpen(true)} aria-label={t("Search products")} title={t("Search")}><SearchIcon /></button>
               <button className="header__icon-btn header__menu-btn" onClick={() => setMenuOpen(true)} aria-label={t("Open menu")} aria-expanded={menuOpen}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
               </button>
+              <button className="header__icon-btn header__search-btn" onClick={() => setSearchOpen(true)} aria-label={t("Search products")} title={t("Search")}><SearchIcon /></button>
             </div>
           </div>
         </div>
