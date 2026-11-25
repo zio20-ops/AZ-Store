@@ -82,6 +82,15 @@ export default function Settings() {
       toast(result.message || 'Unable to save settings.');
       return;
     }
+    const storefrontLoginSetting = { showCustomerLogin: Boolean(form.showCustomerLogin) };
+    try { localStorage.setItem('az.storefront.showCustomerLogin', String(storefrontLoginSetting.showCustomerLogin)); } catch { /* Firebase remains the source of truth if browser storage is unavailable. */ }
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel('az-store-settings');
+        channel.postMessage(storefrontLoginSetting);
+        channel.close();
+      }
+    } catch { /* Other storefront tabs will apply the saved setting on their next load. */ }
     await refreshCatalog();
     toast('Settings saved.');
   };
