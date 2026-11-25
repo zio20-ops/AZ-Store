@@ -403,6 +403,7 @@ export const ARABIC_TEXT = {
   "3 × 100 ml": "3 × 100 مل",
   "Find your": "اكتشف",
   "AZ / Objects to keep": "AZ / قطع تستحق الاحتفاظ بها",
+  "AZ / A gift to remember": "AZ / هدية تبقى في الذاكرة",
   "everyday favorite.": "ما تحبه كل يوم.",
   "Thoughtfully selected pieces for every day, with a distinct AZ touch.": "منتجات مختارة بعناية لكل يوم، بلمسة AZ المميزة.",
   "Explore sections": "اكتشف الأقسام",
