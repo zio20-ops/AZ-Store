@@ -141,7 +141,6 @@ export default function Header() {
         ))}
         {customerLoginEnabled && <Link to={user ? '/account' : '/account/login'}>{user ? t("My account") : t("Sign in / Create account")}</Link>}
         <Link to="/track-order">{t("Track your order")}</Link>
-        <Link to="/wishlist">{t("Wishlist")}</Link>
         <Link to="/faq#shipping">{t("Shipping policy")}</Link>
         <Link to="/faq#returns">{t("Exchange & return policy")}</Link>
         <div className="mmenu__foot">
