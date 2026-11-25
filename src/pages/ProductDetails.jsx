@@ -1,6 +1,6 @@
 import { useLanguage } from '../i18n/LanguageContext.jsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../store/StoreContext.jsx';
 import { useSeo } from '../hooks/useSeo.js';
 import { getVariations, productComparePrice, productDiscountPercent, productPrice, variationImageIndex } from '../data/products.js';
@@ -14,7 +14,8 @@ import { HeartIcon } from '../components/icons.jsx';
 export default function ProductDetails() {
   const { t, localize } = useLanguage();
   const { id } = useParams();
-  const { addToCart, wishlist, toggleWish, products, categories, productsLoading } = useStore();
+  const { addToCart, startDirectCheckout, wishlist, toggleWish, products, categories, productsLoading } = useStore();
+  const navigate = useNavigate();
   const product = products.find((p) => p.id === id);
   const productCategory = categories.find((category) => category.name === product?.category) || product?.category;
   const variations = product ? getVariations(product) : [];
@@ -125,7 +126,7 @@ export default function ProductDetails() {
 
         <div className="pdp__main">
           {selectedImage && <button type="button" className="pdp__zoom-trigger" onClick={() => { if (swipedGallery.current) { swipedGallery.current = false; return; } setGalleryOpen(true); }} aria-label={t('Enlarge image')} onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => { if (touchStartX.current === null || galleryImages.length < 2) return; const delta = event.changedTouches[0].clientX - touchStartX.current; if (Math.abs(delta) > 48) { showGalleryImage(imageIndex + (delta < 0 ? 1 : -1)); swipedGallery.current = true; } touchStartX.current = null; }}>
-            <img src={selectedImage.src} alt={localize(product)} style={{ objectFit: selectedImage.fit === 'contain' ? 'contain' : 'cover', transform: `scale(${Math.min(1.5, Math.max(1, Number(selectedImage.zoom ?? 100) / 100))})` }} />
+            <img src={selectedImage.src} alt={localize(product)} style={{ objectFit: selectedImage.fit === 'cover' ? 'cover' : 'contain', transform: `scale(${Math.min(1.5, Math.max(1, Number(selectedImage.zoom ?? 100) / 100))})` }} />
             <span className="pdp__zoom-hint">{t('Click to enlarge')}</span>
           </button>}
         </div>
@@ -168,7 +169,7 @@ export default function ProductDetails() {
               onClick={() => addToCart(product.id, variation.id, qty)}
               disabled={soldOut}
             >
-              {soldOut ? t("Sold out") : t("Add to bag")}
+              {soldOut ? t("Sold out") : t("Add to cart")}
             </button>
             <button
               className={`pdp__wish ${wished ? 'pdp__wish--on' : ''}`}
@@ -181,6 +182,14 @@ export default function ProductDetails() {
               <HeartIcon filled={wished} />
             </button>
           </div>
+          <button
+            className="btn btn--dark pdp__checkout"
+            type="button"
+            onClick={() => { if (startDirectCheckout(product.id, variation.id, qty)) navigate('/checkout'); }}
+            disabled={soldOut}
+          >
+            {soldOut ? t("Sold out") : t("Buy now")}
+          </button>
           <p className={`pdp__stock ${soldOut ? 'pdp__stock--out' : ''}`} role="status">
             {soldOut
               ? t("This size is sold out — try another size.")
