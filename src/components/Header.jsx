@@ -136,7 +136,7 @@ export default function Header() {
           <span aria-hidden="true" />
         </div>
         <div className="mmenu__language"><LanguageToggle /></div>
-        {navLinks.map((l) => (
+        {navLinks.filter((link) => link.label !== 'Shop all').map((l) => (
           <Link key={l.label} to={l.to}>{t(l.label)}</Link>
         ))}
         {customerLoginEnabled && <Link to={user ? '/account' : '/account/login'}>{user ? t("My account") : t("Sign in / Create account")}</Link>}
