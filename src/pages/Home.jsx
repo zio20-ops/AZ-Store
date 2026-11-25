@@ -51,7 +51,6 @@ export default function Home() {
             const categoryPath = `/shop?category=${encodeURIComponent(categorySlug(category) || category.id)}`;
             return <Reveal className={`mood mood--${['night', 'bold', 'soft'][index % 3]}${homeCategories.length === 1 ? ' mood--featured' : ''}`} key={category.id}>
               {image && <Link className="mood__image-link" to={categoryPath} aria-label={`${t('Shop section')}: ${localize(category)}`}><img src={image} alt={localize(category)} loading="lazy" />}</Link>}
-              <span className="mood__no">{String(index + 1).padStart(2, '0')}</span>
               <h3><Link className="mood__title-link" to={categoryPath}>{localize(category)}</Link></h3>
               <p>{localize(category, 'description') || t(`Explore products in ${category.name}.`)}</p>
               <Link className="btn btn--text" to={categoryPath}>{t("Shop section")}</Link>
@@ -78,7 +77,7 @@ export default function Home() {
 
       <section className="container gift">
         <Reveal className="gift__media"><img src={giftImage} alt={t("A thoughtful AZ Store gift") } loading="lazy" /></Reveal>
-        <Reveal><h2>{t("Made to be")}<br />{t("remembered.")}</h2><p>{t("Explore the collection and find a thoughtful gift or a new everyday favorite.")}</p><Link className="btn btn--primary" to="/shop">{t("Discover the collection")}</Link></Reveal>
+        <Reveal className="gift__copy"><span className="gift__eyebrow">{t("AZ / A gift to remember")}</span><h2>{t("Made to be")}<br />{t("remembered.")}</h2><p>{t("Explore the collection and find a thoughtful gift or a new everyday favorite.")}</p><Link className="btn btn--primary" to="/shop">{t("Discover the collection")}</Link></Reveal>
       </section>
 
       <section className="container statement"><Reveal><p>{t("Made for the moments that make you, you.")}</p><small>{t("AZ Store — Cairo")}</small></Reveal></section>
