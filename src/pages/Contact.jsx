@@ -73,11 +73,12 @@ export default function Contact() {
               <span>{c.label}</span>
               <span>{c.href.startsWith('tel:') || c.href.includes('wa.me') ? <bdi dir="ltr">{c.value}</bdi> : c.value}</span>
             </a>
-          ) : <div key={c.label}><span>{c.label}</span><span>{c.href.startsWith('tel:') || c.href.includes('wa.me') ? <bdi dir="ltr">{c.value}</bdi> : c.value}</span></div>)}
+          ) : <div key={c.label}><span>{c.label}</span><span>{c.value}</span></div>)}
           <div><span>{t("Hours")}</span><span>{t("Sat to Thu, 10:00 – 20:00")}</span></div>
         </div>
       </div>
     </div>
   );
 }
+
 
